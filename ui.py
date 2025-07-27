@@ -15,8 +15,8 @@ class AgentFrameworkView:
         """Get the title for the UI"""
         return """
         <div style="text-align: center; padding: 20px;">
-            <h1>🤖 SQL Lineage Analysis Agent</h1>
-            <p>Analyze SQL queries for data lineage, field mappings, and operation logic</p>
+            <h1>🤖 Lineage Analysis Agent</h1>
+            <p>Analyze data processing scripts (across various scripts including SQL, Python, etc.) for data lineage</p>
         </div>
         """
     
@@ -97,19 +97,22 @@ class AgentFrameworkView:
             
             return f"""
             <div style='text-align: center; padding: 10px;'>
-                <h4 style='color: #28a745; margin-bottom: 10px;'>📊 Visualize Aggregation Data</h4>
+                <div style='color: #007bff; font-size: 14px; margin-bottom: 15px;'>
+                    1. Click "Open JSONCrack Editor" below<br>
+                    2. Click "Copy JSON" button or click the JSON data below to select all<br>
+                    3. Paste it into the JSONCrack editor
+                </div>
                 <a href='https://jsoncrack.com/editor' target='_blank' style='color: #007bff; text-decoration: none; font-weight: bold;'>
                     🔗 Open JSONCrack Editor
                 </a>
                 <br><br>
                 <div style='background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 5px; padding: 10px; margin: 10px 0;'>
                     <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;'>
-                        <h5 style='color: #495057; margin: 0;'>📋 Copy this JSON and paste it in JSONCrack:</h5>
-                        <button onclick="document.getElementById('json-textarea').select(); document.getElementById('json-textarea').setSelectionRange(0, 99999); navigator.clipboard.writeText(document.getElementById('json-textarea').value).then(() => alert('JSON copied to clipboard!')).catch(() => alert('Failed to copy. Please select and copy manually.'));" style='background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;'>📋 Copy JSON</button>
+                        <div></div>
+                        <button onclick="document.getElementById('json-textarea').select(); document.getElementById('json-textarea').setSelectionRange(0, 99999); navigator.clipboard.writeText(document.getElementById('json-textarea').value).then(() => alert('JSON copied to clipboard!')).catch(() => alert('Failed to copy. Please select and copy manually.'));" style='background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 120px;'>📋 Copy JSON</button>
                     </div>
                     <textarea id="json-textarea" readonly style='background: #ffffff; color: #000000; padding: 8px; border-radius: 3px; border: 1px solid #e0e0e0; font-family: monospace; font-size: 12px; width: 100%; height: 200px; resize: vertical; cursor: text;' onclick="this.select(); this.setSelectionRange(0, 99999);" title="Click to select all JSON">{formatted_json}</textarea>
                 </div>
-                <small style='color: #6c757d;'>1. Click "Open JSONCrack Editor" above<br>2. Click "Copy JSON" button or click the JSON data below to select all<br>3. Paste it into the JSONCrack editor</small>
             </div>
             """
         except Exception as e:
@@ -130,7 +133,7 @@ class AgentFrameworkView:
             return error_msg
         
         if not query.strip():
-            error_msg = "<div style='color: #ff6b6b;'>❌ Please enter a SQL query</div>"
+            error_msg = "<div style='color: #ff6b6b;'>❌ Please enter a query</div>"
             return error_msg
         
         try:
@@ -157,7 +160,7 @@ class AgentFrameworkView:
             status_html = gr.HTML(self.get_status())
             
             # Configuration Section
-            with gr.Row(variant="panel"):
+            with gr.Row(variant="default"):
                 gr.Markdown("### Configuration")
                 with gr.Column():
                     name_input = gr.Textbox(
@@ -181,19 +184,19 @@ class AgentFrameworkView:
                     init_button = gr.Button("Initialize Framework", variant="primary")
             
             # Query Input Section
-            with gr.Row(variant="panel"):
-                gr.Markdown("### SQL Query Analysis")
+            with gr.Row(variant="default"):
+                gr.Markdown("### Query Analysis")
                 with gr.Column():
                     query_input = gr.Textbox(
-                        label="SQL Query",
-                        placeholder="Enter your SQL query here...",
+                        label="Query",
+                        placeholder="Enter your query here...",
                         lines=5,
                         max_lines=10
                     )
                     run_button = gr.Button("Run Analysis", variant="primary")
             
             # Visualize Section
-            with gr.Row(variant="panel"):
+            with gr.Row(variant="default"):
                 gr.Markdown("### Visualize")
                 with gr.Column():
                     visualize_html = gr.HTML(self.get_visualize_link())
@@ -236,7 +239,7 @@ def create_ui():
     
     # Create the UI
     with gr.Blocks(
-        title="SQL Lineage Analysis Agent",
+        title="Lineage Analysis Agent",
         theme=gr.themes.Default(primary_hue="blue"),
         css="""
         .gradio-container {
@@ -248,6 +251,15 @@ def create_ui():
         }
         .dataframe-fix-small {
             font-size: 10px;
+        }
+        .gradio-panel {
+            overflow: visible !important;
+        }
+        .gradio-row {
+            overflow: visible !important;
+        }
+        .gradio-column {
+            overflow: visible !important;
         }
         """
     ) as ui:
