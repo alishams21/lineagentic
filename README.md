@@ -15,7 +15,7 @@ $$
 P := f(T, C)
 $$
 
-## planning agnet
+## planning agent
 
 The planning agent orchestrates the execution of the prompt provided by the agent framework (P) by selecting the appropriate agent (A) and its corresponding task (T).
 
