@@ -108,14 +108,9 @@ class Planner_Agent:
         aggregation_result = await Runner.run(aggregation_logic_agent, combined_output, max_turns=MAX_TURNS)
         aggregation_output = aggregation_result.final_output
         
-        dump_json_record(f"{self.name}_lineage", aggregation_output)
-        # Return all results for potential use
-        return {
-            'structure_parsing': structure_output,
-            'field_mapping': field_mapping_output,
-            'operation_logic': operation_logic_output,
-            'aggregation': aggregation_output
-        }
+        dumped_aggregation = dump_json_record(f"{self.name}_lineage", aggregation_output)
+
+        return dumped_aggregation
 
     async def run_with_mcp_servers(self, query:str):
         async with AsyncExitStack() as stack:

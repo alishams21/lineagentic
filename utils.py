@@ -20,7 +20,7 @@ def clean_json_string(text: str) -> str:
     return text
 
 
-def dump_json_record(filename: str, record: Union[Dict[str, Any], str], lineagedb_folder: str = "lineagedb") -> None:
+def dump_json_record(filename: str, record: Union[Dict[str, Any], str], lineagedb_folder: str = "lineagedb") -> Union[Dict[str, Any], str]:
     """
     Create a file under the lineagedb folder and dump a JSON record as a new line.
     
@@ -29,9 +29,12 @@ def dump_json_record(filename: str, record: Union[Dict[str, Any], str], lineaged
         record (Union[Dict[str, Any], str]): The JSON record to dump (can be dict or string)
         lineagedb_folder (str): The folder name for lineage database files (default: "lineagedb")
     
+    Returns:
+        Union[Dict[str, Any], str]: The processed record that was dumped to the file
+    
     Example:
-        dump_json_record("user_queries", {"query": "SELECT * FROM users"})
-        dump_json_record("outputs", "This is a string output")
+        dumped_data = dump_json_record("user_queries", {"query": "SELECT * FROM users"})
+        dumped_data = dump_json_record("outputs", "This is a string output")
     """
     # Create the lineagedb folder if it doesn't exist
     folder_path = Path(lineagedb_folder)
@@ -51,25 +54,32 @@ def dump_json_record(filename: str, record: Union[Dict[str, Any], str], lineaged
             parsed_data = json.loads(cleaned_record)
             # Re-serialize without escaping newlines and with proper formatting
             json_line = json.dumps(parsed_data, ensure_ascii=False, separators=(',', ':'))
+            processed_record = parsed_data
         except json.JSONDecodeError:
             # If it's not valid JSON, treat it as a plain string
             json_line = json.dumps(cleaned_record, ensure_ascii=False)
+            processed_record = cleaned_record
             
     elif isinstance(record, dict):
         # If it's already a dict, convert to JSON string
         json_line = json.dumps(record, ensure_ascii=False, separators=(',', ':'))
+        processed_record = record
     else:
         # For other types, convert to string and then to JSON
         cleaned_record = clean_json_string(str(record))
         try:
             parsed_data = json.loads(cleaned_record)
             json_line = json.dumps(parsed_data, ensure_ascii=False, separators=(',', ':'))
+            processed_record = parsed_data
         except json.JSONDecodeError:
             json_line = json.dumps(cleaned_record, ensure_ascii=False)
+            processed_record = cleaned_record
     
     # Append the JSON record as a new line to the file
     with open(file_path, "a", encoding="utf-8") as f:
         f.write(json_line + "\n")
+    
+    return processed_record
 
 
 def read_json_records(filename: str, lineagedb_folder: str = "lineagedb") -> list:

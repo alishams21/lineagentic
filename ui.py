@@ -32,37 +32,25 @@ class AgentFrameworkView:
         if self.current_results is None:
             return "<div style='color: #000000;'>No analysis results yet. Run a query to see results.</div>"
         
-        if "error" in self.current_results:
+        if isinstance(self.current_results, dict) and "error" in self.current_results:
             return f"<div style='color: #ff6b6b;'>❌ Error: {self.current_results['error']}</div>"
         
-        # Create a summary of the results
-        summary_parts = []
-        if "structure_parsing" in self.current_results:
-            summary_parts.append("📊 Structure Analysis: Complete")
-        if "field_mapping" in self.current_results:
-            summary_parts.append("🗺️ Field Mapping: Complete")
-        if "operation_logic" in self.current_results:
-            summary_parts.append("⚙️ Operation Logic: Complete")
-        if "aggregation" in self.current_results:
-            summary_parts.append("🔗 Aggregation: Complete")
-        
-        return f"<div style='color: #51cf66;'>✅ Analysis Complete<br>{'<br>'.join(summary_parts)}</div>"
+        # Since we now return just the aggregation data, show a simple summary
+        return "<div style='color: #51cf66;'>✅ Analysis Complete<br>🔗 Aggregation: Complete</div>"
     
     def get_detailed_results(self) -> str:
         """Get detailed results in formatted HTML"""
         if self.current_results is None:
             return "<div style='color: #000000;'>No results to display</div>"
         
-        if "error" in self.current_results:
+        if isinstance(self.current_results, dict) and "error" in self.current_results:
             return f"<div style='color: #ff6b6b;'>❌ Error: {self.current_results['error']}</div>"
         
-        # Format the results as HTML
+        # Format the results as HTML - now we just have the aggregation data
         html_parts = ["<div style='font-family: monospace; color: #000000;'>"]
         
-        for key, value in self.current_results.items():
-            if key != "error":
-                html_parts.append(f"<h3 style='color: #28a745; font-weight: bold;'>{key.replace('_', ' ').title()}</h3>")
-                html_parts.append(f"<pre style='background: #ffffff; color: #000000; padding: 10px; border-radius: 5px; overflow-x: auto; border: 1px solid #e0e0e0;'>{value}</pre>")
+        html_parts.append(f"<h3 style='color: #28a745; font-weight: bold;'>Aggregation Output</h3>")
+        html_parts.append(f"<pre style='background: #ffffff; color: #000000; padding: 10px; border-radius: 5px; overflow-x: auto; border: 1px solid #e0e0e0;'>{self.current_results}</pre>")
         
         html_parts.append("</div>")
         return "".join(html_parts)
@@ -72,16 +60,25 @@ class AgentFrameworkView:
         if self.current_results is None:
             return "{}"
         
+        # If it's already a string, try to parse it as JSON for better formatting
+        if isinstance(self.current_results, str):
+            try:
+                parsed_data = json.loads(self.current_results)
+                return json.dumps(parsed_data, indent=2)
+            except json.JSONDecodeError:
+                # If it's not valid JSON, wrap it in a dict
+                return json.dumps({"aggregation_output": self.current_results}, indent=2)
+        
         return json.dumps(self.current_results, indent=2)
     
     def get_visualize_link(self) -> str:
-        """Generate JSONCrack visualization link for aggregation data"""
-        if self.current_results is None or "aggregation" not in self.current_results:
+        """Generate JSONCrack visualization interface for aggregation data"""
+        if self.current_results is None:
             return "<div style='color: #868e96;'>No aggregation data available for visualization</div>"
         
         try:
-            # Get the aggregation data
-            aggregation_data = self.current_results["aggregation"]
+            # Get the aggregation data - now it's directly the current_results
+            aggregation_data = self.current_results
             
             # If it's a string, try to parse it as JSON, otherwise wrap it in a dict
             if isinstance(aggregation_data, str):
@@ -95,24 +92,28 @@ class AgentFrameworkView:
             else:
                 data_to_encode = aggregation_data
             
-            # Encode JSON for URL
-            encoded_json = urllib.parse.quote(json.dumps(data_to_encode))
-            
-            # Create JSONCrack URL
-            url = f"https://jsoncrack.com/json?json={encoded_json}"
+            # Format JSON for display
+            formatted_json = json.dumps(data_to_encode, indent=2)
             
             return f"""
             <div style='text-align: center; padding: 10px;'>
                 <h4 style='color: #28a745; margin-bottom: 10px;'>📊 Visualize Aggregation Data</h4>
-                <a href='{url}' target='_blank' style='color: #007bff; text-decoration: none; font-weight: bold;'>
-                    🔗 Open in JSONCrack
+                <a href='https://jsoncrack.com/editor' target='_blank' style='color: #007bff; text-decoration: none; font-weight: bold;'>
+                    🔗 Open JSONCrack Editor
                 </a>
                 <br><br>
-                <small style='color: #6c757d;'>Click to open the aggregation data in JSONCrack for interactive visualization</small>
+                <div style='background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 5px; padding: 10px; margin: 10px 0;'>
+                    <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;'>
+                        <h5 style='color: #495057; margin: 0;'>📋 Copy this JSON and paste it in JSONCrack:</h5>
+                        <button onclick="document.getElementById('json-textarea').select(); document.getElementById('json-textarea').setSelectionRange(0, 99999); navigator.clipboard.writeText(document.getElementById('json-textarea').value).then(() => alert('JSON copied to clipboard!')).catch(() => alert('Failed to copy. Please select and copy manually.'));" style='background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;'>📋 Copy JSON</button>
+                    </div>
+                    <textarea id="json-textarea" readonly style='background: #ffffff; color: #000000; padding: 8px; border-radius: 3px; border: 1px solid #e0e0e0; font-family: monospace; font-size: 12px; width: 100%; height: 200px; resize: vertical; cursor: text;' onclick="this.select(); this.setSelectionRange(0, 99999);" title="Click to select all JSON">{formatted_json}</textarea>
+                </div>
+                <small style='color: #6c757d;'>1. Click "Open JSONCrack Editor" above<br>2. Click "Copy JSON" button or click the JSON data below to select all<br>3. Paste it into the JSONCrack editor</small>
             </div>
             """
         except Exception as e:
-            return f"<div style='color: #ff6b6b;'>❌ Error generating visualization link: {str(e)}</div>"
+            return f"<div style='color: #ff6b6b;'>❌ Error generating visualization data: {str(e)}</div>"
     
     def initialize_framework(self, name: str, model_name: str) -> str:
         """Initialize the agent framework"""
@@ -122,31 +123,28 @@ class AgentFrameworkView:
         except Exception as e:
             return f"<div style='color: #ff6b6b;'>❌ Error initializing framework: {str(e)}</div>"
     
-    def run_analysis(self, query: str) -> tuple[str, str, str, str]:
+    def run_analysis(self, query: str) -> str:
         """Run SQL lineage analysis"""
         if self.framework is None:
             error_msg = "<div style='color: #ff6b6b;'>❌ Please initialize the framework first</div>"
-            return error_msg, error_msg, "{}", error_msg
+            return error_msg
         
         if not query.strip():
             error_msg = "<div style='color: #ff6b6b;'>❌ Please enter a SQL query</div>"
-            return error_msg, error_msg, "{}", error_msg
+            return error_msg
         
         try:
             # Run the analysis using asyncio.run
             self.current_results = asyncio.run(self.framework.run_sql_lineage_analysis(query))
             
-            # Return formatted results
-            summary = self.get_results_summary()
-            details = self.get_detailed_results()
-            json_results = self.get_results_json()
+            # Return only the visualize link
             visualize_link = self.get_visualize_link()
             
-            return summary, details, json_results, visualize_link
+            return visualize_link
             
         except Exception as e:
             error_msg = f"<div style='color: #ff6b6b;'>❌ Error running analysis: {str(e)}</div>"
-            return error_msg, error_msg, "{}", error_msg
+            return error_msg
     
     def make_ui(self):
         """Create the Gradio UI components"""
@@ -200,17 +198,7 @@ class AgentFrameworkView:
                 with gr.Column():
                     visualize_html = gr.HTML(self.get_visualize_link())
             
-            # Results Section
-            with gr.Row(variant="panel"):
-                gr.Markdown("### Analysis Results")
-                with gr.Column():
-                    results_summary = gr.HTML(self.get_results_summary())
-                    results_details = gr.HTML(self.get_detailed_results())
-                    results_json = gr.Code(
-                        label="Raw Results (JSON)",
-                        language="json",
-                        value="{}"
-                    )
+
             
             # Event handlers
             init_button.click(
@@ -222,7 +210,7 @@ class AgentFrameworkView:
             run_button.click(
                 fn=self.run_analysis,
                 inputs=[query_input],
-                outputs=[results_summary, results_details, results_json, visualize_html]
+                outputs=[visualize_html]
             )
             
             # Auto-refresh status when framework changes
