@@ -1,5 +1,5 @@
 from agents import TracingProcessor, Trace, Span
-from .database import write_lineage_log
+from utils.database import write_lineage_log
 import secrets
 import string
 

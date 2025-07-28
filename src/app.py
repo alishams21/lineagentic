@@ -2,7 +2,12 @@ import gradio as gr
 import asyncio
 import json
 import urllib.parse
-from cot_agents.agent_framework import AgentFramework
+import sys
+import os
+# Add the src directory to the Python path
+sys.path.append(os.path.dirname(__file__))
+
+from agents_chain.agent_framework import AgentFramework
 from typing import Dict, Any, Optional
 
 

@@ -1,16 +1,14 @@
+import os
 from contextlib import AsyncExitStack
 from utils.tracers import log_trace_id
 from agents import Agent, Tool, Runner, OpenAIChatCompletionsModel, trace
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
-import os
-import json
-from agents.mcp import MCPServerStdio
-from instructions.sql_instructions import (structure_parsing_instructions,
+from agents.mcp.server import MCPServerStdio
+from agents_instructions.sql_instructions import (structure_parsing_instructions,
                        field_mapping_instructions,
                        operation_logic_instructions,
                        aggregation_logic_instructions)
-
 from mcp_servers.mcp_params import sql_mcp_server_params
 from utils.file_utils import dump_json_record
 

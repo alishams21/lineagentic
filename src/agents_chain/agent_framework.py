@@ -1,5 +1,5 @@
 import asyncio
-from .planner_agent import PlannerAgent
+from agents_chain.planner_agent import PlannerAgent
 from typing import Optional, Dict, Any
 
 
