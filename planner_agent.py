@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 import os
 import json
 from agents.mcp import MCPServerStdio
-from templates import (structure_parsing_instructions,
+from instructions import (structure_parsing_instructions,
                        field_mapping_instructions,
                        operation_logic_instructions,
                        aggregation_logic_instructions)
