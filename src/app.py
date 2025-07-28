@@ -103,8 +103,6 @@ class AgentFrameworkView:
             # Debug: Show first few logs found
             if logs:
                 print(f"Debug: First 3 logs found:")
-                for i, log in enumerate(logs[:3]):
-                    print(f"  {i+1}. [{log['timestamp']}] {log['name']}: {log['type']} - {log['message']}")
             else:
                 print(f"Debug: No logs found")
             
@@ -135,8 +133,6 @@ class AgentFrameworkView:
         try:
             # Get current timestamp for comparison
             current_time = datetime.now().isoformat()
-            
-            print(f"Debug: get_new_logs_for_streaming - current_agent_name={self.current_agent_name}, show_all_logs={self.show_all_logs}")
             
             if self.current_agent_name and not self.show_all_logs:
                 # Get logs for specific agent
@@ -243,8 +239,6 @@ class AgentFrameworkView:
         # Debug logging
         if new_logs:
             print(f"Streaming: Found {len(new_logs)} new logs")
-            for log in new_logs:
-                print(f"  - [{log['timestamp']}] {log['name']}: {log['type']} - {log['message']}")
         
         # If we have new logs, update the display
         if new_logs:
