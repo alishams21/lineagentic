@@ -63,52 +63,52 @@ class PlannerAgent:
 
     async def run_agent(self, sql_mcp_servers, query:str):
         # Step 1: Run structure parsing agent first
-        structure_parsing_agent = await self.create_agent(sql_mcp_servers, syntax_analysis_instructions(self.name))
-        structure_result = await Runner.run(structure_parsing_agent, query, max_turns=MAX_TURNS)
-        structure_output = structure_result.final_output
+        syntax_analysis_agent = await self.create_agent(sql_mcp_servers, syntax_analysis_instructions(self.name))
+        syntax_analysis_result = await Runner.run(syntax_analysis_agent, query, max_turns=MAX_TURNS)
+        syntax_analysis_output = syntax_analysis_result.final_output
         
         # Step 2: Run field mapping and operation logic agents in parallel using the structure output
-        field_mapping_agent = await self.create_agent(sql_mcp_servers, field_derivation_instructions(self.name))
-        operation_logic_agent = await self.create_agent(sql_mcp_servers, operation_tracing_instructions(self.name))
+        field_derivation_agent = await self.create_agent(sql_mcp_servers, field_derivation_instructions(self.name))
+        operation_tracing_agent = await self.create_agent(sql_mcp_servers, operation_tracing_instructions(self.name))
         
         # Create enhanced messages that include the structure parsing output
-        field_mapping_message = f"Based on the following structure analysis:\n{structure_output}\n\nAnalyze the field mappings for the original query: {query}"
-        operation_logic_message = f"Based on the following structure analysis:\n{structure_output}\n\nAnalyze the operation logic for the original query: {query}"
+        field_derivation_message = f"Based on the following structure analysis:\n{syntax_analysis_output}\n\nAnalyze the field mappings for the original query: {query}"
+        operation_tracing_message = f"Based on the following structure analysis:\n{syntax_analysis_output}\n\nAnalyze the operation logic for the original query: {query}"
         
         # Run both agents in parallel using asyncio.gather to ensure both complete before aggregation
         import asyncio
-        field_mapping_result, operation_logic_result = await asyncio.gather(
-            Runner.run(field_mapping_agent, field_mapping_message, max_turns=MAX_TURNS),
-            Runner.run(operation_logic_agent, operation_logic_message, max_turns=MAX_TURNS)
+        field_derivation_result, operation_tracing_result = await asyncio.gather(
+            Runner.run(field_derivation_agent, field_derivation_message, max_turns=MAX_TURNS),
+            Runner.run(operation_tracing_agent, operation_tracing_message, max_turns=MAX_TURNS)
         )
         
-        field_mapping_output = field_mapping_result.final_output
-        operation_logic_output = operation_logic_result.final_output
+        field_derivation_output = field_derivation_result.final_output
+        operation_tracing_output = operation_tracing_result.final_output
         
         # Step 3: Aggregate all outputs and run aggregation logic agent
-        aggregation_logic_agent = await self.create_agent(sql_mcp_servers, event_composer_instructions(self.name))
+        event_composer_agent = await self.create_agent(sql_mcp_servers, event_composer_instructions(self.name))
         
         # Combine all outputs for the aggregation agent
         combined_output = f"""
         Structure Parsing Output:
-        {structure_output}
+        {syntax_analysis_output}
         
         Field Mapping Output:
-        {field_mapping_output}
+        {field_derivation_output}
         
         Operation Logic Output:
-        {operation_logic_output}
+        {operation_tracing_output}
         
         Original Query:
         {query}
         """
         
-        aggregation_result = await Runner.run(aggregation_logic_agent, combined_output, max_turns=MAX_TURNS)
-        aggregation_output = aggregation_result.final_output
+        event_composer_result = await Runner.run(event_composer_agent, combined_output, max_turns=MAX_TURNS)
+        event_composer_output = event_composer_result.final_output
         
-        dumped_aggregation = dump_json_record(f"{self.name}_lineage", aggregation_output)
+        dumped_event_composer = dump_json_record(f"{self.name}_lineage", event_composer_output)
 
-        return dumped_aggregation
+        return dumped_event_composer
 
     async def run_with_mcp_servers(self, query:str):
         async with AsyncExitStack() as stack:

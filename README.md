@@ -1,4 +1,4 @@
-# LineAgent
+# Lineagent
 Lineagent is an agentic framework for data lineage extraction across various data processing script types and export the results in OpenLineage format.
 
 

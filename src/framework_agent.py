@@ -1,7 +1,9 @@
 import asyncio
 from agents_chain.planner_agent import PlannerAgent
 from typing import Optional, Dict, Any
-
+from utils.tracers import LogTracer
+from agents import add_trace_processor
+import json
 
 class AgentFramework:
     def __init__(self, name: str, model_name: str = "gpt-4o-mini"):
@@ -31,6 +33,7 @@ class AgentFramework:
                 - aggregation: Final aggregated output
         """
         # Create a new planner agent for each query
+        add_trace_processor(LogTracer())
         planner_agent = PlannerAgent(name=self.name, model_name=self.model_name, query=query)
         
         try:
@@ -77,8 +80,30 @@ class AgentFramework:
 async def main():
 
     framework = AgentFramework(name="sql", model_name="gpt-4o")
-    custom_result = await framework.run_sql_lineage_analysis(query="select user_id, name, email from users")
-    print("Custom agent result:", custom_result)
+    custom_result = await framework.run_sql_lineage_analysis(query="""
+                                                             SELECT 
+                                                            c.region,
+                                                            COUNT(DISTINCT o.order_id) AS total_orders,
+                                                            COUNT(DISTINCT oi.item_id) AS total_items_sold,
+                                                            SUM(oi.item_total) AS total_revenue
+                                                        FROM 
+                                                            customers c
+                                                        JOIN 
+                                                            orders o ON c.customer_id = o.customer_id
+                                                        JOIN 
+                                                            order_items oi ON o.order_id = oi.order_id
+                                                        WHERE 
+                                                            o.order_date BETWEEN '2025-01-01' AND '2025-06-30'
+                                                            AND c.status = 'active'
+                                                        GROUP BY 
+                                                            c.region
+                                                        HAVING 
+                                                            SUM(oi.item_total) > 10000
+                                                        ORDER BY 
+                                                            total_revenue DESC;
+
+                                                             """)
+    print(json.dumps(custom_result, indent=12))
 
 
 if __name__ == "__main__":

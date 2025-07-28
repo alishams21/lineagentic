@@ -3,6 +3,7 @@ import json
 import os
 from datetime import datetime
 from dotenv import load_dotenv
+from enum import Enum
 
 load_dotenv(override=True)
 
@@ -13,6 +14,26 @@ os.makedirs(agents_log_dir, exist_ok=True)
 # Set the database path inside the agents_log_db folder
 DB = os.path.join(agents_log_dir, "agents_logs.db")
 
+# Color enum for console output
+class Color(Enum):
+    WHITE = "\033[97m"
+    CYAN = "\033[96m"
+    GREEN = "\033[92m"
+    YELLOW = "\033[93m"
+    MAGENTA = "\033[95m"
+    RED = "\033[91m"
+    RESET = "\033[0m"
+
+# Color mapping for different log types
+color_mapper = {
+    "trace": Color.WHITE,
+    "agent": Color.CYAN,
+    "function": Color.GREEN,
+    "generation": Color.YELLOW,
+    "response": Color.MAGENTA,
+    "account": Color.RED,
+    "span": Color.CYAN,  # Default for span type
+}
 
 with sqlite3.connect(DB) as conn:
     cursor = conn.cursor()
@@ -28,16 +49,24 @@ with sqlite3.connect(DB) as conn:
     conn.commit()
 
 
-def write_lineage_log(name: str, lineage: str, type: str, message: str):
+def write_lineage_log(name: str, type: str, message: str):
     """
-    Write a log entry to the logs table.
+    Write a log entry to the logs table and console with colors.
     
     Args:
         name (str): The name associated with the log
-        lineage (str): The lineage of the log entry
+        type (str): The type of log entry
+        message (str): The log message
     """
     now = datetime.now().isoformat()
     
+    # Get color for the log type, default to white if not found
+    color = color_mapper.get(type.lower(), Color.WHITE)
+    
+    # Console logging with colors
+    print(f"{color.value}[{now}] {name.upper()}: {type} - {message}{Color.RESET.value}")
+    
+    # Database logging
     with sqlite3.connect(DB) as conn:
         cursor = conn.cursor()
         cursor.execute('''

@@ -7,7 +7,7 @@ import os
 # Add the src directory to the Python path
 sys.path.append(os.path.dirname(__file__))
 
-from agents_chain.framework_agent import AgentFramework
+from framework_agent import AgentFramework
 from typing import Dict, Any, Optional
 
 
