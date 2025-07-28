@@ -5,10 +5,10 @@ from agents import Agent, Tool, Runner, OpenAIChatCompletionsModel, trace
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
 from agents.mcp.server import MCPServerStdio
-from agents_instructions.sql_instructions import (structure_parsing_instructions,
-                       field_mapping_instructions,
-                       operation_logic_instructions,
-                       aggregation_logic_instructions)
+from agents_instructions.sql_instructions import (syntax_analysis_instructions,
+                       field_derivation_instructions,
+                       operation_tracing_instructions,
+                       event_composer_instructions)
 from mcp_servers.mcp_params import sql_mcp_server_params
 from utils.file_utils import dump_json_record
 
@@ -63,13 +63,13 @@ class PlannerAgent:
 
     async def run_agent(self, sql_mcp_servers, query:str):
         # Step 1: Run structure parsing agent first
-        structure_parsing_agent = await self.create_agent(sql_mcp_servers, structure_parsing_instructions(self.name))
+        structure_parsing_agent = await self.create_agent(sql_mcp_servers, syntax_analysis_instructions(self.name))
         structure_result = await Runner.run(structure_parsing_agent, query, max_turns=MAX_TURNS)
         structure_output = structure_result.final_output
         
         # Step 2: Run field mapping and operation logic agents in parallel using the structure output
-        field_mapping_agent = await self.create_agent(sql_mcp_servers, field_mapping_instructions(self.name))
-        operation_logic_agent = await self.create_agent(sql_mcp_servers, operation_logic_instructions(self.name))
+        field_mapping_agent = await self.create_agent(sql_mcp_servers, field_derivation_instructions(self.name))
+        operation_logic_agent = await self.create_agent(sql_mcp_servers, operation_tracing_instructions(self.name))
         
         # Create enhanced messages that include the structure parsing output
         field_mapping_message = f"Based on the following structure analysis:\n{structure_output}\n\nAnalyze the field mappings for the original query: {query}"
@@ -86,7 +86,7 @@ class PlannerAgent:
         operation_logic_output = operation_logic_result.final_output
         
         # Step 3: Aggregate all outputs and run aggregation logic agent
-        aggregation_logic_agent = await self.create_agent(sql_mcp_servers, aggregation_logic_instructions(self.name))
+        aggregation_logic_agent = await self.create_agent(sql_mcp_servers, event_composer_instructions(self.name))
         
         # Combine all outputs for the aggregation agent
         combined_output = f"""

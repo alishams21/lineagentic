@@ -1,7 +1,7 @@
 from datetime import datetime
 
 
-def sql_lineage_struct_instructions():
+def sql_lineage_syntax_analysis():
     return  """
         You are a SQL decomposition expert. Your task is to parse complex SQL scripts into logical subqueries, including CTEs, nested subqueries, and the final query. Return a clean JSON object of these blocks for downstream lineage processing.
         Instructions:
@@ -100,7 +100,7 @@ def sql_lineage_struct_instructions():
         """
 
 
-def sql_lineage_field_mapping_instructions():
+def sql_lineage_field_derivation():
     return  """
         You are a field mapping analysis expert. Given a SQL subquery, your job is to extract and explain how each output field is derived from the source tables. For each output field, identify:
 
@@ -192,7 +192,7 @@ def sql_lineage_field_mapping_instructions():
         Reason:  This ignores the expression `salary * 12`. The transformation must be `"salary multiplied by 12"` or similar.
         """
 
-def sql_lineage_operation_logic_instructions():
+def sql_lineage_operation_tracing():
     return """
             You are a logical operator analysis expert. Your task is to analyze a SQL subquery and extract all **logical operations** on each source table and on which fields these logical operations are applied, including:
             - Only list the fields that are used in the logical operations, not all fields.
@@ -335,7 +335,7 @@ def sql_lineage_operation_logic_instructions():
 
             
 
-def sql_lineage_aggregate_instructions():
+def sql_lineage_event_composer():
     return  """
             You are an OpenLineage lineage generation expert. 
             Your job is to take the outputs from upstream SQL analysis agents and generate a **single, complete OpenLineage event JSON** representing end-to-end data lineage for the query.
@@ -491,7 +491,7 @@ def sql_lineage_aggregate_instructions():
             
 
 
-def sql_graph_builder_instructions():
+def sql_graph_builder():
     return """
             You are a knowledge graph extraction agent. Your task is to transform the output of SQL lineage analysis into a cohesive **knowledge graph** in JSON format, with clearly defined nodes and edges.
 

@@ -2,57 +2,37 @@ from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("lineage_aql_server")
 
-from templates import (sql_lineage_struct_instructions, 
-                       sql_lineage_field_mapping_instructions, 
-                       sql_lineage_operation_logic_instructions, 
-                       sql_lineage_aggregate_instructions, 
-                       sql_graph_builder_instructions)
+from templates import (sql_lineage_syntax_analysis, 
+                       sql_lineage_field_derivation, 
+                       sql_lineage_operation_tracing, 
+                       sql_lineage_event_composer, 
+                       sql_graph_builder)
 
 
 @mcp.tool()
 async def sql_lineage_struct(sql: str) -> dict:
-    """Analyze the SQL query and return the lineage structure.
-
-    Args:
-        sql: The SQL query to analyze
-    """
-    return sql_lineage_struct_instructions()
+    """SQL decomposition expert """
+    return sql_lineage_syntax_analysis()
 
 @mcp.tool()
 async def sql_lineage_field_mapping(sql: str) -> dict:
-    """Analyze the SQL query and return the lineage field mapping.
-
-    Args:
-        sql: The SQL query to analyze
-    """
-    return sql_lineage_field_mapping_instructions()
+    """Field mapping expert"""
+    return sql_lineage_field_derivation()
 
 @mcp.tool()
 async def sql_lineage_operation_logic(sql: str) -> dict:
-    """Analyze the SQL query and return the lineage operation logic.
-
-    Args:
-        sql: The SQL query to analyze
-    """
-    return sql_lineage_operation_logic_instructions()
+    """Logical operator analysis expert"""
+    return sql_lineage_operation_tracing()
 
 @mcp.tool()
 async def sql_lineage_aggregate(sql: str) -> dict:
-    """Analyze the SQL query and return the lineage aggregate.
-
-    Args:
-        sql: The SQL query to analyze
-    """
-    return sql_lineage_aggregate_instructions()
+    """Event composer expert"""
+    return sql_lineage_event_composer()
 
 @mcp.tool()
 async def sql_graph_builder(sql: str) -> dict:
-    """Analyze the SQL query and return the graph builder.
-
-    Args:
-        sql: The SQL query to analyze
-    """
-    return sql_graph_builder_instructions()
+    """Knowledge graph extraction expert"""
+    return sql_graph_builder()
 
 if __name__ == "__main__":
     mcp.run(transport='stdio')
