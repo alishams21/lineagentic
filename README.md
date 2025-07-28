@@ -51,3 +51,20 @@ The Event Composer agent consolidates the results from the syntax analysis agent
 $$
 \{A\}:=h([A_4,T_4],\{sa1,⋯,san\},\{fd1,⋯,fdn\},\{ot1,⋯,otn\})
 $$
+
+## To run code
+
+```bash
+uv sync
+source .venv/bin/activate
+python src/app.py
+or to run framework separately
+python src/agent_framework.py
+```
+
+## Environment variables
+
+```bash
+OPENAI_API_KEY=sk-proj-1234567890
+HF_TOKEN=hf_1234567890
+```
