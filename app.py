@@ -2,7 +2,7 @@ import gradio as gr
 import asyncio
 import json
 import urllib.parse
-from agent_framework import AgentFramework
+from cot_agents.agent_framework import AgentFramework
 from typing import Dict, Any, Optional
 
 

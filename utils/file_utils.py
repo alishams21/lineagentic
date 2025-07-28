@@ -20,14 +20,14 @@ def clean_json_string(text: str) -> str:
     return text
 
 
-def dump_json_record(filename: str, record: Union[Dict[str, Any], str], lineagedb_folder: str = "lineagedb") -> Union[Dict[str, Any], str]:
+def dump_json_record(filename: str, record: Union[Dict[str, Any], str], lineage_extraction_dumps_folder: str = "lineage_extraction_dumps") -> Union[Dict[str, Any], str]:
     """
     Create a file under the lineagedb folder and dump a JSON record as a new line.
     
     Args:
         filename (str): The name of the file (without extension, .json will be added)
         record (Union[Dict[str, Any], str]): The JSON record to dump (can be dict or string)
-        lineagedb_folder (str): The folder name for lineage database files (default: "lineagedb")
+        lineage_extraction_dumps_folder (str): The folder name for lineage database files (default: "lineage_extraction_dumps")
     
     Returns:
         Union[Dict[str, Any], str]: The processed record that was dumped to the file
@@ -37,7 +37,7 @@ def dump_json_record(filename: str, record: Union[Dict[str, Any], str], lineaged
         dumped_data = dump_json_record("outputs", "This is a string output")
     """
     # Create the lineagedb folder if it doesn't exist
-    folder_path = Path(lineagedb_folder)
+    folder_path = Path(lineage_extraction_dumps_folder)
     folder_path.mkdir(exist_ok=True)
     
     # Create the full file path with .json extension

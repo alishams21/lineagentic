@@ -1,18 +1,18 @@
 from contextlib import AsyncExitStack
-from tracers import log_trace_id
+from utils.tracers import log_trace_id
 from agents import Agent, Tool, Runner, OpenAIChatCompletionsModel, trace
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
 import os
 import json
 from agents.mcp import MCPServerStdio
-from instructions import (structure_parsing_instructions,
+from instructions.sql_instructions import (structure_parsing_instructions,
                        field_mapping_instructions,
                        operation_logic_instructions,
                        aggregation_logic_instructions)
 
-from mcp_params import sql_mcp_server_params
-from utils import dump_json_record
+from mcp_servers.mcp_params import sql_mcp_server_params
+from utils.file_utils import dump_json_record
 
 load_dotenv(override=True)
 
@@ -47,7 +47,7 @@ def get_model(model_name: str):
         return model_name
 
 
-class Planner_Agent:
+class PlannerAgent:
     def __init__(self, name:str, query:str, model_name:str="gpt-4o-mini"):
         self.name = name
         self.model_name = model_name

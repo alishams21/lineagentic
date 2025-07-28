@@ -1,5 +1,5 @@
 import asyncio
-from planner_agent import Planner_Agent
+from .planner_agent import PlannerAgent
 from typing import Optional, Dict, Any
 
 
@@ -31,7 +31,7 @@ class AgentFramework:
                 - aggregation: Final aggregated output
         """
         # Create a new planner agent for each query
-        planner_agent = Planner_Agent(name=self.name, model_name=self.model_name, query=query)
+        planner_agent = PlannerAgent(name=self.name, model_name=self.model_name, query=query)
         
         try:
             results = await planner_agent.run()

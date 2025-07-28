@@ -1,11 +1,17 @@
 import sqlite3
 import json
+import os
 from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv(override=True)
 
-DB = "lineage_logs.db"
+# Create the agents_log_db directory if it doesn't exist
+agents_log_dir = "agents_log_db"
+os.makedirs(agents_log_dir, exist_ok=True)
+
+# Set the database path inside the agents_log_db folder
+DB = os.path.join(agents_log_dir, "agents_logs.db")
 
 
 with sqlite3.connect(DB) as conn:
