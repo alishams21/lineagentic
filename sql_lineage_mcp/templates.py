@@ -337,7 +337,8 @@ def sql_lineage_operation_logic_instructions():
 
 def sql_lineage_aggregate_instructions():
     return  """
-            You are an OpenLineage lineage generation expert. Your job is to take the outputs from upstream SQL analysis agents and generate a **single, complete OpenLineage event JSON** representing end-to-end data lineage for the query.
+            You are an OpenLineage lineage generation expert. 
+            Your job is to take the outputs from upstream SQL analysis agents and generate a **single, complete OpenLineage event JSON** representing end-to-end data lineage for the query.
 
             ---
 
@@ -389,66 +390,64 @@ def sql_lineage_aggregate_instructions():
 
             ### Your Task:
 
-            Generate **one OpenLineage event JSON** that captures the **entire query pipeline** from source tables to final output.
+            Generate **one event JSON** that captures the **entire query pipeline** from source tables to final output.
+            Strictly follow the structure below and do not change field names or nesting, it is very important to keep exact same format:
 
-            #### Your output must include:
-
-            - **eventType**: "COMPLETE"
-            - **eventTime**: Use a placeholder like "2025-07-27T12:00:00Z"
-            - **run.runId**: Use a placeholder like "123e4567-e89b-12d3-a456-426614174000"
-            - **job**:
-            - namespace: "default"
-            - name: use the final SQL block name (e.g. "main_query")
-
-            - **inputs**:
-            - List only **original source tables** (e.g., `table1`)
-            - Include schema facets if possible
-
-            - **outputs**:
-            - Dataset representing the final result (e.g., `main_query`)
-            - In `facets`:
-                - **schema**: list output columns and types (if known, else assume)
-                - **columnLineage**:
-                - For each output column:
-                    - Show full lineage back to original source table columns
-                    - Include **transformation logic**, including filters, groupings, joins, and expressions
-                    - If `SELECT *` is used, expand it using upstream CTE output
-
-            ---
-
-            ### Transformation Rules:
-
-            - If a column uses `SUM`, `COUNT`, `CASE`, etc. — capture this in `"transform"`
-            - If `GROUP BY` is used, append `"grouped by <fields>"`
-            - If `WHERE` or `HAVING` applies, append `"filtered by <expression>"`
-            - If `JOIN` applies, append `"joined with <table> on <condition>"`
-            - Trace through **intermediate CTEs** to map fields back to **original base tables**
-
-            ---
-
-            ### Output Format:
-
-            Return a single JSON object like:
+            - Use "inputs" and "outputs" as array keys (do NOT use inputDataset or outputDataset).
+            - Preserve "facets" blocks under "job", "inputs", and "outputs".
+            - Include "columnLineage" as a facet under "outputs.facets" (not at the top level).
+            - Maintain the exact field names:
+            - "eventType", "eventTime", "run", "job", "inputs", "outputs", "facets", "query", "processingType", "integration", etc.
+            - Do NOT rename or flatten any fields.
+            - Match the structure and nesting exactly as in this format:
 
             {
-            "eventType": "COMPLETE",
-            "eventTime": "2025-07-27T12:00:00Z",
+            "eventType": "START",
+            "eventTime": "<ISO_TIMESTAMP>",
             "run": {
-                "runId": "123e4567-e89b-12d3-a456-426614174000"
+                "runId": "<UUID>",
+                "facets": {
+                "parent": {
+                    "job": {
+                    "name": "<PARENT_JOB_NAME>",
+                    "namespace": "<PARENT_NAMESPACE>"
+                    },
+                    "run": {
+                    "runId": "<PARENT_RUN_ID>"
+                    }
+                }
+                }
             },
             "job": {
-                "namespace": "default",
-                "name": "main_query"
+                "facets": {
+                "sql": {
+                    "_producer": "<PRODUCER_URL>",
+                    "_schemaURL": "<SCHEMA_URL>",
+                    "query": "<SQL_QUERY>"
+                },
+                "jobType": {
+                    "processingType": "<BATCH_OR_STREAM>",
+                    "integration": "<ENGINE_NAME>",
+                    "jobType": "<QUERY_TYPE>",
+                    "_producer": "<PRODUCER_URL>",
+                    "_schemaURL": "<SCHEMA_URL>"
+                }
+                }
             },
             "inputs": [
                 {
-                "namespace": "default",
-                "name": "table1",
+                "namespace": "<INPUT_NAMESPACE>",
+                "name": "<INPUT_NAME>",
                 "facets": {
                     "schema": {
+                    "_producer": "<PRODUCER_URL>",
+                    "_schemaURL": "<SCHEMA_URL>",
                     "fields": [
-                        { "name": "id", "type": "int" },
-                        { "name": "value", "type": "numeric" }
+                        {
+                        "name": "<FIELD_NAME>",
+                        "type": "<FIELD_TYPE>",
+                        "description": "<FIELD_DESCRIPTION>"
+                        }
                     ]
                     }
                 }
@@ -456,64 +455,40 @@ def sql_lineage_aggregate_instructions():
             ],
             "outputs": [
                 {
-                "namespace": "default",
-                "name": "main_query",
+                "namespace": "<OUTPUT_NAMESPACE>",
+                "name": "<OUTPUT_NAME>",
                 "facets": {
-                    "schema": {
-                    "fields": [
-                        { "name": "id", "type": "int" },
-                        { "name": "total", "type": "numeric" }
-                    ]
-                    },
                     "columnLineage": {
-                    "_producer": "https://openlineage.io/",
-                    "_schemaURL": "https://openlineage.io/spec/column-lineage.json",
-                    "fields": [
-                        {
-                        "name": "id",
+                    "_producer": "<PRODUCER_URL>",
+                    "_schemaURL": "<SCHEMA_URL>",
+                    "fields": {
+                        "<OUTPUT_FIELD_NAME>": {
                         "inputFields": [
                             {
-                            "namespace": "default",
-                            "name": "table1",
-                            "field": "id"
+                            "namespace": "<INPUT_NAMESPACE>",
+                            "name": "<INPUT_NAME>",
+                            "field": "<INPUT_FIELD_NAME>",
+                            "transformations": [
+                                {
+                                "type": "<TRANSFORMATION_TYPE>",
+                                "subtype": "<SUBTYPE>",
+                                "description": "<DESCRIPTION>",
+                                "masking": false
+                                }
+                            ]
                             }
-                        ],
-                        "transform": "Direct copy through temp1 → temp2"
-                        },
-                        {
-                        "name": "total",
-                        "inputFields": [
-                            {
-                            "namespace": "default",
-                            "name": "table1",
-                            "field": "value"
-                            }
-                        ],
-                        "transform": "SUM(value) grouped by id, filtered by total > 100"
+                        ]
                         }
-                    ]
+                    }
                     }
                 }
                 }
-            ],
-            "producer": "https://your-system",
-            "version": "1.0.0"
+            ]
             }
 
-            ---
-
-            ### Constraints:
-
-            - Output only a single JSON object for the entire lineage.
-            - Ensure that column lineage traces through all intermediate CTEs to the original source.
-            - Include all applicable logical operators in `transform` fields (filters, group by, joins, etc).
-            - Do not include commentary or explanation outside the JSON.
-            - Do not include any other text or comments in your output.
-            - be sure to include the full lineage of the query, not just the final output.
-            - be sure output format is in correct json format. if not retry again.
-    
+            Do not change this format or naming under any circumstances. only produce the json output. do not include any other text or comments.
             """
-
+            
 
 
 def sql_graph_builder_instructions():
