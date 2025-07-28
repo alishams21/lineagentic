@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSONCrack Auto JSON Loader</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button.auto-open {
+            background: #28a745;
+        }
+        button.auto-open:hover {
+            background: #218838;
+        }
+        .json-preview {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .method {
+            margin: 20px 0;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+            background: #f8f9fa;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .auto-options {
+            margin: 15px 0;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 4px;
+        }
+        .checkbox-group {
+            margin: 10px 0;
+        }
+        .checkbox-group label {
+            margin-right: 15px;
+            font-weight: bold;
+        }
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 5px;
+        }
+        .url-display {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>JSONCrack Auto JSON Loader</h1>
+        <p>This page demonstrates different ways to automatically load JSON into the JSONCrack editor.</p>
+
+        <div class="auto-options">
+            <h3>🔄 Auto Options</h3>
+            <div class="checkbox-group">
+                <label>
+                    <input type="checkbox" id="autoOpen" checked> Auto-open in browser
+                </label>
+                <label>
+                    <input type="checkbox" id="autoCopy" checked> Copy URL to clipboard
+                </label>
+                <label>
+                    <input type="checkbox" id="showDelay" checked> Show delay between URLs
+                </label>
+            </div>
+            <div class="checkbox-group">
+                <label>Delay between URLs (seconds): 
+                    <input type="number" id="delaySeconds" value="2" min="1" max="10" style="width: 60px;">
+                </label>
+            </div>
+        </div>
+
+        <div class="method">
+            <h3>Method 1: URL Parameter (Recommended)</h3>
+            <p>Load JSON directly via URL parameter:</p>
+            <button onclick="loadSimpleJson()">Load Simple JSON</button>
+            <button onclick="loadComplexJson()">Load Complex JSON</button>
+            <button onclick="loadNestedJson()">Load Nested JSON</button>
+            <button class="auto-open" onclick="loadAllJsonTypes()">🚀 Load All Types (Auto)</button>
+        </div>
+
+        <div class="method">
+            <h3>Method 2: External URL</h3>
+            <p>Load JSON from an external URL:</p>
+            <button onclick="loadFromUrl()">Load from JSONPlaceholder API</button>
+        </div>
+
+        <div class="method">
+            <h3>Method 3: Session Storage</h3>
+            <p>Store JSON in session storage and navigate:</p>
+            <button onclick="loadViaSessionStorage()">Load via Session Storage</button>
+        </div>
+
+        <div class="method">
+            <h3>Current JSON Preview</h3>
+            <div id="jsonPreview" class="json-preview">
+                Click a button above to see the JSON that will be loaded...
+            </div>
+        </div>
+
+        <div id="status" class="status" style="display: none;"></div>
+        <div id="urlDisplay" class="url-display" style="display: none;"></div>
+    </div>
+
+    <script>
+        // Sample JSON data
+        const sampleData = {
+            simple: {
+                "users": [
+                    {
+                        "id": 1,
+                        "name": "John Doe",
+                        "email": "john@example.com"
+                    },
+                    {
+                        "id": 2,
+                        "name": "Jane Smith",
+                        "email": "jane@example.com"
+                    }
+                ]
+            },
+            complex: {
+                "company": {
+                    "name": "TechCorp",
+                    "founded": 2010,
+                    "employees": [
+                        {
+                            "id": "emp_001",
+                            "name": "Alice Johnson",
+                            "position": "Senior Developer",
+                            "department": {
+                                "name": "Engineering",
+                                "floor": 3,
+                                "manager": "Bob Wilson"
+                            },
+                            "skills": ["JavaScript", "React", "Node.js", "TypeScript"],
+                            "projects": [
+                                {
+                                    "name": "E-commerce Platform",
+                                    "status": "In Progress",
+                                    "technologies": ["React", "Node.js", "MongoDB"]
+                                }
+                            ]
+                        },
+                        {
+                            "id": "emp_002",
+                            "name": "Charlie Brown",
+                            "position": "UI/UX Designer",
+                            "department": {
+                                "name": "Design",
+                                "floor": 2,
+                                "manager": "Diana Prince"
+                            },
+                            "skills": ["Figma", "Adobe Creative Suite", "Prototyping"],
+                            "projects": [
+                                {
+                                    "name": "Mobile App Redesign",
+                                    "status": "Completed",
+                                    "technologies": ["Figma", "Adobe XD"]
+                                }
+                            ]
+                        }
+                    ],
+                    "departments": [
+                        {
+                            "name": "Engineering",
+                            "head_count": 15,
+                            "budget": 500000
+                        },
+                        {
+                            "name": "Design",
+                            "head_count": 8,
+                            "budget": 200000
+                        }
+                    ]
+                }
+            },
+            nested: {
+                "organization": {
+                    "name": "Global Enterprises",
+                    "structure": {
+                        "divisions": [
+                            {
+                                "name": "Technology",
+                                "subdivisions": [
+                                    {
+                                        "name": "Software Development",
+                                        "teams": [
+                                            {
+                                                "name": "Frontend Team",
+                                                "members": [
+                                                    {
+                                                        "name": "Alex",
+                                                        "role": "Lead Developer",
+                                                        "expertise": ["React", "Vue.js"]
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "name": "Backend Team",
+                                                "members": [
+                                                    {
+                                                        "name": "Sam",
+                                                        "role": "Senior Developer",
+                                                        "expertise": ["Node.js", "Python"]
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        };
+
+        function updatePreview(jsonData) {
+            document.getElementById('jsonPreview').textContent = 
+                JSON.stringify(jsonData, null, 2);
+        }
+
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+            
+            // Hide after 5 seconds
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function showUrl(url) {
+            const urlDiv = document.getElementById('urlDisplay');
+            urlDiv.textContent = url;
+            urlDiv.style.display = 'block';
+        }
+
+        function copyToClipboard(text) {
+            return new Promise((resolve, reject) => {
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(text).then(resolve).catch(reject);
+                } else {
+                    // Fallback for older browsers
+                    const textArea = document.createElement('textarea');
+                    textArea.value = text;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
+                        resolve();
+                    } catch (err) {
+                        reject(err);
+                    }
+                    document.body.removeChild(textArea);
+                }
+            });
+        }
+
+        async function loadJsonToEditor(jsonData, name = 'JSON Data') {
+            const jsonString = JSON.stringify(jsonData, null, 2);
+            const encodedJson = encodeURIComponent(jsonString);
+            const editorUrl = `http://localhost:3000/editor?json=${encodedJson}`;
+            
+            updatePreview(jsonData);
+            showUrl(editorUrl);
+            
+            const autoOpen = document.getElementById('autoOpen').checked;
+            const autoCopy = document.getElementById('autoCopy').checked;
+            
+            try {
+                if (autoCopy) {
+                    await copyToClipboard(editorUrl);
+                    showStatus(`✅ ${name} URL copied to clipboard!`, 'success');
+                }
+                
+                if (autoOpen) {
+                    window.open(editorUrl, '_blank');
+                    showStatus(`🌐 ${name} opened in new tab!`, 'success');
+                } else {
+                    showStatus(`📋 ${name} URL ready - click to open manually`, 'info');
+                }
+            } catch (error) {
+                showStatus(`❌ Error: ${error.message}`, 'warning');
+            }
+        }
+
+        async function loadAllJsonTypes() {
+            const types = [
+                { data: sampleData.simple, name: 'Simple JSON' },
+                { data: sampleData.complex, name: 'Complex JSON' },
+                { data: sampleData.nested, name: 'Nested JSON' }
+            ];
+            
+            const delaySeconds = parseInt(document.getElementById('delaySeconds').value) || 2;
+            const showDelay = document.getElementById('showDelay').checked;
+            
+            showStatus(`🚀 Loading ${types.length} JSON types with ${delaySeconds}s delay...`, 'info');
+            
+            for (let i = 0; i < types.length; i++) {
+                const { data, name } = types[i];
+                
+                try {
+                    await loadJsonToEditor(data, name);
+                    
+                    if (i < types.length - 1) {
+                        if (showDelay) {
+                            showStatus(`⏳ Waiting ${delaySeconds}s before next JSON...`, 'info');
+                        }
+                        await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
+                    }
+                } catch (error) {
+                    showStatus(`❌ Error loading ${name}: ${error.message}`, 'warning');
+                }
+            }
+            
+            showStatus(`✅ All ${types.length} JSON types processed!`, 'success');
+        }
+
+        function loadSimpleJson() {
+            loadJsonToEditor(sampleData.simple, 'Simple JSON');
+        }
+
+        function loadComplexJson() {
+            loadJsonToEditor(sampleData.complex, 'Complex JSON');
+        }
+
+        function loadNestedJson() {
+            loadJsonToEditor(sampleData.nested, 'Nested JSON');
+        }
+
+        function loadFromUrl() {
+            const externalUrl = 'https://jsonplaceholder.typicode.com/posts';
+            const encodedUrl = encodeURIComponent(externalUrl);
+            const editorUrl = `http://localhost:3000/editor?json=${encodedUrl}`;
+            
+            document.getElementById('jsonPreview').textContent = 
+                `Loading from: ${externalUrl}`;
+            
+            showUrl(editorUrl);
+            
+            const autoOpen = document.getElementById('autoOpen').checked;
+            const autoCopy = document.getElementById('autoCopy').checked;
+            
+            if (autoCopy) {
+                copyToClipboard(editorUrl).then(() => {
+                    showStatus('✅ External URL copied to clipboard!', 'success');
+                });
+            }
+            
+            if (autoOpen) {
+                window.open(editorUrl, '_blank');
+                showStatus('🌐 External URL opened in new tab!', 'success');
+            }
+        }
+
+        function loadViaSessionStorage() {
+            const jsonData = {
+                "sessionData": {
+                    "timestamp": new Date().toISOString(),
+                    "user": "Demo User",
+                    "data": [
+                        {
+                            "id": "session_001",
+                            "type": "demo",
+                            "content": "This was loaded via session storage"
+                        }
+                    ]
+                }
+            };
+
+            // Store in session storage
+            sessionStorage.setItem('content', JSON.stringify(jsonData, null, 2));
+            sessionStorage.setItem('format', 'json');
+            
+            updatePreview(jsonData);
+            
+            const autoOpen = document.getElementById('autoOpen').checked;
+            
+            if (autoOpen) {
+                window.open('http://localhost:3000/editor', '_blank');
+                showStatus('🌐 Session storage data opened in new tab!', 'success');
+            } else {
+                showStatus('📋 Session storage data ready - navigate to /editor manually', 'info');
+            }
+        }
+
+        // Initialize with simple JSON preview
+        updatePreview(sampleData.simple);
+    </script>
+</body>
+</html> 
