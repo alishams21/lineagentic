@@ -1,5 +1,5 @@
-# lineagent
-Agentic approach for data lineage parsing across various data processing script types
+# LineAgent
+Lineagent is an agentic framework for data lineage extraction across various data processing script types and export the results in OpenLineage format.
 
 
 # architecture
@@ -23,31 +23,31 @@ $$
 G=h([\{(A_1, T_1), (A_2, T_2), (A_3, T_3), (A_4, T_4)\}],P)
 $$
 
-## structure parsing agent
+## Syntax Analysis Agent
 
-Structure parsing agent, analyzes the syntactic structure of the raw script to identify subqueries and nested structures and decompose the script into multiple subscripts.
-
-$$
-\{sp1,⋯,sp𝑛\}:=h([A_1,T_1],P)
-$$
-
-## field mapping agent
-The field mapping agent processes each subscript from structure parsing agent to derive field-level mapping relationships and processing logic. 
+Syntax Analysis agent, analyzes the syntactic structure of the raw script to identify subqueries and nested structures and decompose the script into multiple subscripts.
 
 $$
-\{fm1,⋯,fm𝑛\}:=h([A_2,T_2],\{sp1,⋯,sp𝑛\})
+\{sa1,⋯,san\}:=h([A_1,T_1],P)
 $$
 
-## operation logic agent
-The operation logic expert analyzes the complex conditions within each subscript identified in structured parsing agent including filter conditions, join conditions, grouping conditions, and sorting conditions.
+## Field Derivation Agent
+The Field Derivation agent processes each subscript from syntax analysis agent to derive field-level mapping relationships and processing logic. 
 
 $$
-\{ol1,⋯,ol𝑛\}:=h([A_3,T_3],\{sp1,⋯,sp𝑛\})
+\{fd1,⋯,fdn\}:=h([A_2,T_2],\{sa1,⋯,san\})
 $$
 
-## aggregate agent
-the aggregate engine consolidates the results from the structured parsing agent, the field mapping agent and the operation logic agent to generate the final lineage result.
+## Operation Tracing Agent
+The Operation Tracing agent analyzes the complex conditions within each subscript identified in syntax analysis agent including filter conditions, join conditions, grouping conditions, and sorting conditions.
 
 $$
-\{A\}:=h([A_4,T_4],\{sp1,⋯,sp𝑛\},\{fm1,⋯,fm𝑛\},\{ol1,⋯,ol𝑛\})
+\{ot1,⋯,otn\}:=h([A_3,T_3],\{sa1,⋯,san\})
+$$
+
+## Event Composer Agent
+The Event Composer agent consolidates the results from the syntax analysis agent, the field derivation agent and the operation tracing agent to generate the final lineage result.
+
+$$
+\{A\}:=h([A_4,T_4],\{sa1,⋯,san\},\{fd1,⋯,fdn\},\{ot1,⋯,otn\})
 $$
