@@ -1,75 +1,105 @@
----
-title: lineagent
-app_file: start_demo_server.py
-sdk: gradio
-sdk_version: 5.34.2
----
-# LineAgent - SQL Lineage Analysis
+# Lineagentic
 
-Agentic approach for data lineage parsing across various data processing script types.
-
-## Python Version Requirements
-
-This project requires **Python 3.13** or higher.
-
-## Local Development
-
-### Prerequisites
-- Python 3.13+
-- uv (Python package manager)
-
-### Installation
-
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd lineagent
-```
-
-2. Install dependencies:
-```bash
-uv sync
-```
-
-3. Run the demo server:
-```bash
-python start_demo_server.py
-```
-
-## Hugging Face Spaces Deployment
-
-This project is configured for deployment on Hugging Face Spaces with Python 3.13.
-
-### Files for HF Spaces:
-- `start_demo_server.py` - Entry point for the application
-- `Dockerfile` - Specifies Python 3.13 base image
-- `requirements.txt` - Python dependencies
-- `runtime.txt` - Python version specification
-- `config.yaml` - Hugging Face Spaces configuration
-
-### Deployment Configuration:
-- **Python Version**: 3.13.5
-- **Port**: 7860
-- **Framework**: Gradio
-- **Entry Point**: start_demo_server.py
-
-The application will automatically start when deployed to Hugging Face Spaces.
-
-## Environment Variables
-
-The application supports the following environment variables:
-- `DEMO_HOST` - Server host (default: 0.0.0.0)
-- `DEMO_PORT` - Server port (default: 7860)
-- `DEMO_SHARE` - Enable sharing (default: false)
-- `DEMO_INBROWSER` - Open in browser (default: true)
-- `DEMO_DEBUG` - Debug mode (default: false)
+Lineagentic is an agentic method designed to extract data lineage across diverse types of data processing scripts.
 
 ## Features
 
-- SQL lineage analysis
-- Agentic approach to data processing
-- Interactive web interface
-- Support for multiple data processing script types
+- Simple customizable gentic lineage analysis algorithm
+- Interactive web lineage visualizer
+- Support for multiple data processing script types (SQL, Python, etc.)
+
+## How it works
+
+Lineagentic is designed to be modular and customizable. 
+
+- The algorithm module is set of 6 agents which are working together to extract lineage from a given data processing script. 
+
+- The backend module is for rest api a around the algorithm module. it provides rest api to connect to the algorithm module.
+
+- The lineage visualizer module is for the web interface. it provides a interactive jsoncrack based web interface to visualize the lineage.
+
+- Demo module is for teams who want to demo Lineagentic in fast and simple way deployable into huggingface spaces.
+
+
+## How to use
+
+In order to simplify the usage of Lineagentic, we have created a Makefile which can be used to start the services. you can find different targets in the Makefile.
+
+to start the api server, lineage visualizer, watchdog and demo server, run the following command:
+
+```bash
+make start-api-server-with-lineage-visualizer-and-watchdog-and-demo-server
+```
+to start the api server, lineage visualizer and watchdog, run the following command:
+
+```bash
+make start-api-server-with-lineage-visualizer-and-watchdog
+```
+to start the api server, run the following command:
+
+```bash
+make start-only-api-server
+```
+
+In order to deploy Lineagentic to Hugging Face Spaces, run the following command ( you need to have huggingface account and put secret keys there if you are going to use paid models):
+
+```bash
+make gradio-deploy
+```
+
+## How algorithm works
+
+
+# architecture
+
+Following is the architecture of how agentic chain of thought systems designed to extract lineage across various data processing script types.
+
+![Architecture Diagram](images/architecture.jpg)
+
+## agent framework 
+The agent framework dose IO operations ,memory management, and prompt engineering according to the script type (T) and its content (C).
+
+$$
+P := f(T, C)
+$$
+
+## planning agent
+
+The planning agent orchestrates the execution of the prompt provided by the agent framework (P) by selecting the appropriate agent (A) and its corresponding task (T).
+
+$$
+G=h([\{(A_1, T_1), (A_2, T_2), (A_3, T_3), (A_4, T_4)\}],P)
+$$
+
+## Syntax Analysis Agent
+
+Syntax Analysis agent, analyzes the syntactic structure of the raw script to identify subqueries and nested structures and decompose the script into multiple subscripts.
+
+$$
+\{sa1,⋯,san\}:=h([A_1,T_1],P)
+$$
+
+## Field Derivation Agent
+The Field Derivation agent processes each subscript from syntax analysis agent to derive field-level mapping relationships and processing logic. 
+
+$$
+\{fd1,⋯,fdn\}:=h([A_2,T_2],\{sa1,⋯,san\})
+$$
+
+## Operation Tracing Agent
+The Operation Tracing agent analyzes the complex conditions within each subscript identified in syntax analysis agent including filter conditions, join conditions, grouping conditions, and sorting conditions.
+
+$$
+\{ot1,⋯,otn\}:=h([A_3,T_3],\{sa1,⋯,san\})
+$$
+
+## Event Composer Agent
+The Event Composer agent consolidates the results from the syntax analysis agent, the field derivation agent and the operation tracing agent to generate the final lineage result.
+
+$$
+\{A\}:=h([A_4,T_4],\{sa1,⋯,san\},\{fd1,⋯,fdn\},\{ot1,⋯,otn\})
+$$
+
 
 ## License
 
