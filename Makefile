@@ -10,7 +10,7 @@ help:
 	@echo "Available commands:"
 	@echo "  make install    - Install dependencies"
 	@echo "  make dev        - Start development server in background"
-	@echo "  make start      - Start the JSONCrack watchdog in background"
+	@echo "  make start      - Start the JSONCrack watchdog (monitors lineage_extraction_dumps/sql_agent_lineage.json)"
 	@echo "  make stop       - Stop the watchdog"
 	@echo "  make status     - Check if watchdog is running"
 	@echo "  make test       - Test the JSONCrack system with sample data"
@@ -49,9 +49,9 @@ start:
 		echo "⚠️  Watchdog is already running!"; \
 		echo "   Use 'make stop' to stop it first, or 'make status' to check"; \
 	else \
-		cd src/tools/jsoncrack && python json-watchdog.py > /dev/null 2>&1 & \
+		python src/tools/jsoncrack/json-watchdog.py > /dev/null 2>&1 & \
 		echo "✅ Watchdog started in background"; \
-		echo "📝 Logs will be written to src/tools/jsoncrack/json-watchdog.log"; \
+		echo "📝 Logs will be written to json-watchdog.log"; \
 		echo "🛑 Use 'make stop' to stop the watchdog"; \
 	fi
 
@@ -75,7 +75,7 @@ status:
 test:
 	@echo "🧪 Testing JSONCrack Watchdog system..."
 	@echo "📂 Testing JSON generator..."
-	@cd src/tools/jsoncrack && node json-generator.js --input-file input-records.json --no-open
+	@cd src/tools/jsoncrack && node json-generator.js --input-file ../../lineage_extraction_dumps/sql_agent_lineage.json --no-open
 	@echo "✅ Test completed successfully!"
 
 # Clean up temporary files
@@ -84,4 +84,5 @@ clean:
 	@find . -name "*.log" -type f -delete
 	@find . -name "temp_*.json" -type f -delete
 	@find . -name "generated-*.json" -type f -delete
+	@rm -f src/tools/jsoncrack/temp_input.json
 	@echo "✅ Cleanup completed!" 

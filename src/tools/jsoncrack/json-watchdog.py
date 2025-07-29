@@ -15,6 +15,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 import argparse
 import logging
+import threading
 
 # Configure logging
 logging.basicConfig(
@@ -93,18 +94,13 @@ class JSONFileHandler(FileSystemEventHandler):
     def _call_json_generator(self, json_data):
         """Call the JSON generator script with the provided data."""
         try:
-            # Create a temporary file with the JSON data
-            temp_file = self.watch_file.parent / "temp_input.json"
-            with open(temp_file, 'w') as f:
-                json.dump(json_data, f, indent=2)
-            
             logger.info(f"📤 Calling JSON generator with {self._get_record_count(json_data)} records")
             
-            # Call the Node.js script
+            # Call the Node.js script directly with the original file
             result = subprocess.run([
                 'node', str(self.generator_script),
-                '--input-file', str(temp_file)
-            ], capture_output=True, text=True, cwd=self.generator_script.parent)
+                '--input-file', str(self.watch_file)
+            ], capture_output=True, text=True, cwd=Path('src/tools/jsoncrack'))
             
             if result.returncode == 0:
                 logger.info("✅ JSON generator executed successfully")
@@ -112,25 +108,28 @@ class JSONFileHandler(FileSystemEventHandler):
                     logger.info(f"📋 Output: {result.stdout.strip()}")
             else:
                 logger.error(f"❌ JSON generator failed: {result.stderr}")
-            
-            # Clean up temporary file
-            if temp_file.exists():
-                temp_file.unlink()
                 
         except Exception as e:
             logger.error(f"❌ Error calling JSON generator: {e}")
     
     def on_modified(self, event):
         """Handle file modification events."""
+        logger.info(f"🔍 File system event detected: {event.src_path}")
+        
         if event.is_directory:
+            logger.info("📁 Event is for directory, ignoring")
             return
         
         if Path(event.src_path) != self.watch_file:
+            logger.info(f"📄 Event is for different file: {event.src_path} != {self.watch_file}")
             return
+        
+        logger.info(f"✅ File modification detected for watched file: {self.watch_file}")
         
         # Avoid duplicate events
         current_time = time.time()
         if current_time - self.last_modified < 1:  # Debounce for 1 second
+            logger.info("⏱️  Debouncing event (too soon after last event)")
             return
         
         self.last_modified = current_time
@@ -177,13 +176,13 @@ def main():
     parser = argparse.ArgumentParser(description='JSONCrack Watchdog - Monitor JSON files and auto-generate')
     parser.add_argument(
         '--watch-file', 
-        default='input-records.json',
-        help='JSON file to watch (default: input-records.json)'
+        default='lineage_extraction_dumps/sql_agent_lineage.json',
+        help='JSON file to watch (default: lineage_extraction_dumps/sql_agent_lineage.json)'
     )
     parser.add_argument(
         '--generator-script',
-        default='json-generator.js',
-        help='Path to the JSON generator script (default: json-generator.js)'
+        default='src/tools/jsoncrack/json-generator.js',
+        help='Path to the JSON generator script (default: src/tools/jsoncrack/json-generator.js)'
     )
     parser.add_argument(
         '--watch-dir',
@@ -222,6 +221,7 @@ def main():
     
     try:
         observer.start()
+        logger.info("✅ Observer started successfully")
         
         # Initialize tracking with current content
         data = event_handler._read_json_file()
@@ -230,7 +230,37 @@ def main():
             event_handler.last_content = data
             logger.info(f"📊 Initial record count: {event_handler.last_record_count}")
         
-        # Keep running
+        # Keep running with polling backup
+        logger.info("🔄 Watchdog loop started - monitoring for changes...")
+        
+        # Start polling thread as backup
+        def poll_file():
+            last_modified = event_handler.watch_file.stat().st_mtime if event_handler.watch_file.exists() else 0
+            while True:
+                try:
+                    if event_handler.watch_file.exists():
+                        current_modified = event_handler.watch_file.stat().st_mtime
+                        if current_modified > last_modified:
+                            logger.info(f"📊 Polling detected file change: {event_handler.watch_file}")
+                            last_modified = current_modified
+                            # Trigger the same logic as file system events
+                            current_content = event_handler._read_json_file()
+                            if current_content:
+                                current_record_count = event_handler._get_record_count(current_content)
+                                if current_record_count > event_handler.last_record_count:
+                                    logger.info(f"🆕 Polling: New records detected! Count: {event_handler.last_record_count} → {current_record_count}")
+                                    event_handler._call_json_generator(current_content)
+                                    event_handler.last_record_count = current_record_count
+                                    event_handler.last_content = current_content
+                except Exception as e:
+                    logger.error(f"❌ Polling error: {e}")
+                time.sleep(2)  # Poll every 2 seconds
+        
+        # Start polling in background
+        poll_thread = threading.Thread(target=poll_file, daemon=True)
+        poll_thread.start()
+        logger.info("✅ Polling backup started")
+        
         while True:
             time.sleep(1)
             
