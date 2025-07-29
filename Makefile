@@ -20,7 +20,7 @@ help:
 	@echo "  make install-lineage-visualizer-dependencies - Install lineage visualizer dependencies"
 	@echo "  make start-lineage-visualizer - Start lineage visualizer in background"
 	@echo "  make stop-lineage-visualizer - Stop lineage visualizer"
-	@echo "  make start-watchdog - Start the JSONCrack watchdog (monitors lineage_extraction_dumps/sql_agent_lineage.json)"
+	@echo "  make start-watchdog - Start the JSONCrack watchdog (monitors lineage_extraction_dumps/sql_lineage.json)"
 	@echo "  make stop-watchdog - Stop the watchdog"
 	@echo "  make clean      - Clean up temporary files and stop all services"
 	@echo ""	
@@ -165,12 +165,14 @@ stop-lineage-visualizer:
 
 # Start the watchdog in background
 start-watchdog:
-	@echo "🚀 Starting JSONCrack Watchdog..."
+	@echo " Starting JSONCrack Watchdog..."
 	@if pgrep -f "python.*json-watchdog.py" > /dev/null; then \
 		echo "⚠️  Watchdog is already running!"; \
 		echo "   Use 'make stop-watchdog' to stop it first, or 'make status' to check"; \
 	else \
-		python lineage_visualizer/jsoncrack/json-watchdog.py > /dev/null 2>&1 & \
+		mkdir -p lineage_extraction_dumps; \
+		echo "📁 Created lineage_extraction_dumps directory"; \
+		python lineage_visualizer/jsoncrack/json-watchdog.py; \
 		echo "✅ Watchdog started in background"; \
 		echo "📝 Logs will be written to json-watchdog.log"; \
 		echo "🛑 Use 'make stop-watchdog' to stop the watchdog"; \
