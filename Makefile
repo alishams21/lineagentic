@@ -1,25 +1,26 @@
-# JSONCrack Watchdog Makefile
-# Automates setup and usage of the JSONCrack watchdog system
+# LineAgent Project Makefile
+# Centralized build and development commands
 
-.PHONY: help install dev start stop test
+.PHONY: help install dev start stop test status clean
 
 # Default target
 help:
-	@echo "🚀 JSONCrack Watchdog System"
+	@echo "🚀 LineAgent Project"
 	@echo ""			
 	@echo "Available commands:"
-	@echo "  make install    - Install dependencies with pnpm"
+	@echo "  make install    - Install dependencies"
 	@echo "  make dev        - Start development server in background"
-	@echo "  make start      - Start the watchdog in background"
+	@echo "  make start      - Start the JSONCrack watchdog in background"
 	@echo "  make stop       - Stop the watchdog"
 	@echo "  make status     - Check if watchdog is running"
-	@echo "  make test       - Test the system with sample data"
+	@echo "  make test       - Test the JSONCrack system with sample data"
+	@echo "  make clean      - Clean up temporary files"
 	@echo ""	
 
 # Install dependencies
 install:
 	@echo "📦 Installing dependencies..."
-	@pnpm install
+	@cd src/tools/jsoncrack && pnpm install
 	@echo "✅ Dependencies installed successfully!"
 
 # Start development server in background
@@ -29,7 +30,7 @@ dev:
 		echo "⚠️  Development server is already running!"; \
 		echo "   Use 'make stop-dev' to stop it first"; \
 	else \
-		pnpm run dev > /dev/null 2>&1 & \
+		cd src/tools/jsoncrack && pnpm run dev > /dev/null 2>&1 & \
 		echo "✅ Development server started in background"; \
 		echo "🌐 Server should be available at http://localhost:3000"; \
 		echo "🛑 Use 'make stop-dev' to stop the development server"; \
@@ -48,9 +49,9 @@ start:
 		echo "⚠️  Watchdog is already running!"; \
 		echo "   Use 'make stop' to stop it first, or 'make status' to check"; \
 	else \
-		cd $(dir $(MAKEFILE_LIST)) && python json-watchdog.py > /dev/null 2>&1 & \
+		cd src/tools/jsoncrack && python json-watchdog.py > /dev/null 2>&1 & \
 		echo "✅ Watchdog started in background"; \
-		echo "📝 Logs will be written to json-watchdog.log"; \
+		echo "📝 Logs will be written to src/tools/jsoncrack/json-watchdog.log"; \
 		echo "🛑 Use 'make stop' to stop the watchdog"; \
 	fi
 
@@ -74,5 +75,13 @@ status:
 test:
 	@echo "🧪 Testing JSONCrack Watchdog system..."
 	@echo "📂 Testing JSON generator..."
-	@cd $(dir $(MAKEFILE_LIST)) && node json-generator.js --input-file input-records.json --no-open
+	@cd src/tools/jsoncrack && node json-generator.js --input-file input-records.json --no-open
 	@echo "✅ Test completed successfully!"
+
+# Clean up temporary files
+clean:
+	@echo "🧹 Cleaning up temporary files..."
+	@find . -name "*.log" -type f -delete
+	@find . -name "temp_*.json" -type f -delete
+	@find . -name "generated-*.json" -type f -delete
+	@echo "✅ Cleanup completed!" 
