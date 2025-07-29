@@ -16,6 +16,36 @@
       ]
     },
     {
+      "id": "user_001",
+      "name": "John Doe",
+      "email": "john@example.com",
+      "age": 30,
+      "department": "Engineering",
+      "skills": ["JavaScript", "React", "Node.js"],
+      "projects": [
+        {
+          "name": "E-commerce Platform",
+          "status": "In Progress",
+          "progress": 75
+        }
+      ]
+    },
+    {
+      "id": "user_001",
+      "name": "John Doe",
+      "email": "john@example.com",
+      "age": 30,
+      "department": "Engineering",
+      "skills": ["JavaScript", "React", "Node.js"],
+      "projects": [
+        {
+          "name": "E-commerce Platform",
+          "status": "In Progress",
+          "progress": 75
+        }
+      ]
+    },
+    {
       "id": "user_002", 
       "name": "Jane Smith",
       "email": "jane@example.com",
