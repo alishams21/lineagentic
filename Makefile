@@ -1,8 +1,29 @@
 # LineAgent Project Makefile
 # Centralized build and development commands
 
-.PHONY: help create-venv activate-venv run-start-api-server-with-venv run-start-demo-server-with-venv install-lineage-visualizer-dependencies start-lineage-visualizer stop-lineage-visualizer start-watchdog stop-watchdog clean
+.PHONY: help create-venv activate-venv run-start-api-server-with-venv run-start-demo-server-with-venv install-lineage-visualizer-dependencies start-lineage-visualizer stop-lineage-visualizer start-watchdog stop-watchdog clean gradio-deploy
 
+help:
+	@echo "🚀 LineAgent Project"
+	@echo ""			
+	@echo "Available commands:"
+	@echo "  make start-api-server-with-lineage-visualizer-and-watchdog-and-demo-server - Start all services (API, Demo, Visualizer, Watchdog)"
+	@echo "  make start-api-server-with-lineage-visualizer-and-watchdog - Start API server with visualizer and watchdog"
+	@echo "  make start-demo-server-with-lineage-visualizer-and-watchdog - Start demo server with visualizer and watchdog"
+	@echo "  make start-only-api-server - Start only API server"
+	@echo ""
+	@echo "Individual commands:"
+	@echo "  make create-venv    - Create virtual environment"
+	@echo "  make activate-venv  - Activate virtual environment"
+	@echo "  make run-start-api-server-with-venv - Start API server in background"
+	@echo "  make run-start-demo-server-with-venv - Start demo server in background"
+	@echo "  make install-lineage-visualizer-dependencies - Install lineage visualizer dependencies"
+	@echo "  make start-lineage-visualizer - Start lineage visualizer in background"
+	@echo "  make stop-lineage-visualizer - Stop lineage visualizer"
+	@echo "  make start-watchdog - Start the JSONCrack watchdog (monitors lineage_extraction_dumps/sql_agent_lineage.json)"
+	@echo "  make stop-watchdog - Stop the watchdog"
+	@echo "  make clean      - Clean up temporary files and stop all services"
+	@echo ""	
 # Start all services in background
 start-api-server-with-lineage-visualizer-and-watchdog-and-demo-server:
 	@echo "🚀 Starting all services in background..."
@@ -66,30 +87,31 @@ start-only-api-server:
 	@echo "🚀 Starting only API server..."
 	@$(MAKE) run-start-api-server-with-venv
 
+# Deploy to Hugging Face Spaces using Gradio
+gradio-deploy:
+	@echo "🚀 Preparing Gradio deployment..."
+	@echo "📁 Creating demo-deploy directory..."
+	@rm -rf demo-deploy
+	@mkdir demo-deploy
+	@echo "📦 Copying necessary files..."
+	@cp start_demo_server.py demo-deploy/
+	@cp -r algorithm demo-deploy/
+	@cp -r demo demo-deploy/
+	@cp requirements.txt demo-deploy/
+	@cp uv.lock demo-deploy/
+	@cp pyproject.toml demo-deploy/
+	@cp .gitignore demo-deploy/
+	@cp README.md demo-deploy/
+	@cp LICENSE demo-deploy/
+	@echo "✅ Files copied to demo-deploy/"
+	@echo "🚀 Deploying with Gradio..."
+	@cd demo-deploy && gradio deploy
+	@echo "✅ Gradio deployment completed!"
+
 clean: stop-watchdog stop-lineage-visualizer clean-all-services
 
 
-help:
-	@echo "🚀 LineAgent Project"
-	@echo ""			
-	@echo "Available commands:"
-	@echo "  make start-api-server-with-lineage-visualizer-and-watchdog-and-demo-server - Start all services (API, Demo, Visualizer, Watchdog)"
-	@echo "  make start-api-server-with-lineage-visualizer-and-watchdog - Start API server with visualizer and watchdog"
-	@echo "  make start-demo-server-with-lineage-visualizer-and-watchdog - Start demo server with visualizer and watchdog"
-	@echo "  make start-only-api-server - Start only API server"
-	@echo ""
-	@echo "Individual commands:"
-	@echo "  make create-venv    - Create virtual environment"
-	@echo "  make activate-venv  - Activate virtual environment"
-	@echo "  make run-start-api-server-with-venv - Start API server in background"
-	@echo "  make run-start-demo-server-with-venv - Start demo server in background"
-	@echo "  make install-lineage-visualizer-dependencies - Install lineage visualizer dependencies"
-	@echo "  make start-lineage-visualizer - Start lineage visualizer in background"
-	@echo "  make stop-lineage-visualizer - Stop lineage visualizer"
-	@echo "  make start-watchdog - Start the JSONCrack watchdog (monitors lineage_extraction_dumps/sql_agent_lineage.json)"
-	@echo "  make stop-watchdog - Stop the watchdog"
-	@echo "  make clean      - Clean up temporary files and stop all services"
-	@echo ""	
+
 
 create-venv:
 	@echo "🚀 Creating virtual environment..."

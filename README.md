@@ -1,66 +1,76 @@
-# Lineagent
-Lineagent is an agentic framework for data lineage extraction across various data processing script types and export the results in OpenLineage format.
+---
+title: lineagent
+app_file: start_demo_server.py
+sdk: gradio
+sdk_version: 5.34.2
+---
+# LineAgent - SQL Lineage Analysis
 
+Agentic approach for data lineage parsing across various data processing script types.
 
-# architecture
+## Python Version Requirements
 
-Following is the architecture of how agentic chain of thought systems designed to extract lineage across various data processing script types.
+This project requires **Python 3.13** or higher.
 
-![Architecture Diagram](images/architecture.jpg)
+## Local Development
 
-## agent framework 
-The agent framework dose IO operations ,memory management, and prompt engineering according to the script type (T) and its content (C).
+### Prerequisites
+- Python 3.13+
+- uv (Python package manager)
 
-$$
-P := f(T, C)
-$$
+### Installation
 
-## planning agent
-
-The planning agent orchestrates the execution of the prompt provided by the agent framework (P) by selecting the appropriate agent (A) and its corresponding task (T).
-
-$$
-G=h([\{(A_1, T_1), (A_2, T_2), (A_3, T_3), (A_4, T_4)\}],P)
-$$
-
-## Syntax Analysis Agent
-
-Syntax Analysis agent, analyzes the syntactic structure of the raw script to identify subqueries and nested structures and decompose the script into multiple subscripts.
-
-$$
-\{sa1,⋯,san\}:=h([A_1,T_1],P)
-$$
-
-## Field Derivation Agent
-The Field Derivation agent processes each subscript from syntax analysis agent to derive field-level mapping relationships and processing logic. 
-
-$$
-\{fd1,⋯,fdn\}:=h([A_2,T_2],\{sa1,⋯,san\})
-$$
-
-## Operation Tracing Agent
-The Operation Tracing agent analyzes the complex conditions within each subscript identified in syntax analysis agent including filter conditions, join conditions, grouping conditions, and sorting conditions.
-
-$$
-\{ot1,⋯,otn\}:=h([A_3,T_3],\{sa1,⋯,san\})
-$$
-
-## Event Composer Agent
-The Event Composer agent consolidates the results from the syntax analysis agent, the field derivation agent and the operation tracing agent to generate the final lineage result.
-
-$$
-\{A\}:=h([A_4,T_4],\{sa1,⋯,san\},\{fd1,⋯,fdn\},\{ot1,⋯,otn\})
-$$
-
-## To run code
-
+1. Clone the repository:
 ```bash
-
+git clone <repository-url>
+cd lineagent
 ```
 
-## Environment variables
-
+2. Install dependencies:
 ```bash
-OPENAI_API_KEY=sk-proj-1234567890
-HF_TOKEN=hf_1234567890
+uv sync
 ```
+
+3. Run the demo server:
+```bash
+python start_demo_server.py
+```
+
+## Hugging Face Spaces Deployment
+
+This project is configured for deployment on Hugging Face Spaces with Python 3.13.
+
+### Files for HF Spaces:
+- `start_demo_server.py` - Entry point for the application
+- `Dockerfile` - Specifies Python 3.13 base image
+- `requirements.txt` - Python dependencies
+- `runtime.txt` - Python version specification
+- `config.yaml` - Hugging Face Spaces configuration
+
+### Deployment Configuration:
+- **Python Version**: 3.13.5
+- **Port**: 7860
+- **Framework**: Gradio
+- **Entry Point**: start_demo_server.py
+
+The application will automatically start when deployed to Hugging Face Spaces.
+
+## Environment Variables
+
+The application supports the following environment variables:
+- `DEMO_HOST` - Server host (default: 0.0.0.0)
+- `DEMO_PORT` - Server port (default: 7860)
+- `DEMO_SHARE` - Enable sharing (default: false)
+- `DEMO_INBROWSER` - Open in browser (default: true)
+- `DEMO_DEBUG` - Debug mode (default: false)
+
+## Features
+
+- SQL lineage analysis
+- Agentic approach to data processing
+- Interactive web interface
+- Support for multiple data processing script types
+
+## License
+
+[License information]

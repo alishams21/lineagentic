@@ -22,32 +22,45 @@ annotated-types==0.7.0
     # via pydantic
 anthropic==0.53.0
     # via
-    #   agents (pyproject.toml)
+    #   lineagent (pyproject.toml)
     #   langchain-anthropic
 anyio==4.9.0
     # via
     #   anthropic
     #   gradio
     #   httpx
+    #   jupyter-server
     #   mcp
     #   openai
     #   sse-starlette
     #   starlette
+appnope==0.1.4
+    # via ipykernel
+argon2-cffi==25.1.0
+    # via jupyter-server
+argon2-cffi-bindings==21.2.0
+    # via argon2-cffi
+arrow==1.3.0
+    # via isoduration
 asttokens==3.0.0
     # via stack-data
+async-lru==2.0.5
+    # via jupyterlab
 attrs==25.3.0
     # via
     #   aiohttp
     #   jsonschema
     #   referencing
+audioop-lts==0.2.1
+    # via gradio
 autogen-agentchat==0.6.1
-    # via agents (pyproject.toml)
+    # via lineagent (pyproject.toml)
 autogen-core==0.6.1
     # via
     #   autogen-agentchat
     #   autogen-ext
 autogen-ext==0.6.1
-    # via agents (pyproject.toml)
+    # via lineagent (pyproject.toml)
 av==14.4.0
     # via aiortc
 azure-ai-agents==1.0.1
@@ -66,14 +79,19 @@ azure-identity==1.23.0
     # via semantic-kernel
 azure-storage-blob==12.25.1
     # via azure-ai-projects
+babel==2.17.0
+    # via jupyterlab-server
 beautifulsoup4==4.13.4
     # via
     #   bs4
     #   markdownify
+    #   nbconvert
     #   readabilipy
     #   wikipedia
+bleach==6.2.0
+    # via nbconvert
 bs4==0.0.2
-    # via agents (pyproject.toml)
+    # via lineagent (pyproject.toml)
 certifi==2025.4.26
     # via
     #   httpcore
@@ -83,6 +101,7 @@ certifi==2025.4.26
 cffi==1.17.1
     # via
     #   aiortc
+    #   argon2-cffi-bindings
     #   cryptography
     #   pylibsrtp
 chardet==5.2.0
@@ -98,7 +117,9 @@ cloudevents==1.12.0
 colorama==0.4.6
     # via griffe
 comm==0.2.2
-    # via ipywidgets
+    # via
+    #   ipykernel
+    #   ipywidgets
 cryptography==45.0.4
     # via
     #   aiortc
@@ -109,10 +130,14 @@ cryptography==45.0.4
     #   pyopenssl
 dataclasses-json==0.6.7
     # via langchain-community
+debugpy==1.8.15
+    # via ipykernel
 decorator==5.2.1
     # via ipython
 defusedxml==0.7.1
-    # via semantic-kernel
+    # via
+    #   nbconvert
+    #   semantic-kernel
 deprecation==2.1.0
     # via cloudevents
 distro==1.9.0
@@ -127,10 +152,14 @@ executing==2.2.0
     # via stack-data
 fastapi==0.115.12
     # via gradio
+fastjsonschema==2.21.1
+    # via nbformat
 ffmpy==0.6.0
     # via gradio
 filelock==3.18.0
     # via huggingface-hub
+fqdn==1.5.1
+    # via jsonschema
 frozenlist==1.7.0
     # via
     #   aiohttp
@@ -141,9 +170,9 @@ fsspec==2025.5.1
     #   huggingface-hub
 google-crc32c==1.7.1
     # via aiortc
-gradio==5.33.1
-    # via agents (pyproject.toml)
-gradio-client==1.10.3
+gradio==5.24.0
+    # via lineagent (pyproject.toml)
+gradio-client==1.8.0
     # via gradio
 greenlet==3.2.3
     # via playwright
@@ -165,10 +194,11 @@ httpcore==1.0.9
     # via httpx
 httpx==0.28.1
     # via
-    #   agents (pyproject.toml)
+    #   lineagent (pyproject.toml)
     #   anthropic
     #   gradio
     #   gradio-client
+    #   jupyterlab
     #   langgraph-sdk
     #   langsmith
     #   mcp
@@ -187,42 +217,68 @@ idna==3.10
     # via
     #   anyio
     #   httpx
+    #   jsonschema
     #   requests
     #   yarl
 ifaddr==0.2.0
     # via aioice
 importlib-metadata==8.7.0
     # via opentelemetry-api
-ipython==9.3.0
-    # via ipywidgets
+ipykernel==6.30.0
+    # via
+    #   lineagent (pyproject.toml)
+    #   jupyter
+    #   jupyter-console
+    #   jupyterlab
+ipython==9.4.0
+    # via
+    #   lineagent (pyproject.toml)
+    #   ipykernel
+    #   ipywidgets
+    #   jupyter-console
 ipython-pygments-lexers==1.1.1
     # via ipython
 ipywidgets==8.1.7
-    # via agents (pyproject.toml)
+    # via
+    #   lineagent (pyproject.toml)
+    #   jupyter
 isodate==0.7.2
     # via
     #   azure-ai-agents
     #   azure-ai-projects
     #   azure-storage-blob
     #   openapi-core
+isoduration==20.11.0
+    # via jsonschema
 jedi==0.19.2
     # via ipython
 jinja2==3.1.6
     # via
     #   gradio
+    #   jupyter-server
+    #   jupyterlab
+    #   jupyterlab-server
+    #   nbconvert
     #   semantic-kernel
 jiter==0.10.0
     # via
     #   anthropic
     #   openai
+json5==0.12.0
+    # via jupyterlab-server
 jsonpatch==1.33
     # via langchain-core
 jsonpointer==3.0.0
-    # via jsonpatch
+    # via
+    #   jsonpatch
+    #   jsonschema
 jsonref==1.1.0
     # via autogen-core
 jsonschema==4.24.0
     # via
+    #   jupyter-events
+    #   jupyterlab-server
+    #   nbformat
     #   openapi-core
     #   openapi-schema-validator
     #   openapi-spec-validator
@@ -234,15 +290,58 @@ jsonschema-specifications==2025.4.1
     # via
     #   jsonschema
     #   openapi-schema-validator
+jupyter==1.1.1
+    # via lineagent (pyproject.toml)
+jupyter-client==8.6.3
+    # via
+    #   ipykernel
+    #   jupyter-console
+    #   jupyter-server
+    #   nbclient
+jupyter-console==6.6.3
+    # via jupyter
+jupyter-core==5.8.1
+    # via
+    #   ipykernel
+    #   jupyter-client
+    #   jupyter-console
+    #   jupyter-server
+    #   jupyterlab
+    #   nbclient
+    #   nbconvert
+    #   nbformat
+jupyter-events==0.12.0
+    # via jupyter-server
+jupyter-lsp==2.2.6
+    # via jupyterlab
+jupyter-server==2.16.0
+    # via
+    #   jupyter-lsp
+    #   jupyterlab
+    #   jupyterlab-server
+    #   notebook
+    #   notebook-shim
+jupyter-server-terminals==0.5.3
+    # via jupyter-server
+jupyterlab==4.4.5
+    # via
+    #   jupyter
+    #   notebook
+jupyterlab-pygments==0.3.0
+    # via nbconvert
+jupyterlab-server==2.27.3
+    # via
+    #   jupyterlab
+    #   notebook
 jupyterlab-widgets==3.0.15
     # via ipywidgets
 langchain==0.3.25
     # via langchain-community
 langchain-anthropic==0.3.15
-    # via agents (pyproject.toml)
+    # via lineagent (pyproject.toml)
 langchain-community==0.3.24
     # via
-    #   agents (pyproject.toml)
+    #   lineagent (pyproject.toml)
     #   langchain-experimental
 langchain-core==0.3.64
     # via
@@ -256,27 +355,27 @@ langchain-core==0.3.64
     #   langgraph-checkpoint
     #   langgraph-prebuilt
 langchain-experimental==0.3.4
-    # via agents (pyproject.toml)
+    # via lineagent (pyproject.toml)
 langchain-openai==0.3.21
-    # via agents (pyproject.toml)
+    # via lineagent (pyproject.toml)
 langchain-text-splitters==0.3.8
     # via langchain
 langgraph==0.4.8
-    # via agents (pyproject.toml)
+    # via lineagent (pyproject.toml)
 langgraph-checkpoint==2.0.26
     # via
     #   langgraph
     #   langgraph-checkpoint-sqlite
     #   langgraph-prebuilt
 langgraph-checkpoint-sqlite==2.0.10
-    # via agents (pyproject.toml)
+    # via lineagent (pyproject.toml)
 langgraph-prebuilt==0.2.2
     # via langgraph
 langgraph-sdk==0.1.70
     # via langgraph
 langsmith==0.3.45
     # via
-    #   agents (pyproject.toml)
+    #   lineagent (pyproject.toml)
     #   langchain
     #   langchain-community
     #   langchain-core
@@ -284,7 +383,7 @@ lazy-object-proxy==1.11.0
     # via openapi-spec-validator
 lxml==5.4.0
     # via
-    #   agents (pyproject.toml)
+    #   lineagent (pyproject.toml)
     #   readabilipy
 markdown-it-py==3.0.0
     # via rich
@@ -294,21 +393,26 @@ markupsafe==3.0.2
     # via
     #   gradio
     #   jinja2
+    #   nbconvert
     #   werkzeug
 marshmallow==3.26.1
     # via dataclasses-json
 matplotlib-inline==0.1.7
-    # via ipython
+    # via
+    #   ipykernel
+    #   ipython
 mcp==1.9.3
     # via
-    #   agents (pyproject.toml)
+    #   lineagent (pyproject.toml)
     #   autogen-ext
     #   mcp-server-fetch
     #   openai-agents
 mcp-server-fetch==2025.1.17
-    # via agents (pyproject.toml)
+    # via lineagent (pyproject.toml)
 mdurl==0.1.2
     # via markdown-it-py
+mistune==3.1.3
+    # via nbconvert
 more-itertools==10.7.0
     # via openapi-core
 msal==1.32.3
@@ -325,8 +429,28 @@ mypy-extensions==1.1.0
     # via typing-inspect
 narwhals==1.42.0
     # via plotly
+nbclient==0.10.2
+    # via nbconvert
+nbconvert==7.16.6
+    # via
+    #   jupyter
+    #   jupyter-server
+nbformat==5.10.4
+    # via
+    #   lineagent (pyproject.toml)
+    #   jupyter-server
+    #   nbclient
+    #   nbconvert
 nest-asyncio==1.6.0
-    # via semantic-kernel
+    # via
+    #   ipykernel
+    #   semantic-kernel
+notebook==7.4.4
+    # via jupyter
+notebook-shim==0.2.4
+    # via
+    #   jupyterlab
+    #   notebook
 numpy==2.3.0
     # via
     #   gradio
@@ -338,13 +462,13 @@ ollama==0.5.1
     # via autogen-ext
 openai==1.85.0
     # via
-    #   agents (pyproject.toml)
+    #   lineagent (pyproject.toml)
     #   autogen-ext
     #   langchain-openai
     #   openai-agents
     #   semantic-kernel
 openai-agents==0.0.17
-    # via agents (pyproject.toml)
+    # via lineagent (pyproject.toml)
 openapi-core==0.19.5
     # via semantic-kernel
 openapi-schema-validator==0.6.3
@@ -370,19 +494,29 @@ orjson==3.10.18
     #   langsmith
 ormsgpack==1.10.0
     # via langgraph-checkpoint
+overrides==7.7.0
+    # via jupyter-server
 packaging==24.2
     # via
     #   deprecation
     #   gradio
     #   gradio-client
     #   huggingface-hub
+    #   ipykernel
+    #   jupyter-events
+    #   jupyter-server
+    #   jupyterlab
+    #   jupyterlab-server
     #   langchain-core
     #   langsmith
     #   marshmallow
+    #   nbconvert
     #   plotly
     #   prance
 pandas==2.3.0
     # via gradio
+pandocfilters==1.5.1
+    # via nbconvert
 parse==1.20.2
     # via openapi-core
 parso==0.8.4
@@ -395,16 +529,22 @@ pillow==11.2.1
     # via
     #   autogen-core
     #   gradio
+platformdirs==4.3.8
+    # via jupyter-core
 playwright==1.52.0
-    # via agents (pyproject.toml)
+    # via lineagent (pyproject.toml)
 plotly==6.1.2
-    # via agents (pyproject.toml)
+    # via lineagent (pyproject.toml)
 polygon-api-client==1.14.6
-    # via agents (pyproject.toml)
+    # via lineagent (pyproject.toml)
 prance==25.4.8.0
     # via semantic-kernel
+prometheus-client==0.22.1
+    # via jupyter-server
 prompt-toolkit==3.0.51
-    # via ipython
+    # via
+    #   ipython
+    #   jupyter-console
 propcache==0.3.2
     # via
     #   aiohttp
@@ -416,9 +556,13 @@ protobuf==5.29.5
     #   autogen-core
     #   semantic-kernel
 psutil==7.0.0
-    # via agents (pyproject.toml)
+    # via
+    #   lineagent (pyproject.toml)
+    #   ipykernel
 ptyprocess==0.7.0
-    # via pexpect
+    # via
+    #   pexpect
+    #   terminado
 pure-eval==0.2.3
     # via stack-data
 pybars4==0.9.13
@@ -460,6 +604,8 @@ pygments==2.19.1
     # via
     #   ipython
     #   ipython-pygments-lexers
+    #   jupyter-console
+    #   nbconvert
     #   rich
 pyjwt==2.10.1
     # via msal
@@ -470,18 +616,23 @@ pymeta3==0.5.1
 pyopenssl==25.1.0
     # via aiortc
 pypdf==5.6.0
-    # via agents (pyproject.toml)
+    # via lineagent (pyproject.toml)
 pypdf2==3.0.1
-    # via agents (pyproject.toml)
+    # via lineagent (pyproject.toml)
 python-dateutil==2.9.0.post0
-    # via pandas
+    # via
+    #   arrow
+    #   jupyter-client
+    #   pandas
 python-dotenv==1.1.0
     # via
-    #   agents (pyproject.toml)
+    #   lineagent (pyproject.toml)
     #   mcp
     #   pydantic-settings
 python-http-client==3.3.7
     # via sendgrid
+python-json-logger==3.3.0
+    # via jupyter-events
 python-multipart==0.0.20
     # via
     #   gradio
@@ -493,9 +644,16 @@ pyyaml==6.0.2
     #   gradio
     #   huggingface-hub
     #   jsonschema-path
+    #   jupyter-events
     #   langchain
     #   langchain-community
     #   langchain-core
+pyzmq==27.0.0
+    # via
+    #   ipykernel
+    #   jupyter-client
+    #   jupyter-console
+    #   jupyter-server
 readabilipy==0.3.0
     # via mcp-server-fetch
 referencing==0.36.2
@@ -503,16 +661,18 @@ referencing==0.36.2
     #   jsonschema
     #   jsonschema-path
     #   jsonschema-specifications
+    #   jupyter-events
 regex==2024.11.6
     # via
     #   readabilipy
     #   tiktoken
 requests==2.32.4
     # via
-    #   agents (pyproject.toml)
+    #   lineagent (pyproject.toml)
     #   azure-core
     #   huggingface-hub
     #   jsonschema-path
+    #   jupyterlab-server
     #   langchain
     #   langchain-community
     #   langsmith
@@ -526,7 +686,14 @@ requests==2.32.4
 requests-toolbelt==1.0.0
     # via langsmith
 rfc3339-validator==0.1.4
-    # via openapi-schema-validator
+    # via
+    #   jsonschema
+    #   jupyter-events
+    #   openapi-schema-validator
+rfc3986-validator==0.1.1
+    # via
+    #   jsonschema
+    #   jupyter-events
 rich==14.0.0
     # via typer
 rpds-py==0.25.1
@@ -544,13 +711,17 @@ safehttpx==0.1.6
 scipy==1.15.3
     # via semantic-kernel
 semantic-kernel==1.32.2
-    # via agents (pyproject.toml)
+    # via lineagent (pyproject.toml)
 semantic-version==2.10.0
     # via gradio
+send2trash==1.8.3
+    # via jupyter-server
 sendgrid==6.12.3
-    # via agents (pyproject.toml)
+    # via lineagent (pyproject.toml)
 setuptools==80.9.0
-    # via agents (pyproject.toml)
+    # via
+    #   lineagent (pyproject.toml)
+    #   jupyterlab
 shellingham==1.5.4
     # via typer
 six==1.17.0
@@ -562,7 +733,7 @@ six==1.17.0
     #   python-dateutil
     #   rfc3339-validator
 smithery==0.1.0
-    # via agents (pyproject.toml)
+    # via lineagent (pyproject.toml)
 sniffio==1.3.1
     # via
     #   anthropic
@@ -571,7 +742,7 @@ sniffio==1.3.1
 soupsieve==2.7
     # via beautifulsoup4
 speedtest-cli==2.1.3
-    # via agents (pyproject.toml)
+    # via lineagent (pyproject.toml)
 sqlalchemy==2.0.41
     # via
     #   langchain
@@ -591,12 +762,26 @@ tenacity==9.1.2
     # via
     #   langchain-community
     #   langchain-core
+terminado==0.18.1
+    # via
+    #   jupyter-server
+    #   jupyter-server-terminals
 tiktoken==0.9.0
     # via
     #   autogen-ext
     #   langchain-openai
+tinycss2==1.4.0
+    # via bleach
 tomlkit==0.13.3
     # via gradio
+tornado==6.5.1
+    # via
+    #   ipykernel
+    #   jupyter-client
+    #   jupyter-server
+    #   jupyterlab
+    #   notebook
+    #   terminado
 tqdm==4.67.1
     # via
     #   huggingface-hub
@@ -604,20 +789,31 @@ tqdm==4.67.1
 traitlets==5.14.3
     # via
     #   comm
+    #   ipykernel
     #   ipython
     #   ipywidgets
+    #   jupyter-client
+    #   jupyter-console
+    #   jupyter-core
+    #   jupyter-events
+    #   jupyter-server
+    #   jupyterlab
     #   matplotlib-inline
+    #   nbclient
+    #   nbconvert
+    #   nbformat
 typer==0.16.0
     # via
     #   gradio
     #   mcp
+types-python-dateutil==2.9.0.20250708
+    # via arrow
 types-requests==2.32.0.20250602
     # via openai-agents
 typing-extensions==4.14.0
     # via
     #   aiosqlite
     #   anthropic
-    #   anyio
     #   autogen-core
     #   azure-ai-agents
     #   azure-ai-projects
@@ -639,8 +835,6 @@ typing-extensions==4.14.0
     #   pydantic
     #   pydantic-core
     #   pyee
-    #   pyopenssl
-    #   referencing
     #   semantic-kernel
     #   sqlalchemy
     #   typer
@@ -654,6 +848,8 @@ typing-inspection==0.4.1
     #   pydantic-settings
 tzdata==2025.2
     # via pandas
+uri-template==1.3.0
+    # via jsonschema
 urllib3==2.4.0
     # via
     #   polygon-api-client
@@ -663,10 +859,19 @@ uvicorn==0.34.3
     # via
     #   gradio
     #   mcp
+watchdog==6.0.0
+    # via lineagent (pyproject.toml)
 wcwidth==0.2.13
     # via prompt-toolkit
+webcolors==24.11.1
+    # via jsonschema
 webencodings==0.5.1
-    # via html5lib
+    # via
+    #   bleach
+    #   html5lib
+    #   tinycss2
+websocket-client==1.8.0
+    # via jupyter-server
 websockets==14.2
     # via
     #   gradio-client
@@ -679,7 +884,7 @@ werkzeug==3.1.1
 widgetsnbextension==4.0.14
     # via ipywidgets
 wikipedia==1.4.0
-    # via agents (pyproject.toml)
+    # via lineagent (pyproject.toml)
 xxhash==3.5.0
     # via langgraph
 yarl==1.20.1
