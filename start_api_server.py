@@ -7,13 +7,11 @@ import os
 import sys
 import uvicorn
 from pathlib import Path
+from backend.api_server import app
 
 def main():
     """Start the API server with configuration"""
-    
-    # Add root directory to Python path to access algorithm module
-    root_dir = Path(__file__).parent.parent
-    sys.path.insert(0, str(root_dir))
+
     
     # Configuration
     host = os.getenv("HOST", "0.0.0.0")
@@ -32,14 +30,27 @@ def main():
     
     try:
         # Start the server
-        uvicorn.run(
-            "api_server:app",
-            host=host,
-            port=port,
-            reload=reload,
-            log_level=log_level,
-            access_log=True
-        )
+        if reload:
+            # Use import string when reload is enabled
+            uvicorn.run(
+                "backend.api_server:app",
+                host=host,
+                port=port,
+                reload=reload,
+                log_level=log_level,
+                access_log=True
+            )
+        else:
+            # Import and use app object directly when reload is disabled
+            from backend.api_server import app
+            uvicorn.run(
+                app,
+                host=host,
+                port=port,
+                reload=reload,
+                log_level=log_level,
+                access_log=True
+            )
     except KeyboardInterrupt:
         print("\nShutting down server...")
     except Exception as e:

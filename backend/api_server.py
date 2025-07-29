@@ -160,12 +160,3 @@ async def run_planner_agent(request: SQLQueryRequest):
             detail=f"Error running planner agent: {str(e)}"
         )
 
-if __name__ == "__main__":
-    # Run the server
-    uvicorn.run(
-        "api_server:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True,
-        log_level="info"
-    ) 

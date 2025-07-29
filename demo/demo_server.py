@@ -7,9 +7,7 @@ import sys
 import os
 from typing import Optional, Dict, Any
 
-# Add the project root directory to Python path to access algorithm module
-# This is a temporary fix - in production, use proper package installation
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 
 from algorithm.framework_agent import AgentFramework
 from algorithm.utils.database import read_lineage_log, write_lineage_log
