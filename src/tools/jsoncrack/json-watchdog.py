@@ -189,8 +189,8 @@ def main():
     parser = argparse.ArgumentParser(description='JSONCrack Watchdog - Monitor JSON files and auto-generate')
     parser.add_argument(
         '--watch-file', 
-        default='lineage_extraction_dumps/sql_agent_lineage.json',
-        help='JSON file to watch (default: lineage_extraction_dumps/sql_agent_lineage.json)'
+        default='lineage_extraction_dumps/sql_lineage.json',
+        help='JSON file to watch (default: lineage_extraction_dumps/sql_lineage.json)'
     )
     parser.add_argument(
         '--generator-script',

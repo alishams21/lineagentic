@@ -158,12 +158,12 @@ class SQLLineageFrontend:
                 # Left column - Configuration and Query
                 with gr.Column(scale=1):
                     gr.Markdown("### 1. Configuration")
-                    name_input = gr.Textbox(
-                        label="Agent Name",
-                        value="sql_agent",
-                        placeholder="Enter agent name",
-                        lines=1,
-                        max_lines=1
+                    agent_dropdown = gr.Dropdown(
+                        label="Agent Type",
+                        choices=[
+                            "sql"
+                        ],
+                        value="sql"
                     )
                     model_dropdown = gr.Dropdown(
                         label="Model",
@@ -213,7 +213,7 @@ class SQLLineageFrontend:
             
             analyze_button.click(
                 fn=run_analysis_and_update,
-                inputs=[name_input, model_dropdown, query_input],
+                inputs=[agent_dropdown, model_dropdown, query_input],
                 outputs=[status_output, visualize_html, logs_html]
             )
             
