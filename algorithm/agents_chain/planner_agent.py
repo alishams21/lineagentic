@@ -1,16 +1,23 @@
 import os
+import sys
 from contextlib import AsyncExitStack
-from utils.tracers import log_trace_id
 from agents import Agent, Tool, Runner, OpenAIChatCompletionsModel, trace
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
 from agents.mcp.server import MCPServerStdio
-from agents_instructions.sql_instructions import (syntax_analysis_instructions,
-                       field_derivation_instructions,
-                       operation_tracing_instructions,
-                       event_composer_instructions)
-from mcp_servers.mcp_params import sql_mcp_server_params
-from utils.file_utils import dump_json_record
+
+# Add the parent directory to the path so we can import from algorithm
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+
+
+from algorithm.utils.tracers import log_trace_id
+from algorithm.agents_instructions.sql_instructions import (syntax_analysis_instructions,
+                        field_derivation_instructions,
+                        operation_tracing_instructions,
+                        event_composer_instructions)
+from algorithm.mcp_servers.mcp_params import sql_mcp_server_params
+from algorithm.utils.file_utils import dump_json_record
+
 
 load_dotenv(override=True)
 

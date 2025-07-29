@@ -1,9 +1,17 @@
 import asyncio
-from agents_chain.planner_agent import PlannerAgent
+import sys
+import os
 from typing import Optional, Dict, Any
-from utils.tracers import LogTracer
-from agents import add_trace_processor
 import json
+
+# Add the parent directory to the path so we can import from algorithm
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+
+from algorithm.agents_chain.planner_agent import PlannerAgent
+from algorithm.utils.tracers import LogTracer
+from agents import add_trace_processor
+
 
 class AgentFramework:
     def __init__(self, name: str, model_name: str = "gpt-4o-mini"):

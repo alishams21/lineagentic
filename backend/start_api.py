@@ -11,9 +11,9 @@ from pathlib import Path
 def main():
     """Start the API server with configuration"""
     
-    # Add current directory to Python path
-    current_dir = Path(__file__).parent
-    sys.path.insert(0, str(current_dir))
+    # Add root directory to Python path to access algorithm module
+    root_dir = Path(__file__).parent.parent
+    sys.path.insert(0, str(root_dir))
     
     # Configuration
     host = os.getenv("HOST", "0.0.0.0")

@@ -5,7 +5,7 @@ from typing import List, Dict, Any, Optional
 import uvicorn
 import asyncio
 import json
-from framework_agent import AgentFramework
+from algorithm.framework_agent import AgentFramework
 
 # Pydantic models for request/response
 class SQLQueryRequest(BaseModel):
