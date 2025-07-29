@@ -144,22 +144,25 @@ const useFile = create<FileStates & JsonActions>()((set, get) => ({
   },
   checkEditorSession: (url, widget) => {
     if (url && typeof url === "string") {
-      // Check if it's a valid URL (external JSON)
+      // Check if it's a URL first
       if (isURL(url)) {
         return get().fetchUrl(url);
       }
       
-      // Check if it's JSON data passed as URL parameter
+      // Check if it's JSON data (starts with { or [)
       try {
-        // Try to decode and parse the JSON data
-        const decodedJson = decodeURIComponent(url);
-        const parsedJson = JSON.parse(decodedJson);
-        const jsonStr = JSON.stringify(parsedJson, null, 2);
-        get().setContents({ contents: jsonStr, hasChanges: false });
-        return;
+        const decodedUrl = decodeURIComponent(url);
+        if ((decodedUrl.trim().startsWith('{') && decodedUrl.trim().endsWith('}')) ||
+            (decodedUrl.trim().startsWith('[') && decodedUrl.trim().endsWith(']'))) {
+          // Validate that it's valid JSON
+          JSON.parse(decodedUrl);
+          // If we get here, it's valid JSON
+          get().setContents({ contents: decodedUrl, hasChanges: false });
+          return;
+        }
       } catch (error) {
-        // If it's not valid JSON, continue to default behavior
-        console.warn("Invalid JSON in URL parameter:", error);
+        // Not valid JSON, continue to default behavior
+        console.warn("URL parameter is not a valid URL or JSON:", url);
       }
     }
 

@@ -97,20 +97,24 @@ class JSONFileHandler(FileSystemEventHandler):
         try:
             logger.info(f"📤 Calling JSON generator with last record")
             
-            # Create a temporary file with the last record
-            temp_file = self.watch_file.parent / f"temp_{self.watch_file.name}"
+            # Create a temporary file in the same directory as the generator script
+            temp_file = self.generator_script.parent / f"temp_data_{int(time.time())}.json"
             with open(temp_file, 'w') as f:
                 json.dump(json_data, f, indent=2)
+            
+            logger.info(f"📄 Created temporary file: {temp_file}")
+            logger.info(f"📊 JSON data: {json.dumps(json_data, indent=2)[:200]}...")
             
             # Call the Node.js script with the temporary file
             result = subprocess.run([
                 'node', str(self.generator_script),
                 '--input-file', str(temp_file)
-            ], capture_output=True, text=True, cwd=Path('lineage_visualizer/jsoncrack'))
+            ], capture_output=True, text=True, cwd=self.generator_script.parent)
             
             # Clean up temporary file
             if temp_file.exists():
                 temp_file.unlink()
+                logger.info(f"🗑️ Cleaned up temporary file: {temp_file}")
             
             if result.returncode == 0:
                 logger.info("✅ JSON generator executed successfully")
@@ -121,6 +125,10 @@ class JSONFileHandler(FileSystemEventHandler):
                 
         except Exception as e:
             logger.error(f"❌ Error calling JSON generator: {e}")
+            # Clean up temp file even if there's an error
+            if 'temp_file' in locals() and temp_file.exists():
+                temp_file.unlink()
+                logger.info(f"🗑️ Cleaned up temporary file after error: {temp_file}")
     
     def on_modified(self, event):
         """Handle file modification events."""

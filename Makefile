@@ -27,6 +27,10 @@ help:
 # Start all services in background
 start-api-server-with-lineage-visualizer-and-watchdog-and-demo-server:
 	@echo "🚀 Starting all services in background..."
+	@$(MAKE) create-venv
+	@sleep 2
+	@$(MAKE) activate-venv
+	@sleep 2
 	@echo "📦 Installing dependencies..."
 	@$(MAKE) install-lineage-visualizer-dependencies
 	@echo "🚀 Starting API server in background..."
@@ -51,6 +55,10 @@ start-api-server-with-lineage-visualizer-and-watchdog-and-demo-server:
 # Start API server with lineage visualizer and watchdog
 start-api-server-with-lineage-visualizer-and-watchdog:
 	@echo "🚀 Starting API server with lineage visualizer and watchdog..."
+	@$(MAKE) create-venv
+	@sleep 2
+	@$(MAKE) activate-venv
+	@sleep 2
 	@echo "📦 Installing dependencies..."
 	@$(MAKE) install-lineage-visualizer-dependencies
 	@echo "🚀 Starting API server in background..."
@@ -68,6 +76,10 @@ start-api-server-with-lineage-visualizer-and-watchdog:
 # Start demo server with lineage visualizer and watchdog
 start-demo-server-with-lineage-visualizer-and-watchdog:
 	@echo "🚀 Starting demo server with lineage visualizer and watchdog..."
+	@$(MAKE) create-venv
+	@sleep 2
+	@$(MAKE) activate-venv
+	@sleep 2
 	@echo "📦 Installing dependencies..."
 	@$(MAKE) install-lineage-visualizer-dependencies
 	@echo "🚀 Starting demo server in background..."
@@ -85,11 +97,19 @@ start-demo-server-with-lineage-visualizer-and-watchdog:
 # Start only API server
 start-only-api-server:
 	@echo "🚀 Starting only API server..."
+	@$(MAKE) create-venv
+	@sleep 2
+	@$(MAKE) activate-venv
+	@sleep 2
 	@$(MAKE) run-start-api-server-with-venv
 
 # Deploy to Hugging Face Spaces using Gradio
 gradio-deploy:
 	@echo "🚀 Preparing Gradio deployment..."
+	@$(MAKE) create-venv
+	@sleep 2
+	@$(MAKE) activate-venv
+	@sleep 2
 	@echo "📁 Creating demo-deploy directory..."
 	@rm -rf demo-deploy
 	@mkdir demo-deploy

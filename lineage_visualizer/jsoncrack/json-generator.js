@@ -178,6 +178,7 @@ async function main() {
   
   // Parse command line arguments
   const args = process.argv.slice(2);
+  
   let inputFile = null;
   let shouldCopy = true;
   let shouldOpen = true;

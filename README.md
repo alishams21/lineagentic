@@ -46,6 +46,11 @@ In order to deploy Lineagentic to Hugging Face Spaces, run the following command
 ```bash
 make gradio-deploy
 ```
+## environment variables
+
+- HF_TOKEN   (HUGGINGFACE_TOKEN)
+- OPENAI_API_KEY
+
 
 ## How algorithm works
 
