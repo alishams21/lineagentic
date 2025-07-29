@@ -5,8 +5,8 @@ import { NextSeo } from "next-seo";
 import { LuCheck, LuCircleX } from "react-icons/lu";
 import { SEO } from "../../constants/seo";
 import { type FileFormat, formats, type TypeLanguage, typeOptions } from "../../enums/file.enum";
-import { editorOptions } from "../../layout/ConverterLayout/options";
-import Layout from "../../layout/PageLayout";
+import { editorOptions } from "../ConverterLayout/options";
+import Layout from "../PageLayout";
 import { generateType } from "../../lib/utils/generateType";
 import { PageLinks } from "./PageLinks";
 

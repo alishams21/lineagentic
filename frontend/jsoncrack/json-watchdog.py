@@ -106,7 +106,7 @@ class JSONFileHandler(FileSystemEventHandler):
             result = subprocess.run([
                 'node', str(self.generator_script),
                 '--input-file', str(temp_file)
-            ], capture_output=True, text=True, cwd=Path('src/tools/jsoncrack'))
+            ], capture_output=True, text=True, cwd=Path('frontend/jsoncrack'))
             
             # Clean up temporary file
             if temp_file.exists():
@@ -194,8 +194,8 @@ def main():
     )
     parser.add_argument(
         '--generator-script',
-        default='src/tools/jsoncrack/json-generator.js',
-        help='Path to the JSON generator script (default: src/tools/jsoncrack/json-generator.js)'
+        default='frontend/jsoncrack/json-generator.js',
+        help='Path to the JSON generator script (default: frontend/jsoncrack/json-generator.js)'
     )
     parser.add_argument(
         '--watch-dir',

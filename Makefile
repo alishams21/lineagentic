@@ -30,7 +30,7 @@ dev:
 		echo "⚠️  Development server is already running!"; \
 		echo "   Use 'make stop-dev' to stop it first"; \
 	else \
-		cd src/tools/jsoncrack && pnpm run dev > /dev/null 2>&1 & \
+		cd frontend/jsoncrack && pnpm run dev > /dev/null 2>&1 & \
 		echo "✅ Development server started in background"; \
 		echo "🌐 Server should be available at http://localhost:3000"; \
 		echo "🛑 Use 'make stop-dev' to stop the development server"; \
@@ -49,7 +49,7 @@ start:
 		echo "⚠️  Watchdog is already running!"; \
 		echo "   Use 'make stop' to stop it first, or 'make status' to check"; \
 	else \
-		python src/tools/jsoncrack/json-watchdog.py > /dev/null 2>&1 & \
+		python frontend/jsoncrack/json-watchdog.py > /dev/null 2>&1 & \
 		echo "✅ Watchdog started in background"; \
 		echo "📝 Logs will be written to json-watchdog.log"; \
 		echo "🛑 Use 'make stop' to stop the watchdog"; \
