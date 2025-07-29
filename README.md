@@ -55,11 +55,7 @@ $$
 ## To run code
 
 ```bash
-uv sync
-source .venv/bin/activate
-python src/app.py
-or to run framework separately
-python src/agent_framework.py
+
 ```
 
 ## Environment variables
