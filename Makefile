@@ -198,4 +198,5 @@ clean-all-services:
 	@echo "🗑️  Removing data folders..."
 	@rm -rf agents_log_db 2>/dev/null || echo "No agents_log_db folder found"
 	@rm -rf lineage_extraction_dumps 2>/dev/null || echo "No lineage_extraction_dumps folder found"
+	@$(MAKE) stop-watchdog
 	@echo "✅ Cleanup completed!" 
