@@ -1,7 +1,7 @@
 # LineAgent Project Makefile
 # Centralized build and development commands
 
-.PHONY: help create-venv activate-venv run-start-api-server-with-venv run-start-demo-server-with-venv install-lineage-visualizer-dependencies start-lineage-visualizer stop-lineage-visualizer start-watchdog stop-watchdog clean gradio-deploy
+.PHONY: help create-venv activate-venv run-start-api-server-with-venv run-start-demo-server-with-venv install-lineage-visualizer-dependencies start-lineage-visualizer stop-lineage-visualizer start-watchdog stop-watchdog clean gradio-deploy query-logs
 
 help:
 	@echo "🚀 LineAgent Project"
@@ -23,7 +23,8 @@ help:
 	@echo "  make start-watchdog - Start the JSONCrack watchdog (monitors lineage_extraction_dumps/sql_lineage.json)"
 	@echo "  make stop-watchdog - Stop the watchdog"
 	@echo "  make clean      - Clean up temporary files and stop all services"
-	@echo ""	
+	@echo "  make query-logs  - Query recent logs from agents_logs.db"
+	@echo ""
 # Start all services in background
 start-api-server-with-lineage-visualizer-and-watchdog-and-demo-server:
 	@echo "🚀 Starting all services in background..."
@@ -220,4 +221,14 @@ clean-all-services:
 	@rm -rf lineage_extraction_dumps 2>/dev/null || echo "No lineage_extraction_dumps folder found"
 	@rm -rf .venv 2>/dev/null || echo "No .venv folder found"
 	@$(MAKE) stop-watchdog
-	@echo "✅ Cleanup completed!" 
+	@echo "✅ Cleanup completed!"
+
+# Query recent logs from agents_logs.db
+query-logs:
+	@echo "📊 Querying recent logs from agents_logs.db..."
+	@if [ -f "agents_log_db/agents_logs.db" ]; then \
+		sqlite3 agents_log_db/agents_logs.db "SELECT * FROM lineage_log ORDER BY datetime DESC LIMIT 10;"; \
+	else \
+		echo "❌ Database file not found: agents_log_db/agents_logs.db"; \
+		echo "   Make sure the database exists before querying."; \
+	fi 
