@@ -132,14 +132,18 @@ class SQLLineageFrontend:
         """Run SQL lineage analysis"""
         try:
             # Initialize the agent framework
-            self.agent_framework = AgentFramework(name=agent_name, model_name=model_name)
+            self.agent_framework = AgentFramework(agent_name=agent_name, model_name=model_name)
             self.current_agent_name = agent_name
             
             # Run the analysis
             results = await self.agent_framework.run_sql_lineage_analysis(query)
             self.current_results = results
             
-            return f"✅ Analysis completed successfully! Results are now available in the visualization section. Click 'Open JSONCrack Editor' to visualize your data lineage."
+            return f"""✅ Analysis completed successfully! Results are now available in the visualization section. 
+            Click 'Open JSONCrack Editor' to visualize your data lineage.
+            
+            If you want to set up your own local development environment or deploy this in production, 
+            please refer to the GitHub repository mentioned above."""
             
         except Exception as e:
             return f"❌ Error running analysis: {str(e)}"
@@ -155,7 +159,7 @@ class SQLLineageFrontend:
             gr.Markdown('<div style="text-align: center;font-size:24px">🔍 Demo Lineage Analysis Framework</div>')
             gr.Markdown('<div style="text-align: center;font-size:14px">Analyze and visualize data lineage with AI-powered agents</div>')
             gr.Markdown('<div style="text-align: center;font-size:14px">Currently supports SQL queries, coming soon for Python and other languages</div>')
-            gr.Markdown('<div style="text-align: center;font-size:14px">For local and production runs, check out the repo: <a href="https://github.com/alishams21/lineagent" target="_blank" style="color: #007bff; text-decoration: none; font-weight: bold;">🔗 https://github.com/alishams21/lineagent</a></div>')
+            gr.Markdown('<div style="text-align: center;font-size:14px">For local and production runs, check out the repo: <a href="https://github.com/alishams21/lineagentic" target="_blank" style="color: #007bff; text-decoration: none; font-weight: bold;">🔗 https://github.com/alishams21/lineagentic</a></div>')
 
 
             

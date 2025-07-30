@@ -78,7 +78,7 @@ async def analyze_sql_query(request: SQLQueryRequest):
     try:
         # Create framework instance
         framework = AgentFramework(
-            name=request.agent_name,
+            agent_name=request.agent_name,
             model_name=request.model_name
         )
         
@@ -97,7 +97,7 @@ async def analyze_sql_query(request: SQLQueryRequest):
         )
 
 @app.post("/analyze/batch", response_model=BatchQueryResponse)
-async def analyze_sql_queries_batch(request: BatchQueryRequest):
+async def analyze_sql_queries_batch(request: BatchQueryRequest):    
     """
     Analyze multiple SQL queries in batch.
     
@@ -110,7 +110,7 @@ async def analyze_sql_queries_batch(request: BatchQueryRequest):
     try:
         # Create framework instance
         framework = AgentFramework(
-            name=request.agent_name,
+            agent_name=request.agent_name,
             model_name=request.model_name
         )
         
@@ -142,7 +142,7 @@ async def run_planner_agent(request: SQLQueryRequest):
     try:
         # Create framework instance
         framework = AgentFramework(
-            name=request.agent_name,
+            agent_name=request.agent_name,
             model_name=request.model_name
         )
         

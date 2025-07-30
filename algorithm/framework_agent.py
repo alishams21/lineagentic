@@ -14,14 +14,14 @@ from agents import add_trace_processor
 
 
 class AgentFramework:
-    def __init__(self, name: str, model_name: str = "gpt-4o-mini"):
+    def __init__(self, agent_name: str, model_name: str = "gpt-4o-mini"):
         """
         Initialize the Agent Framework.
         
         Args:
             model_name (str): The model to use for the agents (default: "gpt-4o-mini")
         """
-        self.name = name
+        self.agent_name = agent_name
         self.model_name = model_name
     
 
@@ -42,7 +42,7 @@ class AgentFramework:
         """
         # Create a new planner agent for each query
         add_trace_processor(LogTracer())
-        planner_agent = PlannerAgent(name=self.name, model_name=self.model_name, query=query)
+        planner_agent = PlannerAgent(agent_name=self.agent_name, model_name=self.model_name, query=query)
         
         try:
             results = await planner_agent.run()
@@ -87,7 +87,7 @@ class AgentFramework:
 # Example usage and main function
 async def main():
 
-    framework = AgentFramework(name="sql", model_name="gpt-4o")
+    framework = AgentFramework(agent_name="sql", model_name="gpt-4o")
     custom_result = await framework.run_sql_lineage_analysis(query="""
                                                              SELECT 
                                                             c.region,

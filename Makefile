@@ -227,7 +227,7 @@ clean-all-services:
 query-logs:
 	@echo "📊 Querying recent logs from agents_logs.db..."
 	@if [ -f "agents_log_db/agents_logs.db" ]; then \
-		sqlite3 agents_log_db/agents_logs.db "SELECT * FROM lineage_log ORDER BY datetime DESC LIMIT 10;"; \
+		sqlite3 agents_log_db/agents_logs.db "SELECT * FROM lineage_log ORDER BY datetime DESC LIMIT 50;"; \
 	else \
 		echo "❌ Database file not found: agents_log_db/agents_logs.db"; \
 		echo "   Make sure the database exists before querying."; \

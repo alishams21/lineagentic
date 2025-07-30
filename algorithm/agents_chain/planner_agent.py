@@ -53,14 +53,14 @@ def get_model(model_name: str):
 
 
 class PlannerAgent:
-    def __init__(self, name:str, query:str, model_name:str="gpt-4o-mini"):
-        self.name = name
+    def __init__(self, agent_name:str, query:str, model_name:str="gpt-4o-mini"):
+        self.agent_name = agent_name
         self.model_name = model_name
         self.query = query
 
     async def create_agent(self, sql_mcp_servers, instructions) -> Agent:
         agent = Agent(
-            name=self.name,
+            name=self.agent_name,
             instructions=instructions,
             model=get_model(self.model_name),
             mcp_servers=sql_mcp_servers,
@@ -70,13 +70,13 @@ class PlannerAgent:
 
     async def run_agent(self, sql_mcp_servers, query:str):
         # Step 1: Run structure parsing agent first
-        syntax_analysis_agent = await self.create_agent(sql_mcp_servers, syntax_analysis_instructions(self.name))
+        syntax_analysis_agent = await self.create_agent(sql_mcp_servers, syntax_analysis_instructions(self.agent_name))
         syntax_analysis_result = await Runner.run(syntax_analysis_agent, query, max_turns=MAX_TURNS)
         syntax_analysis_output = syntax_analysis_result.final_output
         
         # Step 2: Run field mapping and operation logic agents in parallel using the structure output
-        field_derivation_agent = await self.create_agent(sql_mcp_servers, field_derivation_instructions(self.name))
-        operation_tracing_agent = await self.create_agent(sql_mcp_servers, operation_tracing_instructions(self.name))
+        field_derivation_agent = await self.create_agent(sql_mcp_servers, field_derivation_instructions(self.agent_name))
+        operation_tracing_agent = await self.create_agent(sql_mcp_servers, operation_tracing_instructions(self.agent_name))
         
         # Create enhanced messages that include the structure parsing output
         field_derivation_message = f"Based on the following structure analysis:\n{syntax_analysis_output}\n\nAnalyze the field mappings for the original query: {query}"
@@ -93,7 +93,7 @@ class PlannerAgent:
         operation_tracing_output = operation_tracing_result.final_output
         
         # Step 3: Aggregate all outputs and run aggregation logic agent
-        event_composer_agent = await self.create_agent(sql_mcp_servers, event_composer_instructions(self.name))
+        event_composer_agent = await self.create_agent(sql_mcp_servers, event_composer_instructions(self.agent_name))
         
         # Combine all outputs for the aggregation agent
         combined_output = f"""
@@ -113,7 +113,7 @@ class PlannerAgent:
         event_composer_result = await Runner.run(event_composer_agent, combined_output, max_turns=MAX_TURNS)
         event_composer_output = event_composer_result.final_output
         
-        dumped_event_composer = dump_json_record(f"{self.name}_lineage", event_composer_output)
+        dumped_event_composer = dump_json_record(f"{self.agent_name}_lineage", event_composer_output)
 
         return dumped_event_composer
 
@@ -128,8 +128,8 @@ class PlannerAgent:
             return await self.run_agent(sql_mcp_servers, query=query)
 
     async def run_with_trace(self, query:str):
-        trace_name = f"{self.name}-lineage"
-        trace_id = log_trace_id(f"{self.name.lower()}")
+        trace_name = f"{self.agent_name}-lineage-agent"
+        trace_id = log_trace_id(f"{self.agent_name.lower()}")
         with trace(trace_name, trace_id=trace_id):
             return await self.run_with_mcp_servers(query=query)
 
@@ -137,7 +137,7 @@ class PlannerAgent:
         try:
             return await self.run_with_trace(self.query)
         except Exception as e:
-            print(f"Error running trader {self.name}: {e}")
+            print(f"Error running trader {self.agent_name}: {e}")
             return {"error": str(e)}
             
             

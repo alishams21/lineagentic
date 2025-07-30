@@ -399,6 +399,7 @@ def sql_lineage_event_composer():
             - Maintain the exact field names:
             - "eventType", "eventTime", "run", "job", "inputs", "outputs", "facets", "query", "processingType", "integration", etc.
             - Do NOT rename or flatten any fields.
+            - inputs are the source tables. remember to have all the source tables as inputs. do not just have fields as inputs.
             - Match the structure and nesting exactly as in this format:
 
             {
