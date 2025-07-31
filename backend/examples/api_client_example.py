@@ -12,7 +12,7 @@ class SQLLineageAPIClient:
         response = requests.get(f"{self.base_url}/health")
         return response.json()
     
-    def analyze_query(self, query: str, model_name: str = "gpt-4o-mini", agent_name: str = "sql") -> Dict[str, Any]:
+    def analyze_query(self, query: str, model_name: str = "gpt-4o", agent_name: str = "sql") -> Dict[str, Any]:
         """
         Analyze a single SQL query
         

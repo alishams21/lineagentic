@@ -401,7 +401,8 @@ def sql_lineage_event_composer():
             - Do NOT rename or flatten any fields.
             - inputs are the source tables. remember to have all the source tables as inputs. do not just have fields as inputs.
             - Match the structure and nesting exactly as in this format:
-
+            - output should be exactly in following format. do not change format or naming under any circumstances. only produce the json output. do not include any other text or comments.
+            
             {
             "eventType": "START",
             "eventTime": "<ISO_TIMESTAMP>",
@@ -485,9 +486,7 @@ def sql_lineage_event_composer():
                 }
                 }
             ]
-            }
-
-            Do not change this format or naming under any circumstances. only produce the json output. do not include any other text or comments.
+            }           
             """
             
 

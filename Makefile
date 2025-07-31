@@ -1,7 +1,7 @@
 # LineAgent Project Makefile
 # Centralized build and development commands
 
-.PHONY: help create-venv activate-venv run-start-api-server-with-venv run-start-demo-server-with-venv install-lineage-visualizer-dependencies start-lineage-visualizer stop-lineage-visualizer start-watchdog stop-watchdog clean gradio-deploy query-logs
+.PHONY: help create-venv activate-venv run-start-api-server-with-venv run-start-demo-server-with-venv install-lineage-visualizer-dependencies start-lineage-visualizer stop-lineage-visualizer start-watchdog stop-watchdog clean gradio-deploy query-logs clean-pycache stop-api-server stop-demo-server
 
 help:
 	@echo "🚀 LineAgent Project"
@@ -23,6 +23,9 @@ help:
 	@echo "  make start-watchdog - Start the JSONCrack watchdog (monitors lineage_extraction_dumps/sql_lineage.json)"
 	@echo "  make stop-watchdog - Stop the watchdog"
 	@echo "  make clean      - Clean up temporary files and stop all services"
+	@echo "  make clean-pycache - Remove all __pycache__ directories"
+	@echo "  make stop-api-server - Stop API server"
+	@echo "  make stop-demo-server - Stop demo server"
 	@echo "  make query-logs  - Query recent logs from agents_logs.db"
 	@echo ""
 # Start all services in background
@@ -205,6 +208,20 @@ stop-watchdog:
 	@pkill -f "python.*json-watchdog.py" || echo "No watchdog process found"
 	@echo "✅ Watchdog stopped"
 
+# Stop API server
+stop-api-server:
+	@echo "🛑 Stopping API server..."
+	@pkill -f "python.*start_api_server.py" || echo "No API server process found"
+	@lsof -ti:8000 | xargs kill -9 2>/dev/null || echo "No process on port 8000"
+	@echo "✅ API server stopped"
+
+# Stop demo server
+stop-demo-server:
+	@echo "🛑 Stopping demo server..."
+	@pkill -f "python.*start_demo_server.py" || echo "No demo server process found"
+	@lsof -ti:7860 | xargs kill -9 2>/dev/null || echo "No process on port 7860"
+	@echo "✅ Demo server stopped"
+
 # Clean up temporary files and kill processes
 clean-all-services:
 	@echo "🧹 Cleaning up temporary files and processes..."
@@ -221,7 +238,17 @@ clean-all-services:
 	@rm -rf lineage_extraction_dumps 2>/dev/null || echo "No lineage_extraction_dumps folder found"
 	@rm -rf .venv 2>/dev/null || echo "No .venv folder found"
 	@$(MAKE) stop-watchdog
+	@$(MAKE) stop-api-server
+	@$(MAKE) stop-demo-server
+	@$(MAKE) stop-lineage-visualizer
+	@$(MAKE) clean-pycache
 	@echo "✅ Cleanup completed!"
+
+# Remove all __pycache__ directories
+clean-pycache:
+	@echo "🗑️  Removing all __pycache__ directories..."
+	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || echo "No __pycache__ directories found"
+	@echo "✅ All __pycache__ directories removed!"
 
 # Query recent logs from agents_logs.db
 query-logs:
