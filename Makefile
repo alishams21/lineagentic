@@ -140,6 +140,8 @@ clean: stop-watchdog stop-lineage-visualizer clean-all-services
 create-venv:
 	@echo "🚀 Creating virtual environment..."
 	@uv sync
+	@echo "📦 Installing package in editable mode..."
+	@uv pip install -e .
 	@echo "✅ Virtual environment created successfully!"
 
 activate-venv:

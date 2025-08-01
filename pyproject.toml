@@ -45,6 +45,12 @@ dependencies = [
     "wikipedia>=1.4.0",
 ]
 
+[project.entry-points."lineagent.algorithm.plugins"]
+sql_lineage_agent = "algorithm.plugins.sql_lineage_agent.lineage_agent:get_plugin_info"
+
+[tool.setuptools.packages.find]
+include = ["algorithm*"]
+
 [dependency-groups]
 dev = [
     "ipykernel>=6.29.5",

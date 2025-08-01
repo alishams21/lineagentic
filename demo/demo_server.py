@@ -135,8 +135,8 @@ class SQLLineageFrontend:
             self.agent_framework = AgentFramework(agent_name=agent_name, model_name=model_name)
             self.current_agent_name = agent_name
             
-            # Run the analysis
-            results = await self.agent_framework.run_sql_lineage_analysis(query)
+            # Run the analysis using the correct framework method
+            results = await self.agent_framework.run_agent_plugin("sql_lineage_agent", query)
             self.current_results = results
             
             return f"""✅ Analysis completed successfully! Results are now available in the visualization section. 

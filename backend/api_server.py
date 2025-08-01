@@ -82,8 +82,8 @@ async def analyze_sql_query(request: SQLQueryRequest):
             model_name=request.model_name
         )
         
-        # Run analysis
-        result = await framework.run_sql_lineage_analysis(request.query)
+        # Run analysis using sql_lineage_agent plugin
+        result = await framework.run_agent_plugin("sql_lineage_agent", request.query)
         
         return SQLQueryResponse(
             success=True,
@@ -114,8 +114,14 @@ async def analyze_sql_queries_batch(request: BatchQueryRequest):
             model_name=request.model_name
         )
         
-        # Run batch analysis
-        results = await framework.batch_run_queries(request.queries)
+        # Run batch analysis using sql_lineage_agent plugin
+        results = []
+        for query in request.queries:
+            result = await framework.run_agent_plugin("sql_lineage_agent", query)
+            results.append({
+                "query": query,
+                "result": result
+            })
         
         return BatchQueryResponse(
             success=True,
@@ -128,16 +134,16 @@ async def analyze_sql_queries_batch(request: BatchQueryRequest):
             detail=f"Error analyzing SQL queries in batch: {str(e)}"
         )
 
-@app.post("/planner", response_model=SQLQueryResponse)
-async def run_planner_agent(request: SQLQueryRequest):
+@app.post("/lineage", response_model=SQLQueryResponse)
+async def run_sql_lineage_agent(request: SQLQueryRequest):
     """
-    Run the planner agent directly for a SQL query.
+    Run the SQL lineage agent directly for a SQL query.
     
     Args:
         request: SQLQueryRequest containing the query and optional parameters
         
     Returns:
-        SQLQueryResponse with planner agent results
+        SQLQueryResponse with SQL lineage agent results
     """
     try:
         # Create framework instance
@@ -146,8 +152,8 @@ async def run_planner_agent(request: SQLQueryRequest):
             model_name=request.model_name
         )
         
-        # Run planner agent
-        result = await framework.run_planner_agent(request.query)
+        # Run SQL lineage agent
+        result = await framework.run_agent_plugin("sql_lineage_agent", request.query)
         
         return SQLQueryResponse(
             success=True,
@@ -157,6 +163,63 @@ async def run_planner_agent(request: SQLQueryRequest):
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"Error running planner agent: {str(e)}"
+            detail=f"Error running SQL lineage agent: {str(e)}"
+        )
+
+@app.get("/plugins", response_model=Dict[str, Any])
+async def list_plugins():
+    """
+    List all available plugins and their capabilities.
+    
+    Returns:
+        Dictionary containing all available plugins and their metadata
+    """
+    try:
+        framework = AgentFramework(agent_name="api", model_name="gpt-4o-mini")
+        plugins = framework.list_available_plugins()
+        operations = framework.get_supported_operations()
+        
+        return {
+            "plugins": plugins,
+            "operations": operations
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error listing plugins: {str(e)}"
+        )
+
+@app.post("/operation/{operation_name}", response_model=SQLQueryResponse)
+async def run_operation(operation_name: str, request: SQLQueryRequest):
+    """
+    Run a specific operation using the appropriate plugin.
+    
+    Args:
+        operation_name: The operation to perform (e.g., "sql_lineage_analysis")
+        request: SQLQueryRequest containing the query and optional parameters
+        
+    Returns:
+        SQLQueryResponse with operation results
+    """
+    try:
+        # Create framework instance
+        framework = AgentFramework(
+            agent_name=request.agent_name,
+            model_name=request.model_name
+        )
+        
+        # Run the specified operation
+        result = await framework.run_operation(operation_name, request.query)
+        
+        return SQLQueryResponse(
+            success=True,
+            data=result
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error running operation '{operation_name}': {str(e)}"
         )
 

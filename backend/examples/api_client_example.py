@@ -10,11 +10,15 @@ class SQLLineageAPIClient:
     def health_check(self) -> Dict[str, Any]:
         """Check if the API is running"""
         response = requests.get(f"{self.base_url}/health")
+        if response.status_code != 200:
+            print(f"Error: HTTP {response.status_code}")
+            print(f"Response text: {response.text}")
+            response.raise_for_status()
         return response.json()
     
     def analyze_query(self, query: str, model_name: str = "gpt-4o", agent_name: str = "sql") -> Dict[str, Any]:
         """
-        Analyze a single SQL query
+        Analyze a single SQL query using the sql_lineage_agent plugin
         
         Args:
             query: SQL query to analyze
@@ -31,11 +35,15 @@ class SQLLineageAPIClient:
         }
         
         response = requests.post(f"{self.base_url}/analyze", json=payload)
+        if response.status_code != 200:
+            print(f"Error: HTTP {response.status_code}")
+            print(f"Response text: {response.text}")
+            response.raise_for_status()
         return response.json()
     
     def analyze_queries_batch(self, queries: list[str], model_name: str = "gpt-4o-mini", agent_name: str = "sql") -> Dict[str, Any]:
         """
-        Analyze multiple SQL queries in batch
+        Analyze multiple SQL queries in batch using the sql_lineage_agent plugin
         
         Args:
             queries: List of SQL queries to analyze
@@ -54,9 +62,9 @@ class SQLLineageAPIClient:
         response = requests.post(f"{self.base_url}/analyze/batch", json=payload)
         return response.json()
     
-    def run_planner_agent(self, query: str, model_name: str = "gpt-4o-mini", agent_name: str = "sql") -> Dict[str, Any]:
+    def run_sql_lineage_agent(self, query: str, model_name: str = "gpt-4o-mini", agent_name: str = "sql") -> Dict[str, Any]:
         """
-        Run the planner agent directly
+        Run the SQL lineage agent directly
         
         Args:
             query: SQL query to analyze
@@ -64,7 +72,7 @@ class SQLLineageAPIClient:
             agent_name: Name of the agent
             
         Returns:
-            Planner agent results
+            SQL lineage agent results
         """
         payload = {
             "query": query,
@@ -72,7 +80,29 @@ class SQLLineageAPIClient:
             "agent_name": agent_name
         }
         
-        response = requests.post(f"{self.base_url}/planner", json=payload)
+        response = requests.post(f"{self.base_url}/lineage", json=payload)
+        return response.json()
+    
+    def run_operation(self, operation_name: str, query: str, model_name: str = "gpt-4o-mini", agent_name: str = "sql") -> Dict[str, Any]:
+        """
+        Run a specific operation using the appropriate plugin
+        
+        Args:
+            operation_name: The operation to perform (e.g., "sql_lineage_analysis")
+            query: SQL query to analyze
+            model_name: Model to use for analysis
+            agent_name: Name of the agent
+            
+        Returns:
+            Operation results
+        """
+        payload = {
+            "query": query,
+            "model_name": model_name,
+            "agent_name": agent_name
+        }
+        
+        response = requests.post(f"{self.base_url}/operation/{operation_name}", json=payload)
         return response.json()
 
 def main():
@@ -110,29 +140,13 @@ def main():
     ORDER BY 
         total_revenue DESC;
     """
-    
-    # Analyze single query
-    print("Analyzing single query...")
-    result = client.analyze_query(sample_query)
-    print(f"Analysis result: {json.dumps(result, indent=2)}")
+
+    # Run SQL lineage agent directly
+    print("Running SQL lineage agent directly...")
+    lineage_result = client.run_sql_lineage_agent(sample_query)
+    print(f"SQL lineage agent result: {json.dumps(lineage_result, indent=8)}")
     print()
-    
-    # Analyze multiple queries in batch
-    # print("Analyzing multiple queries in batch...")
-    # batch_queries = [
-    #     "SELECT * FROM users WHERE active = true",
-    #     "SELECT COUNT(*) FROM orders WHERE status = 'completed'",
-    #     sample_query
-    # ]
-    
-    # batch_result = client.analyze_queries_batch(batch_queries)
-    # print(f"Batch analysis result: {json.dumps(batch_result, indent=2)}")
-    # print()
-    
-    # # Run planner agent directly
-    # print("Running planner agent directly...")
-    # planner_result = client.run_planner_agent(sample_query)
-    # print(f"Planner agent result: {json.dumps(planner_result, indent=2)}")
+
 
 if __name__ == "__main__":
     main() 

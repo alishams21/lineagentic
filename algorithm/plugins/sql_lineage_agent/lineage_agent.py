@@ -5,17 +5,16 @@ from agents import Agent, Tool, Runner, OpenAIChatCompletionsModel, trace
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
 from agents.mcp.server import MCPServerStdio
+from typing import Dict, Any, Optional
 
 # Add the parent directory to the path so we can import from algorithm
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
-
 
 from algorithm.utils.tracers import log_trace_id
-from algorithm.agents_instructions.sql_instructions import (syntax_analysis_instructions,
+from algorithm.plugins.sql_lineage_agent.sql_instructions import (syntax_analysis_instructions,
                         field_derivation_instructions,
                         operation_tracing_instructions,
                         event_composer_instructions)
-from algorithm.mcp_servers.mcp_params import sql_mcp_server_params
+from algorithm.plugins.sql_lineage_agent.mcp_servers.mcp_params import sql_mcp_server_params
 from algorithm.utils.file_utils import dump_json_record
 
 
@@ -52,8 +51,10 @@ def get_model(model_name: str):
         return model_name
 
 
-class PlannerAgent:
-    def __init__(self, agent_name:str, query:str, model_name:str="gpt-4o-mini"):
+class SqlLineageAgent:
+    """Plugin agent for SQL lineage analysis"""
+    
+    def __init__(self, agent_name: str, query: str, model_name: str = "gpt-4o-mini"):
         self.agent_name = agent_name
         self.model_name = model_name
         self.query = query
@@ -67,8 +68,7 @@ class PlannerAgent:
         )
         return agent
 
-
-    async def run_agent(self, sql_mcp_servers, query:str):
+    async def run_agent(self, sql_mcp_servers, query: str):
         # Step 1: Run structure parsing agent first
         syntax_analysis_agent = await self.create_agent(sql_mcp_servers, syntax_analysis_instructions(self.agent_name))
         syntax_analysis_result = await Runner.run(syntax_analysis_agent, query, max_turns=MAX_TURNS)
@@ -97,13 +97,13 @@ class PlannerAgent:
         
         # Combine all outputs for the aggregation agent
         combined_output = f"""
-        Structure Parsing Output:
+        Parsed SQL Blocks Output:
         {syntax_analysis_output}
         
         Field Mapping Output:
         {field_derivation_output}
         
-        Operation Logic Output:
+        Logical Operators Output:
         {operation_tracing_output}
         
         Original Query:
@@ -117,7 +117,7 @@ class PlannerAgent:
 
         return dumped_event_composer
 
-    async def run_with_mcp_servers(self, query:str):
+    async def run_with_mcp_servers(self, query: str):
         async with AsyncExitStack() as stack:
             sql_mcp_servers = [
                 await stack.enter_async_context(
@@ -127,7 +127,7 @@ class PlannerAgent:
             ]
             return await self.run_agent(sql_mcp_servers, query=query)
 
-    async def run_with_trace(self, query:str):
+    async def run_with_trace(self, query: str):
         trace_name = f"{self.agent_name}-lineage-agent"
         trace_id = log_trace_id(f"{self.agent_name.lower()}")
         with trace(trace_name, trace_id=trace_id):
@@ -139,5 +139,21 @@ class PlannerAgent:
         except Exception as e:
             print(f"Error running trader {self.agent_name}: {e}")
             return {"error": str(e)}
-            
-            
+
+
+# Plugin interface functions
+def create_sql_lineage_agent(agent_name: str, query: str, model_name: str = "gpt-4o-mini") -> SqlLineageAgent:
+    """Factory function to create a SqlLineageAgent instance"""
+    return SqlLineageAgent(agent_name=agent_name, query=query, model_name=model_name)
+
+
+def get_plugin_info() -> Dict[str, Any]:
+    """Return plugin metadata"""
+    return {
+        "name": "sql_lineage_agent",
+        "description": "SQL lineage analysis agent for parsing and analyzing SQL queries",
+        "version": "1.0.0",
+        "author": "Ali Shamsaddinlou",
+        "agent_class": SqlLineageAgent,
+        "factory_function": create_sql_lineage_agent,
+    } 
