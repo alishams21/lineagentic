@@ -170,9 +170,9 @@ class SQLLineageFrontend:
                     agent_dropdown = gr.Dropdown(
                         label="Agent Type",
                         choices=[
-                            "sql"
+                            "sql-lineage-agent"
                         ],
-                        value="sql"
+                        value="sql-lineage-agent"
                     )
                     model_dropdown = gr.Dropdown(
                         label="Model",

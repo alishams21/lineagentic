@@ -8,7 +8,7 @@ import json
 from algorithm.framework_agent import AgentFramework
 
 # Pydantic models for request/response
-class SQLQueryRequest(BaseModel):
+class QueryRequest(BaseModel):
     query: str
     model_name: Optional[str] = "gpt-4o-mini"
     agent_name: Optional[str] = "sql"
@@ -18,7 +18,7 @@ class BatchQueryRequest(BaseModel):
     model_name: Optional[str] = "gpt-4o-mini"
     agent_name: Optional[str] = "sql"
 
-class SQLQueryResponse(BaseModel):
+class QueryResponse(BaseModel):
     success: bool
     data: Dict[str, Any]
     error: Optional[str] = None
@@ -34,8 +34,8 @@ class HealthResponse(BaseModel):
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="SQL Lineage Analysis API",
-    description="REST API for SQL lineage analysis using Agent Framework",
+    title="Lineage Analysis API",
+    description="REST API for lineage analysis using Agent Framework",
     version="1.0.0"
 )
 
@@ -53,7 +53,7 @@ async def root():
     """Health check endpoint"""
     return HealthResponse(
         status="healthy",
-        message="SQL Lineage Analysis API is running"
+        message="Lineage Analysis API is running"
     )
 
 @app.get("/health", response_model=HealthResponse)
@@ -61,11 +61,11 @@ async def health_check():
     """Health check endpoint"""
     return HealthResponse(
         status="healthy",
-        message="SQL Lineage Analysis API is running"
+        message="Lineage Analysis API is running"
     )
 
-@app.post("/analyze", response_model=SQLQueryResponse)
-async def analyze_sql_query(request: SQLQueryRequest):
+@app.post("/analyze", response_model=QueryResponse)
+async def analyze_query(request: QueryRequest):
     """
     Analyze a single SQL query for lineage information.
     
@@ -83,9 +83,9 @@ async def analyze_sql_query(request: SQLQueryRequest):
         )
         
         # Run analysis using sql_lineage_agent plugin
-        result = await framework.run_agent_plugin("sql_lineage_agent", request.query)
+        result = await framework.run_agent_plugin(request.agent_name, request.query)
         
-        return SQLQueryResponse(
+        return QueryResponse(
             success=True,
             data=result
         )
@@ -93,13 +93,13 @@ async def analyze_sql_query(request: SQLQueryRequest):
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"Error analyzing SQL query: {str(e)}"
+            detail=f"Error analyzing query: {str(e)}"
         )
 
 @app.post("/analyze/batch", response_model=BatchQueryResponse)
-async def analyze_sql_queries_batch(request: BatchQueryRequest):    
+async def analyze_queries_batch(request: BatchQueryRequest):    
     """
-    Analyze multiple SQL queries in batch.
+    Analyze multiple queries in batch.
     
     Args:
         request: BatchQueryRequest containing list of queries and optional parameters
@@ -117,7 +117,7 @@ async def analyze_sql_queries_batch(request: BatchQueryRequest):
         # Run batch analysis using sql_lineage_agent plugin
         results = []
         for query in request.queries:
-            result = await framework.run_agent_plugin("sql_lineage_agent", query)
+            result = await framework.run_agent_plugin(request.agent_name, query)
             results.append({
                 "query": query,
                 "result": result
@@ -131,67 +131,11 @@ async def analyze_sql_queries_batch(request: BatchQueryRequest):
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"Error analyzing SQL queries in batch: {str(e)}"
+            detail=f"Error analyzing queries in batch: {str(e)}"
         )
 
-@app.post("/lineage", response_model=SQLQueryResponse)
-async def run_sql_lineage_agent(request: SQLQueryRequest):
-    """
-    Run the SQL lineage agent directly for a SQL query.
-    
-    Args:
-        request: SQLQueryRequest containing the query and optional parameters
-        
-    Returns:
-        SQLQueryResponse with SQL lineage agent results
-    """
-    try:
-        # Create framework instance
-        framework = AgentFramework(
-            agent_name=request.agent_name,
-            model_name=request.model_name
-        )
-        
-        # Run SQL lineage agent
-        result = await framework.run_agent_plugin("sql_lineage_agent", request.query)
-        
-        return SQLQueryResponse(
-            success=True,
-            data=result
-        )
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error running SQL lineage agent: {str(e)}"
-        )
-
-@app.get("/plugins", response_model=Dict[str, Any])
-async def list_plugins():
-    """
-    List all available plugins and their capabilities.
-    
-    Returns:
-        Dictionary containing all available plugins and their metadata
-    """
-    try:
-        framework = AgentFramework(agent_name="api", model_name="gpt-4o-mini")
-        plugins = framework.list_available_plugins()
-        operations = framework.get_supported_operations()
-        
-        return {
-            "plugins": plugins,
-            "operations": operations
-        }
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error listing plugins: {str(e)}"
-        )
-
-@app.post("/operation/{operation_name}", response_model=SQLQueryResponse)
-async def run_operation(operation_name: str, request: SQLQueryRequest):
+@app.post("/operation/{operation_name}", response_model=QueryResponse)
+async def run_operation(operation_name: str, request: QueryRequest):
     """
     Run a specific operation using the appropriate plugin.
     
@@ -212,7 +156,7 @@ async def run_operation(operation_name: str, request: SQLQueryRequest):
         # Run the specified operation
         result = await framework.run_operation(operation_name, request.query)
         
-        return SQLQueryResponse(
+        return QueryResponse(
             success=True,
             data=result
         )

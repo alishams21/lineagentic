@@ -113,7 +113,7 @@ class SqlLineageAgent:
         event_composer_result = await Runner.run(event_composer_agent, combined_output, max_turns=MAX_TURNS)
         event_composer_output = event_composer_result.final_output
         
-        dumped_event_composer = dump_json_record(f"{self.agent_name}_lineage", event_composer_output)
+        dumped_event_composer = dump_json_record(self.agent_name, event_composer_output)
 
         return dumped_event_composer
 
@@ -150,7 +150,7 @@ def create_sql_lineage_agent(agent_name: str, query: str, model_name: str = "gpt
 def get_plugin_info() -> Dict[str, Any]:
     """Return plugin metadata"""
     return {
-        "name": "sql_lineage_agent",
+        "name": "sql-lineage-agent",
         "description": "SQL lineage analysis agent for parsing and analyzing SQL queries",
         "version": "1.0.0",
         "author": "Ali Shamsaddinlou",
