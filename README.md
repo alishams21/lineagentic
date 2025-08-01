@@ -59,7 +59,7 @@ make gradio-deploy
 
 Following is the architecture of how agentic chain of thought systems designed to extract lineage across various data processing script types.
 
-![Architecture Diagram](images/architecture.jpg)
+![Architecture Diagram](images/architecture.png)
 
 ## agent framework 
 The agent framework dose IO operations ,memory management, and prompt engineering according to the script type (T) and its content (C).
