@@ -1,7 +1,7 @@
 # LineAgent Project Makefile
 # Centralized build and development commands
 
-.PHONY: help create-venv activate-venv run-start-api-server-with-venv run-start-demo-server-with-venv install-lineage-visualizer-dependencies start-lineage-visualizer stop-lineage-visualizer start-watchdog stop-watchdog clean gradio-deploy query-logs clean-pycache stop-api-server stop-demo-server test test-tracers test-database test-verbose test-module
+.PHONY: help create-venv activate-venv run-start-api-server-with-venv run-start-demo-server-with-venv install-lineage-visualizer-dependencies start-lineage-visualizer stop-lineage-visualizer start-watchdog stop-watchdog clean gradio-deploy query-logs clean-pycache stop-api-server stop-demo-server test test-tracers test-database test-api-server test-verbose test-module
 
 help:
 	@echo "🚀 LineAgent Project"
@@ -32,6 +32,7 @@ help:
 	@echo "  make test       - Run all tests"
 	@echo "  make test-tracers - Run tracers tests only"
 	@echo "  make test-database - Run database tests only"
+	@echo "  make test-api-server - Run API server tests only"
 	@echo "  make test-verbose - Run tests with verbose output"
 	@echo ""
 
@@ -43,6 +44,8 @@ help:
 test:
 	@echo "🧪 Running all tests..."
 	@python run_tests.py
+	@echo "🧪 Running API server tests..."
+	@python -m pytest tests/test_api_server.py -v
 	@echo "✅ All tests completed!"
 
 # Run tracers tests only
@@ -56,6 +59,12 @@ test-database:
 	@echo "🧪 Running database tests..."
 	@python run_tests.py test_database
 	@echo "✅ Database tests completed!"
+
+# Run API server tests only
+test-api-server:
+	@echo "🧪 Running API server tests..."
+	@python -m pytest tests/test_api_server.py -v
+	@echo "✅ API server tests completed!"
 
 # Run tests with verbose output
 test-verbose:
