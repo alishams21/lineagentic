@@ -7,15 +7,13 @@ from dotenv import load_dotenv
 from agents.mcp.server import MCPServerStdio
 from typing import Dict, Any, Optional
 
-# Add the parent directory to the path so we can import from algorithm
-
-from algorithm.utils.tracers import log_trace_id
-from algorithm.plugins.sql_lineage_agent.sql_instructions import (syntax_analysis_instructions,
+from ...utils.tracers import log_trace_id
+from ...plugins.sql_lineage_agent.sql_instructions import (syntax_analysis_instructions,
                         field_derivation_instructions,
                         operation_tracing_instructions,
                         event_composer_instructions)
-from algorithm.plugins.sql_lineage_agent.mcp_servers.mcp_params import sql_mcp_server_params
-from algorithm.utils.file_utils import dump_json_record
+from ...plugins.sql_lineage_agent.mcp_servers.mcp_params import sql_mcp_server_params
+from ...utils.file_utils import dump_json_record
 
 
 load_dotenv(override=True)

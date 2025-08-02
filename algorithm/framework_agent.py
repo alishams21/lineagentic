@@ -5,10 +5,8 @@ from typing import Optional, Dict, Any
 import json
 from datetime import datetime
 
-# Add the parent directory to the path so we can import from algorithm
-
-from algorithm.utils.tracers import LogTracer
-from algorithm.agent_manager import agent_manager
+from .utils.tracers import LogTracer
+from .agent_manager import agent_manager
 from agents import add_trace_processor
 
 

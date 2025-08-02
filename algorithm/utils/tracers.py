@@ -2,14 +2,7 @@ from agents import TracingProcessor, Trace, Span
 import sys
 import os
 
-# Add the parent directory to the path so we can import from algorithm
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
-
-try:
-    from algorithm.utils.database import write_lineage_log
-except ImportError:
-    # Fallback for when running directly
-    from utils.database import write_lineage_log
+from .database import write_lineage_log
 import secrets
 import string
 
