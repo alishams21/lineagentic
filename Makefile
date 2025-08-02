@@ -1,7 +1,7 @@
 # LineAgent Project Makefile
 # Centralized build and development commands
 
-.PHONY: help create-venv activate-venv run-start-api-server-with-venv run-start-demo-server-with-venv install-lineage-visualizer-dependencies start-lineage-visualizer stop-lineage-visualizer start-watchdog stop-watchdog clean gradio-deploy query-logs clean-pycache stop-api-server stop-demo-server
+.PHONY: help create-venv activate-venv run-start-api-server-with-venv run-start-demo-server-with-venv install-lineage-visualizer-dependencies start-lineage-visualizer stop-lineage-visualizer start-watchdog stop-watchdog clean gradio-deploy query-logs clean-pycache stop-api-server stop-demo-server test test-tracers test-database test-verbose test-module
 
 help:
 	@echo "🚀 LineAgent Project"
@@ -28,6 +28,55 @@ help:
 	@echo "  make stop-demo-server - Stop demo server"
 	@echo "  make query-logs  - Query recent logs from agents_logs.db"
 	@echo ""
+	@echo "Testing commands:"
+	@echo "  make test       - Run all tests"
+	@echo "  make test-tracers - Run tracers tests only"
+	@echo "  make test-database - Run database tests only"
+	@echo "  make test-verbose - Run tests with verbose output"
+	@echo ""
+
+# =============================================================================
+# TESTING COMMANDS
+# =============================================================================
+
+# Run all tests
+test:
+	@echo "🧪 Running all tests..."
+	@python run_tests.py
+	@echo "✅ All tests completed!"
+
+# Run tracers tests only
+test-tracers:
+	@echo "🧪 Running tracers tests..."
+	@python run_tests.py test_tracers
+	@echo "✅ Tracers tests completed!"
+
+# Run database tests only
+test-database:
+	@echo "🧪 Running database tests..."
+	@python run_tests.py test_database
+	@echo "✅ Database tests completed!"
+
+# Run tests with verbose output
+test-verbose:
+	@echo "🧪 Running all tests with verbose output..."
+	@python run_tests.py -v
+	@echo "✅ All tests completed!"
+
+# Run specific test module
+test-module:
+	@if [ -z "$(MODULE)" ]; then \
+		echo "❌ Please specify a module: make test-module MODULE=test_tracers"; \
+	else \
+		echo "🧪 Running $(MODULE) tests..."; \
+		python run_tests.py $(MODULE); \
+		echo "✅ $(MODULE) tests completed!"; \
+	fi
+
+# =============================================================================
+# SERVICE COMMANDS
+# =============================================================================
+
 # Start all services in background
 start-api-server-with-lineage-visualizer-and-watchdog-and-demo-server:
 	@echo "🚀 Starting all services in background..."
