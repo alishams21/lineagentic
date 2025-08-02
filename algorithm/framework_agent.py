@@ -93,7 +93,7 @@ class AgentFramework:
 
 # Example usage and main function
 async def main():
-    framework = AgentFramework(agent_name="sql-lineage-agent", model_name="gpt-4o-mini")
+    framework = AgentFramework(agent_name="airflow-lineage-agent", model_name="gpt-4o-mini")
     
     # List available agents
     print("Available agents:")
@@ -109,29 +109,71 @@ async def main():
     
     # Run a specific operation (data validation)
     test_query = """
-    SELECT 
-        c.region,
-        COUNT(DISTINCT o.order_id) AS total_orders,
-        COUNT(DISTINCT oi.item_id) AS total_items_sold,
-        SUM(oi.item_total) AS total_revenue
-    FROM 
-        customers c
-    JOIN 
-        orders o ON c.customer_id = o.customer_id
-    JOIN 
-        order_items oi ON o.order_id = oi.order_id
-    WHERE 
-        o.order_date BETWEEN '2025-01-01' AND '2025-06-30'
-        AND c.status = 'active'
-    GROUP BY 
-        c.region
-    HAVING 
-        SUM(oi.item_total) > 10000
-    ORDER BY 
-        total_revenue DESC;
+        from airflow import DAG
+        from airflow.operators.python import PythonOperator
+        from datetime import datetime
+        import pandas as pd
+        import numpy as np
+        import shutil
+
+        def fetch_raw_data():
+            # Simulate a data pull or raw copy
+            shutil.copy('/data/source/raw_customers.csv', '/data/input/customers.csv')
+
+        def transform_customer_data():
+            df = pd.read_csv('/data/input/customers.csv')
+
+            df['first_name'] = df['first_name'].str.strip().str.title()
+            df['last_name'] = df['last_name'].str.strip().str.title()
+            df['full_name'] = df['first_name'] + ' ' + df['last_name']
+
+            df['birthdate'] = pd.to_datetime(df['birthdate'])
+            df['age'] = (pd.Timestamp('today') - df['birthdate']).dt.days // 365
+
+            df['age_group'] = np.where(df['age'] >= 60, 'Senior',
+                                np.where(df['age'] >= 30, 'Adult', 'Young'))
+
+            df = df[df['email'].notnull()]
+
+            df.to_csv('/data/output/cleaned_customers.csv', index=False)
+
+        def load_to_warehouse():
+            # Simulate writing cleaned data to a warehouse location
+            shutil.copy('/data/output/cleaned_customers.csv', '/data/warehouse/final_customers.csv')
+
+        default_args = {
+            'start_date': datetime(2025, 8, 1),
+        }
+
+        with DAG(
+            dag_id='customer_etl_pipeline_extended',
+            default_args=default_args,
+            schedule_interval='@daily',
+            catchup=False,
+            tags=['etl', 'example']
+        ) as dag:
+
+            ff = PythonOperator(
+                task_id='fetch_data',
+                python_callable=fetch_raw_data
+            )
+
+            tt = PythonOperator(
+                task_id='transform_and_clean',
+                python_callable=transform_customer_data
+            )
+
+            ll = PythonOperator(
+                task_id='load_to_warehouse',
+                python_callable=load_to_warehouse
+            )
+
+            ff >> tt >> ll
+
+
     """
 
-    lineage_result = await framework.run_agent_plugin("sql-lineage-agent", test_query)
+    lineage_result = await framework.run_agent_plugin("airflow-lineage-agent", test_query)
     print("✅ Lineage analysis completed successfully!")
     print(f"📊 Result keys: {list(lineage_result.keys())}")
     print(json.dumps(lineage_result, indent=6))

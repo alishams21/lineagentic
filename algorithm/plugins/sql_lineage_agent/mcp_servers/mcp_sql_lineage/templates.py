@@ -401,21 +401,141 @@ def sql_lineage_event_composer():
             - Do NOT rename or flatten any fields.
             - inputs are the source tables. remember to have all the source tables as inputs. do not just have fields as inputs.
             - Match the structure and nesting exactly as in this format:
-            - output should be exactly in following format. do not change format or naming under any circumstances. only produce the json output. do not include any other text or comments.
-            
+            Your output must follow **exactly** this JSON structure — do not output explanations, comments, or anything else.
+
+                {
+                "eventType": "START",
+                "eventTime": "<ISO_TIMESTAMP>",
+                "run": {
+                    "runId": "<UUID>",
+                    "facets": {
+                    "parent": {
+                        "job": {
+                        "name": "<PARENT_JOB_NAME>",
+                        "namespace": "<PARENT_NAMESPACE>"
+                        },
+                        "run": {
+                        "runId": "<PARENT_RUN_ID>"
+                        }
+                    }
+                    }
+                },
+                "job": {
+                    "facets": {
+                    "sql": {
+                        "_producer": "<PRODUCER_URL>",
+                        "_schemaURL": "<SCHEMA_URL>",
+                        "query": "<FULL_PIPELINE_AS_CODE_STRING>"
+                    },
+                    "jobType": {
+                        "processingType": "<BATCH_OR_STREAM>",
+                        "integration": "<ENGINE_NAME>",
+                        "jobType": "<QUERY_TYPE_OR_JOB_TYPE>",
+                        "_producer": "<PRODUCER_URL>",
+                        "_schemaURL": "<SCHEMA_URL>"
+                    },
+                    "sourceCode": {
+                        "_producer": "<PRODUCER_URL>",
+                        "_schemaURL": "<SCHEMA_URL>",
+                        "language": "<LANGUAGE>",
+                        "sourceCode": "<SOURCE_CODE>"
+                    }
+                    }
+                },
+                "inputs": [
+                    {
+                        "namespace": "<INPUT_NAMESPACE>",
+                        "name": "<INPUT_NAME>",
+                        "facets": {
+                            "schema": {
+                            "_producer": "<PRODUCER_URL>",
+                            "_schemaURL": "<SCHEMA_URL>",
+                            "fields": [
+                                {
+                                "name": "<FIELD_NAME>",
+                                "type": "<FIELD_TYPE>",
+                                "description": "<FIELD_DESCRIPTION>"
+                                }
+                            ]
+                            },
+                            "storage": {
+                                "_producer": "<PRODUCER_URL>",
+                                "_schemaURL": "<SCHEMA_URL>",
+                                "storageLayer": "<STORAGE_LAYER>",
+                                "fileFormat": "<FILE_FORMAT>"
+                            },
+                            "datasetType": {
+                                "_producer": "<PRODUCER_URL>",
+                                "_schemaURL": "<SCHEMA_URL>",
+                                "datasetType": "<DATASET_TYPE>",
+                                "subType": "<SUB_TYPE>"
+                            },
+                            "lifecycleStateChange": {
+                                "_producer": "<PRODUCER_URL>",
+                                "_schemaURL": "<SCHEMA_URL>",
+                                "lifecycleStateChange": "<LIFECYCLE_STATE_CHANGE>"
+                            },
+                            "ownership": {
+                                "_producer": "<PRODUCER_URL>",
+                                "_schemaURL": "<SCHEMA_URL>",
+                                "owners": [ 
+                                    {
+                                        "name": "<OWNER_NAME>",
+                                        "type": "<OWNER_TYPE>"
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                ],
+                "outputs": [
+                    {
+                    "namespace": "<OUTPUT_NAMESPACE>",
+                    "name": "<OUTPUT_NAME>",
+                    "facets": {
+                        "columnLineage": {
+                        "_producer": "<PRODUCER_URL>",
+                        "_schemaURL": "<SCHEMA_URL>",
+                        "fields": {
+                            "<OUTPUT_FIELD_NAME>": {
+                            "inputFields": [
+                                {
+                                "namespace": "<INPUT_NAMESPACE>",
+                                "name": "<INPUT_NAME>",
+                                "field": "<INPUT_FIELD_NAME>",
+                                "transformations": [
+                                    {
+                                    "type": "<TRANSFORMATION_TYPE>",
+                                    "subtype": "<SUBTYPE>",
+                                    "description": "<DESCRIPTION>",
+                                    "masking": false
+                                    }
+                                ]
+                                }
+                            ]
+                            }
+                        }
+                        }
+                    }
+                    }
+                ]
+                }
+                
+                here is a good example for the output:
+                
             {
             "eventType": "START",
-            "eventTime": "<ISO_TIMESTAMP>",
+            "eventTime": "2025-08-02T11:00:00Z",
             "run": {
-                "runId": "<UUID>",
+                "runId": "f3c7a42e-a2f6-11ed-a8fc-0242ac120002",
                 "facets": {
                 "parent": {
                     "job": {
-                    "name": "<PARENT_JOB_NAME>",
-                    "namespace": "<PARENT_NAMESPACE>"
+                    "name": "daily_order_metrics_job",
+                    "namespace": "scheduler.production.sql-jobs"
                     },
                     "run": {
-                    "runId": "<PARENT_RUN_ID>"
+                    "runId": "12345678-90ab-cdef-1234-567890abcdef"
                     }
                 }
                 }
@@ -423,32 +543,64 @@ def sql_lineage_event_composer():
             "job": {
                 "facets": {
                 "sql": {
-                    "_producer": "<PRODUCER_URL>",
-                    "_schemaURL": "<SCHEMA_URL>",
-                    "query": "<SQL_QUERY>"
+                    "_producer": "https://openlineage.io/sql",
+                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/SqlJobFacet.json",
+                    "query": "INSERT INTO metrics.daily_order_summary (customer_id, total_spent)\nSELECT customer_id, SUM(order_amount) AS total_spent\nFROM raw.orders\nWHERE order_status = 'complete'\nGROUP BY customer_id"
                 },
                 "jobType": {
-                    "processingType": "<BATCH_OR_STREAM>",
-                    "integration": "<ENGINE_NAME>",
-                    "jobType": "<QUERY_TYPE>",
-                    "_producer": "<PRODUCER_URL>",
-                    "_schemaURL": "<SCHEMA_URL>"
+                    "processingType": "BATCH",
+                    "integration": "custom-sql-runner",
+                    "jobType": "sql_insert_select",
+                    "_producer": "https://openlineage.io/sql",
+                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/JobTypeFacet.json"
+                    }
+                ,
+                "sourceCode": {
+                    "_producer": "https://openlineage.io/sql",
+                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/SourceCodeJobFacet.json",
+                    "language": "sql",
+                    "sourceCode": "-- This SQL job computes daily customer order totals from raw orders."
                 }
                 }
             },
             "inputs": [
                 {
-                "namespace": "<INPUT_NAMESPACE>",
-                "name": "<INPUT_NAME>",
+                "namespace": "warehouse.postgres",
+                "name": "raw.orders",
                 "facets": {
                     "schema": {
-                    "_producer": "<PRODUCER_URL>",
-                    "_schemaURL": "<SCHEMA_URL>",
+                    "_producer": "https://openlineage.io/sql",
+                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/SchemaDatasetFacet.json",
                     "fields": [
+                        { "name": "customer_id", "type": "string", "description": "Customer identifier" },
+                        { "name": "order_amount", "type": "decimal", "description": "Amount of each order" },
+                        { "name": "order_status", "type": "string", "description": "Order state" }
+                    ]
+                    },
+                    "storage": {
+                    "_producer": "https://openlineage.io/sql",
+                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/StorageDatasetFacet.json",
+                    "storageLayer": "database",
+                    "fileFormat": "N/A"
+                    },
+                    "datasetType": {
+                    "_producer": "https://openlineage.io/sql",
+                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/DatasetTypeFacet.json",
+                    "datasetType": "table",
+                    "subType": "postgres"
+                    },
+                    "lifecycleStateChange": {
+                    "_producer": "https://openlineage.io/sql",
+                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/LifecycleStateChangeDatasetFacet.json",
+                    "lifecycleStateChange": "READ"
+                    },
+                    "ownership": {
+                    "_producer": "https://openlineage.io/sql",
+                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/OwnershipDatasetFacet.json",
+                    "owners": [
                         {
-                        "name": "<FIELD_NAME>",
-                        "type": "<FIELD_TYPE>",
-                        "description": "<FIELD_DESCRIPTION>"
+                        "name": "dataops@example.com",
+                        "type": "group"
                         }
                     ]
                     }
@@ -457,24 +609,41 @@ def sql_lineage_event_composer():
             ],
             "outputs": [
                 {
-                "namespace": "<OUTPUT_NAMESPACE>",
-                "name": "<OUTPUT_NAME>",
+                "namespace": "warehouse.postgres",
+                "name": "metrics.daily_order_summary",
                 "facets": {
                     "columnLineage": {
-                    "_producer": "<PRODUCER_URL>",
-                    "_schemaURL": "<SCHEMA_URL>",
+                    "_producer": "https://openlineage.io/sql",
+                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/ColumnLineageDatasetFacet.json",
                     "fields": {
-                        "<OUTPUT_FIELD_NAME>": {
+                        "customer_id": {
                         "inputFields": [
                             {
-                            "namespace": "<INPUT_NAMESPACE>",
-                            "name": "<INPUT_NAME>",
-                            "field": "<INPUT_FIELD_NAME>",
+                            "namespace": "warehouse.postgres",
+                            "name": "raw.orders",
+                            "field": "customer_id",
                             "transformations": [
                                 {
-                                "type": "<TRANSFORMATION_TYPE>",
-                                "subtype": "<SUBTYPE>",
-                                "description": "<DESCRIPTION>",
+                                "type": "projection",
+                                "subtype": "group_by",
+                                "description": "customer_id grouped",
+                                "masking": false
+                                }
+                            ]
+                            }
+                        ]
+                        },
+                        "total_spent": {
+                        "inputFields": [
+                            {
+                            "namespace": "warehouse.postgres",
+                            "name": "raw.orders",
+                            "field": "order_amount",
+                            "transformations": [
+                                {
+                                "type": "aggregation",
+                                "subtype": "SUM",
+                                "description": "SUM(order_amount) grouped by customer_id",
                                 "masking": false
                                 }
                             ]
@@ -486,7 +655,8 @@ def sql_lineage_event_composer():
                 }
                 }
             ]
-            }           
+            }
+
             """
             
 

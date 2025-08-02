@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 JSONCrack Watchdog
-Monitors a JSON file in the project root and automatically calls json-generator.js
-when new records are added.
+Monitors JSON files in the lineage_extraction_dumps directory and automatically calls json-generator.js
+when new records are added to any of the files.
 """
 
 import json
@@ -31,32 +31,56 @@ logger = logging.getLogger(__name__)
 class JSONFileHandler(FileSystemEventHandler):
     """Handles file system events for JSON files."""
     
-    def __init__(self, watch_file, generator_script):
-        self.watch_file = Path(watch_file)
+    def __init__(self, watch_directory, generator_script):
+        self.watch_directory = Path(watch_directory)
         self.generator_script = Path(generator_script)
+        self.file_trackers = {}  # Track each file's state
         self.last_modified = 0
-        self.last_content = None
-        self.last_line_count = 0
         
-        # Ensure the watch file exists
-        if not self.watch_file.exists():
-            self._create_initial_file()
+        # Ensure the watch directory exists
+        if not self.watch_directory.exists():
+            self.watch_directory.mkdir(parents=True, exist_ok=True)
+            logger.info(f"✅ Created watch directory: {self.watch_directory}")
         
-        logger.info(f"🔍 Watching file: {self.watch_file}")
+        # Initialize tracking for existing files
+        self._initialize_file_tracking()
+        
+        logger.info(f"🔍 Watching directory: {self.watch_directory}")
         logger.info(f"📜 Generator script: {self.generator_script}")
     
-    def _create_initial_file(self):
-        """Create initial JSON file if it doesn't exist."""
-        # Create empty file for newline-delimited JSON
-        with open(self.watch_file, 'w') as f:
-            pass  # Empty file
-        logger.info(f"✅ Created initial file: {self.watch_file}")
+    def _initialize_file_tracking(self):
+        """Initialize tracking for all existing JSON files in the directory."""
+        for json_file in self.watch_directory.glob("*.json"):
+            self._initialize_single_file_tracking(json_file)
     
-    def _read_json_lines(self):
+    def _initialize_single_file_tracking(self, json_file):
+        """Initialize tracking for a single JSON file."""
+        if json_file not in self.file_trackers:
+            self.file_trackers[json_file] = {
+                'last_modified': 0,
+                'last_content': None,
+                'last_line_count': self._get_line_count(json_file)
+            }
+            logger.info(f"📄 Initialized tracking for: {json_file.name}")
+    
+    def _get_line_count(self, json_file):
+        """Get the number of non-empty lines in the file."""
+        try:
+            if not json_file.exists():
+                return 0
+            with open(json_file, 'r') as f:
+                return sum(1 for line in f if line.strip())
+        except Exception as e:
+            logger.error(f"❌ Error counting lines in {json_file}: {e}")
+            return 0
+    
+    def _read_json_lines(self, json_file):
         """Read and parse the newline-delimited JSON file."""
         try:
             records = []
-            with open(self.watch_file, 'r') as f:
+            if not json_file.exists():
+                return []
+            with open(json_file, 'r') as f:
                 for line_num, line in enumerate(f, 1):
                     line = line.strip()
                     if line:  # Skip empty lines
@@ -64,38 +88,24 @@ class JSONFileHandler(FileSystemEventHandler):
                             record = json.loads(line)
                             records.append(record)
                         except json.JSONDecodeError as e:
-                            logger.error(f"❌ Invalid JSON on line {line_num}: {e}")
+                            logger.error(f"❌ Invalid JSON on line {line_num} in {json_file.name}: {e}")
                             continue
             return records
-        except FileNotFoundError:
-            logger.warning(f"⚠️ File not found: {self.watch_file}")
-            return []
         except Exception as e:
-            logger.error(f"❌ Error reading file {self.watch_file}: {e}")
+            logger.error(f"❌ Error reading file {json_file}: {e}")
             return []
     
-    def _get_line_count(self):
-        """Get the number of non-empty lines in the file."""
-        try:
-            with open(self.watch_file, 'r') as f:
-                return sum(1 for line in f if line.strip())
-        except FileNotFoundError:
-            return 0
-        except Exception as e:
-            logger.error(f"❌ Error counting lines: {e}")
-            return 0
-    
-    def _get_last_record(self):
+    def _get_last_record(self, json_file):
         """Get the last record from the newline-delimited JSON file."""
-        records = self._read_json_lines()
+        records = self._read_json_lines(json_file)
         if records:
             return records[-1]
         return None
     
-    def _call_json_generator(self, json_data):
+    def _call_json_generator(self, json_data, source_file):
         """Call the JSON generator script with the provided data."""
         try:
-            logger.info(f"📤 Calling JSON generator with last record")
+            logger.info(f"📤 Calling JSON generator with last record from {source_file.name}")
             
             # Create a temporary file in the same directory as the generator script
             temp_file = self.generator_script.parent / f"temp_data_{int(time.time())}.json"
@@ -130,6 +140,41 @@ class JSONFileHandler(FileSystemEventHandler):
                 temp_file.unlink()
                 logger.info(f"🗑️ Cleaned up temporary file after error: {temp_file}")
     
+    def _handle_file_change(self, json_file):
+        """Handle changes to a specific JSON file."""
+        if not json_file.exists():
+            logger.warning(f"⚠️ File no longer exists: {json_file}")
+            return
+        
+        # Initialize tracking if this is a new file
+        if json_file not in self.file_trackers:
+            self._initialize_single_file_tracking(json_file)
+        
+        tracker = self.file_trackers[json_file]
+        current_line_count = self._get_line_count(json_file)
+        
+        # Check if new records were added
+        if current_line_count > tracker['last_line_count']:
+            logger.info(f"🆕 New records detected in {json_file.name}! Line count: {tracker['last_line_count']} → {current_line_count}")
+            
+            # Get the last record
+            last_record = self._get_last_record(json_file)
+            if last_record:
+                logger.info(f"📄 Processing last record from {json_file.name}: {last_record.get('eventType', 'Unknown')} event")
+                
+                # Call the JSON generator with the last record
+                self._call_json_generator(last_record, json_file)
+                
+                # Update our tracking
+                tracker['last_line_count'] = current_line_count
+                tracker['last_content'] = last_record
+            else:
+                logger.warning(f"⚠️ No valid records found in {json_file.name}")
+                
+        elif current_line_count != tracker['last_line_count']:
+            logger.info(f"📊 Line count changed in {json_file.name}: {tracker['last_line_count']} → {current_line_count}")
+            tracker['last_line_count'] = current_line_count
+    
     def on_modified(self, event):
         """Handle file modification events."""
         logger.info(f"🔍 File system event detected: {event.src_path}")
@@ -138,11 +183,14 @@ class JSONFileHandler(FileSystemEventHandler):
             logger.info("📁 Event is for directory, ignoring")
             return
         
-        if Path(event.src_path) != self.watch_file:
-            logger.info(f"📄 Event is for different file: {event.src_path} != {self.watch_file}")
+        file_path = Path(event.src_path)
+        
+        # Only handle JSON files in the watch directory
+        if file_path.parent != self.watch_directory or file_path.suffix != '.json':
+            logger.info(f"📄 Event is for different file or not a JSON file: {event.src_path}")
             return
         
-        logger.info(f"✅ File modification detected for watched file: {self.watch_file}")
+        logger.info(f"✅ File modification detected for watched file: {file_path.name}")
         
         # Avoid duplicate events
         current_time = time.time()
@@ -152,75 +200,52 @@ class JSONFileHandler(FileSystemEventHandler):
         
         self.last_modified = current_time
         
-        # Get current line count
-        current_line_count = self._get_line_count()
-        
-        # Check if new records were added
-        if current_line_count > self.last_line_count:
-            logger.info(f"🆕 New records detected! Line count: {self.last_line_count} → {current_line_count}")
-            
-            # Get the last record
-            last_record = self._get_last_record()
-            if last_record:
-                logger.info(f"📄 Processing last record: {last_record.get('eventType', 'Unknown')} event")
-                
-                # Call the JSON generator with the last record
-                self._call_json_generator(last_record)
-                
-                # Update our tracking
-                self.last_line_count = current_line_count
-                self.last_content = last_record
-            else:
-                logger.warning("⚠️ No valid records found in file")
-                
-        elif current_line_count != self.last_line_count:
-            logger.info(f"📊 Line count changed: {self.last_line_count} → {current_line_count}")
-            self.last_line_count = current_line_count
+        # Handle the file change
+        self._handle_file_change(file_path)
     
     def on_created(self, event):
         """Handle file creation events."""
-        if Path(event.src_path) == self.watch_file:
-            logger.info(f"📄 File created: {self.watch_file}")
-            # Initialize tracking
-            self.last_line_count = self._get_line_count()
-            last_record = self._get_last_record()
-            if last_record:
-                self.last_content = last_record
+        file_path = Path(event.src_path)
+        if file_path.parent == self.watch_directory and file_path.suffix == '.json':
+            logger.info(f"📄 New JSON file created: {file_path.name}")
+            # Initialize tracking for the new file
+            self._initialize_single_file_tracking(file_path)
+            # Handle any initial content
+            self._handle_file_change(file_path)
     
     def on_deleted(self, event):
         """Handle file deletion events."""
-        if Path(event.src_path) == self.watch_file:
-            logger.warning(f"🗑️ File deleted: {self.watch_file}")
+        file_path = Path(event.src_path)
+        if file_path.parent == self.watch_directory and file_path.suffix == '.json':
+            logger.warning(f"🗑️ JSON file deleted: {file_path.name}")
+            # Remove from tracking
+            if file_path in self.file_trackers:
+                del self.file_trackers[file_path]
+                logger.info(f"🗑️ Removed {file_path.name} from tracking")
 
 def main():
     """Main function to run the watchdog."""
     parser = argparse.ArgumentParser(description='JSONCrack Watchdog - Monitor JSON files and auto-generate')
     parser.add_argument(
-        '--watch-file', 
-        default='lineage_extraction_dumps/sql-lineage-agent.json',
-        help='JSON file to watch (default: lineage_extraction_dumps/sql-lineage-agent.json)'
+        '--watch-directory', 
+        default='lineage_extraction_dumps',
+        help='Directory containing JSON files to watch (default: lineage_extraction_dumps)'
     )
     parser.add_argument(
         '--generator-script',
         default='lineage_visualizer/jsoncrack/json-generator.js',
         help='Path to the JSON generator script (default: lineage_visualizer/jsoncrack/json-generator.js)'
     )
-    parser.add_argument(
-        '--watch-dir',
-        default='.',
-        help='Directory to watch (default: current directory)'
-    )
     
     args = parser.parse_args()
     
     # Resolve paths
-    watch_dir = Path(args.watch_dir).resolve()
-    watch_file = watch_dir / args.watch_file
+    watch_directory = Path(args.watch_directory).resolve()
     generator_script = Path(args.generator_script).resolve()
     
     # Validate paths
-    if not watch_dir.exists():
-        logger.error(f"❌ Watch directory does not exist: {watch_dir}")
+    if not watch_directory.exists():
+        logger.error(f"❌ Watch directory does not exist: {watch_directory}")
         sys.exit(1)
     
     if not generator_script.exists():
@@ -228,58 +253,62 @@ def main():
         sys.exit(1)
     
     # Create event handler
-    event_handler = JSONFileHandler(watch_file, generator_script)
+    event_handler = JSONFileHandler(watch_directory, generator_script)
     
     # Create observer
     observer = Observer()
-    observer.schedule(event_handler, str(watch_dir), recursive=False)
+    observer.schedule(event_handler, str(watch_directory), recursive=False)
     
     logger.info("🚀 Starting JSONCrack Watchdog...")
-    logger.info(f"📁 Watching directory: {watch_dir}")
-    logger.info(f"📄 Watch file: {watch_file}")
-    logger.info("💡 Add newline-delimited JSON records to trigger auto-generation")
+    logger.info(f"📁 Watching directory: {watch_directory}")
+    logger.info(f"📄 Monitoring all JSON files in the directory")
+    logger.info("💡 Add newline-delimited JSON records to any JSON file to trigger auto-generation")
     logger.info("🛑 Press Ctrl+C to stop")
     
     try:
         observer.start()
         logger.info("✅ Observer started successfully")
         
-        # Initialize tracking with current content
-        event_handler.last_line_count = event_handler._get_line_count()
-        last_record = event_handler._get_last_record()
-        if last_record:
-            event_handler.last_content = last_record
-            logger.info(f"📊 Initial line count: {event_handler.last_line_count}")
-            logger.info(f"📄 Last record type: {last_record.get('eventType', 'Unknown')}")
+        # Initialize tracking with current content for all files
+        for json_file in watch_directory.glob("*.json"):
+            if json_file not in event_handler.file_trackers:
+                event_handler._initialize_single_file_tracking(json_file)
+            tracker = event_handler.file_trackers[json_file]
+            tracker['last_line_count'] = event_handler._get_line_count(json_file)
+            last_record = event_handler._get_last_record(json_file)
+            if last_record:
+                tracker['last_content'] = last_record
+                logger.info(f"📊 Initial line count for {json_file.name}: {tracker['last_line_count']}")
+                logger.info(f"📄 Last record type in {json_file.name}: {last_record.get('eventType', 'Unknown')}")
         
         # Keep running with polling backup
         logger.info("🔄 Watchdog loop started - monitoring for changes...")
         
         # Start polling thread as backup
-        def poll_file():
-            last_modified = event_handler.watch_file.stat().st_mtime if event_handler.watch_file.exists() else 0
+        def poll_files():
             while True:
                 try:
-                    if event_handler.watch_file.exists():
-                        current_modified = event_handler.watch_file.stat().st_mtime
-                        if current_modified > last_modified:
-                            logger.info(f"📊 Polling detected file change: {event_handler.watch_file}")
-                            last_modified = current_modified
-                            # Trigger the same logic as file system events
-                            current_line_count = event_handler._get_line_count()
-                            if current_line_count > event_handler.last_line_count:
-                                logger.info(f"🆕 Polling: New records detected! Line count: {event_handler.last_line_count} → {current_line_count}")
-                                last_record = event_handler._get_last_record()
-                                if last_record:
-                                    event_handler._call_json_generator(last_record)
-                                    event_handler.last_line_count = current_line_count
-                                    event_handler.last_content = last_record
+                    for json_file in watch_directory.glob("*.json"):
+                        if json_file not in event_handler.file_trackers:
+                            event_handler._initialize_single_file_tracking(json_file)
+                        
+                        tracker = event_handler.file_trackers[json_file]
+                        current_line_count = event_handler._get_line_count(json_file)
+                        
+                        if current_line_count > tracker['last_line_count']:
+                            logger.info(f"📊 Polling detected file change: {json_file.name}")
+                            logger.info(f"🆕 Polling: New records detected in {json_file.name}! Line count: {tracker['last_line_count']} → {current_line_count}")
+                            last_record = event_handler._get_last_record(json_file)
+                            if last_record:
+                                event_handler._call_json_generator(last_record, json_file)
+                                tracker['last_line_count'] = current_line_count
+                                tracker['last_content'] = last_record
                 except Exception as e:
                     logger.error(f"❌ Polling error: {e}")
                 time.sleep(2)  # Poll every 2 seconds
         
         # Start polling in background
-        poll_thread = threading.Thread(target=poll_file, daemon=True)
+        poll_thread = threading.Thread(target=poll_files, daemon=True)
         poll_thread.start()
         logger.info("✅ Polling backup started")
         

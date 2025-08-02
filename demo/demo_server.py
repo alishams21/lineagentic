@@ -170,7 +170,9 @@ class SQLLineageFrontend:
                     agent_dropdown = gr.Dropdown(
                         label="Agent Type",
                         choices=[
-                            "sql-lineage-agent"
+                            "sql-lineage-agent",
+                            "python-lineage-agent",
+                            "airflow-lineage-agent"
                         ],
                         value="sql-lineage-agent"
                     )
