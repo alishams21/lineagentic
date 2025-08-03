@@ -3,7 +3,7 @@ import json
 import asyncio
 from typing import Dict, Any
 
-class SQLLineageAPIClient:
+class AirflowLineageAPIClient:
     def __init__(self, base_url: str = "http://localhost:8000"):
         self.base_url = base_url
         
@@ -89,7 +89,7 @@ def main():
     """Example usage of the API client"""
     
     # Initialize client
-    client = SQLLineageAPIClient()
+    client = AirflowLineageAPIClient()
     
     # Check if API is running
     print("Checking API health...")

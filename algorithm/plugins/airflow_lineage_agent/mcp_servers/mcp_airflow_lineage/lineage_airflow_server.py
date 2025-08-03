@@ -1,6 +1,6 @@
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("lineage_aql_server")
+mcp = FastMCP("lineage_airflow_server")
 
 from templates import (airflow_lineage_syntax_analysis as syntax_analysis_template, 
                        airflow_lineage_field_derivation as field_derivation_template, 

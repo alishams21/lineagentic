@@ -3,7 +3,7 @@ import json
 import asyncio
 from typing import Dict, Any
 
-class PythonLineageAPIClient:
+class SparkLineageAPIClient:
     def __init__(self, base_url: str = "http://localhost:8000"):
         self.base_url = base_url
         
@@ -16,12 +16,12 @@ class PythonLineageAPIClient:
             response.raise_for_status()
         return response.json()
     
-    def analyze_query(self, query: str, model_name: str = "gpt-4o", agent_name: str = "python-lineage-agent") -> Dict[str, Any]:
+    def analyze_query(self, query: str, model_name: str = "gpt-4o", agent_name: str = "spark-lineage-agent") -> Dict[str, Any]:
         """
-        Analyze a single Python query using the python_lineage_agent plugin
+        Analyze a single Spark query using the spark_lineage_agent plugin
         
         Args:
-            query: Python query to analyze
+            query: Spark query to analyze
             model_name: Model to use for analysis
             agent_name: Name of the agent
             
@@ -41,12 +41,12 @@ class PythonLineageAPIClient:
             response.raise_for_status()
         return response.json()
     
-    def analyze_queries_batch(self, queries: list[str], model_name: str = "gpt-4o-mini", agent_name: str = "python-lineage-agent") -> Dict[str, Any]:
+    def analyze_queries_batch(self, queries: list[str], model_name: str = "gpt-4o-mini", agent_name: str = "spark-lineage-agent") -> Dict[str, Any]:
         """
-        Analyze multiple Python queries in batch using the python_lineage_agent plugin
+        Analyze multiple Spark queries in batch using the spark_lineage_agent plugin
         
         Args:
-            queries: List of Python queries to analyze
+            queries: List of Spark queries to analyze
             model_name: Model to use for analysis
             agent_name: Name of the agent
             
@@ -63,13 +63,13 @@ class PythonLineageAPIClient:
         return response.json()
     
    
-    def run_operation(self, operation_name: str, query: str, model_name: str = "gpt-4o-mini", agent_name: str = "python-lineage-agent") -> Dict[str, Any]:
+    def run_operation(self, operation_name: str, query: str, model_name: str = "gpt-4o-mini", agent_name: str = "spark-lineage-agent") -> Dict[str, Any]:
         """
         Run a specific operation using the appropriate plugin
         
         Args:
-            operation_name: The operation to perform (e.g., "sql_lineage_analysis")
-            query: Python query to analyze
+            operation_name: The operation to perform (e.g., "spark_lineage_analysis")
+            query: Spark query to analyze
             model_name: Model to use for analysis
             agent_name: Name of the agent
             
@@ -89,7 +89,7 @@ def main():
     """Example usage of the API client"""
     
     # Initialize client
-    client = PythonLineageAPIClient()
+    client = SparkLineageAPIClient()
     
     # Check if API is running
     print("Checking API health...")
@@ -97,42 +97,51 @@ def main():
     print(f"Health status: {health}")
     print()
     
-    # Example Python query
+    # Example Spark query
     sample_query = """
-        import pandas as pd
-        import numpy as np
+        from pyspark.sql import SparkSession
+        from pyspark.sql.functions import col, when, year, current_date, datediff, lit
+        from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DateType
+
+        # Initialize Spark session
+        spark = SparkSession.builder \\
+            .appName("CustomerDataProcessing") \\
+            .config("spark.sql.adaptive.enabled", "true") \\
+            .getOrCreate()
 
         # Step 1: Load input CSV
-        df = pd.read_csv('/data/input/customers.csv')
+        df = spark.read.csv('/data/input/customers.csv', header=True, inferSchema=True)
 
         # Step 2: Clean whitespace from names
-        df['first_name'] = df['first_name'].str.strip().str.title()
-        df['last_name'] = df['last_name'].str.strip().str.title()
+        df = df.withColumn('first_name', col('first_name').cast('string').trim()) \\
+               .withColumn('last_name', col('last_name').cast('string').trim())
 
         # Step 3: Create full name
-        df['full_name'] = df['first_name'] + ' ' + df['last_name']
+        df = df.withColumn('full_name', col('first_name') + ' ' + col('last_name'))
 
-        # Step 4: Convert birthdate to datetime and calculate age
-        df['birthdate'] = pd.to_datetime(df['birthdate'])
-        df['age'] = (pd.Timestamp('today') - df['birthdate']).dt.days // 365
+        # Step 4: Convert birthdate to date and calculate age
+        df = df.withColumn('birthdate', col('birthdate').cast('date')) \\
+               .withColumn('age', year(current_date()) - year(col('birthdate')))
 
         # Step 5: Categorize by age group
-        df['age_group'] = np.where(df['age'] >= 60, 'Senior',
-                        np.where(df['age'] >= 30, 'Adult', 'Young'))
+        df = df.withColumn('age_group', 
+            when(col('age') >= 60, 'Senior') \\
+            .when(col('age') >= 30, 'Adult') \\
+            .otherwise('Young'))
 
         # Step 6: Filter out rows with missing email
-        df = df[df['email'].notnull()]
+        df = df.filter(col('email').isNotNull())
 
         # Step 7: Write result to new CSV
-        df.to_csv('/data/output/cleaned_customers.csv', index=False)
+        df.write.mode('overwrite').csv('/data/output/cleaned_customers.csv', header=True)
     """
 
-    # Run Python lineage agent directly
-    print("Running Python lineage agent directly...")
+    # Run Spark lineage agent directly
+    print("Running Spark lineage agent directly...")
     lineage_result = client.analyze_query(sample_query)
-    print(f"Python lineage agent result: {json.dumps(lineage_result, indent=8)}")
+    print(f"Spark lineage agent result: {json.dumps(lineage_result, indent=8)}")
     print()
 
-
+  
 if __name__ == "__main__":
     main() 

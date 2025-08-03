@@ -172,7 +172,9 @@ class SQLLineageFrontend:
                         choices=[
                             "sql-lineage-agent",
                             "python-lineage-agent",
-                            "airflow-lineage-agent"
+                            "airflow-lineage-agent",
+                            "java-lineage-agent",
+                            "spark-lineage-agent"
                         ],
                         value="sql-lineage-agent"
                     )

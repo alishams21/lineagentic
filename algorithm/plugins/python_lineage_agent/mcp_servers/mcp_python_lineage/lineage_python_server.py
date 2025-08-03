@@ -1,6 +1,6 @@
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("lineage_aql_server")
+mcp = FastMCP("lineage_python_server")
 
 from templates import (python_lineage_syntax_analysis as syntax_analysis_template, 
                        python_lineage_field_derivation as field_derivation_template, 
