@@ -81,6 +81,20 @@ if (sessionParam) {
 }
 ```
 
+#### Issue: Text editor not updating with session data
+**Solution**: Enhanced Monaco editor to update programmatically:
+```javascript
+// Update editor value when contents change
+React.useEffect(() => {
+  if (monaco && contents) {
+    const editor = monaco.editor.getEditors()[0];
+    if (editor) {
+      editor.setValue(contents);
+    }
+  }
+}, [contents, monaco]);
+```
+
 ### 🧪 **Testing Commands**
 
 ```bash

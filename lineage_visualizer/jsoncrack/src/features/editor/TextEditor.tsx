@@ -30,6 +30,11 @@ const TextEditor = () => {
   const getHasChanges = useFile(state => state.getHasChanges);
   const theme = useConfig(state => (state.darkmodeEnabled ? "vs-dark" : "light"));
   const fileType = useFile(state => state.format);
+  
+  // Create a key that changes when contents change
+  const editorKey = React.useMemo(() => {
+    return contents ? contents.length + '_' + Date.now() : 'empty';
+  }, [contents]);
 
   React.useEffect(() => {
     monaco?.languages.json.jsonDefaults.setDiagnosticsOptions({
@@ -66,16 +71,32 @@ const TextEditor = () => {
     };
   }, [getHasChanges]);
 
+  // Update editor value when contents change
+  React.useEffect(() => {
+    if (monaco && contents) {
+      const editor = monaco.editor.getEditors()[0];
+      if (editor) {
+        editor.setValue(contents);
+      }
+    }
+  }, [contents, monaco]);
+
   const handleMount: OnMount = useCallback(editor => {
     editor.onDidPaste(() => {
       editor.getAction("editor.action.formatDocument")?.run();
     });
-  }, []);
+    
+    // Set initial value
+    if (contents) {
+      editor.setValue(contents);
+    }
+  }, [contents]);
 
   return (
     <StyledEditorWrapper>
       <StyledWrapper>
         <Editor
+          key={editorKey} // Force re-render when contents change
           height="100%"
           language={fileType}
           theme={theme}
