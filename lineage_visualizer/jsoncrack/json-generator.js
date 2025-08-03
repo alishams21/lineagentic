@@ -56,13 +56,17 @@ function openInBrowser(url) {
       command = `xdg-open "${url}"`;
     }
     
+    console.log(`🌐 Attempting to open browser with command: ${command}`);
+    console.log(`🔗 URL: ${url}`);
+    
     exec(command, (error) => {
       if (error) {
         console.warn('⚠️  Could not open browser automatically. Please open manually.');
         console.log('🌐 URL to open:', url);
+        console.log('💡 This might happen when running in a subprocess context');
         reject(error);
       } else {
-        console.log('🌐 Opening in browser...');
+        console.log('✅ Browser opened successfully');
         resolve();
       }
     });
@@ -70,15 +74,46 @@ function openInBrowser(url) {
 }
 
 // Function to create URL for JSONCrack editor
-function createEditorUrl(jsonData) {
-  // Convert JSON data to string and encode it directly in the URL
+async function createEditorUrl(jsonData) {
+  // Convert JSON data to string
   const jsonString = JSON.stringify(jsonData, null, 2);
-  const encodedJson = encodeURIComponent(jsonString);
   
-  console.log(`📄 JSON data encoded in URL (${jsonString.length} characters)`);
+  console.log(`📄 JSON data size: ${jsonString.length} characters`);
   
-  // Return URL with JSON data directly encoded in the parameter
-  return `http://localhost:3000/editor?json=${encodedJson}`;
+  // For large data, use POST request to API endpoint
+  if (jsonString.length > 8000) { // URL limit is typically 8KB
+    console.log('📤 Using POST request for large JSON data...');
+    
+    try {
+      const response = await fetch('http://localhost:3000/api/json-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ jsonData: jsonData }),
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log(`✅ JSON data uploaded successfully (${result.dataSize} characters)`);
+        console.log(`🔗 Redirect URL: ${result.redirectUrl}`);
+        return result.redirectUrl;
+      } else {
+        const error = await response.text();
+        throw new Error(`Upload failed: ${error}`);
+      }
+    } catch (error) {
+      console.error('❌ Error uploading JSON data:', error.message);
+      // Fallback to URL method for smaller data
+      console.log('🔄 Falling back to URL method...');
+      const encodedJson = encodeURIComponent(jsonString);
+      return `http://localhost:3000/editor?json=${encodedJson}`;
+    }
+  } else {
+    // For smaller data, use URL parameter
+    const encodedJson = encodeURIComponent(jsonString);
+    return `http://localhost:3000/editor?json=${encodedJson}`;
+  }
 }
 
 // Function to save JSON to file
@@ -173,7 +208,7 @@ async function processJsonData(jsonData, options = {}) {
   console.log('🚀 Processing JSON data for JSONCrack...');
   
   // Create URL for the JSON data
-  const editorUrl = createEditorUrl(jsonData);
+  const editorUrl = await createEditorUrl(jsonData);
   
   console.log(`📊 Data summary: ${JSON.stringify(jsonData).length} characters`);
   
@@ -186,13 +221,20 @@ async function processJsonData(jsonData, options = {}) {
   
   // Process the URL
   try {
+    console.log(`🌐 Final URL to open: ${editorUrl}`);
+    
     if (shouldCopy) {
       await copyToClipboard(editorUrl);
     }
     
     if (shouldOpen) {
-      await openInBrowser(editorUrl);
-      console.log('✅ JSON data opened in browser!');
+      try {
+        await openInBrowser(editorUrl);
+        console.log('✅ JSON data opened in browser!');
+      } catch (browserError) {
+        console.log('📋 Browser could not be opened automatically, but URL is ready:');
+        console.log(`🔗 ${editorUrl}`);
+      }
     } else {
       console.log('📋 URL ready - open manually:', editorUrl);
     }

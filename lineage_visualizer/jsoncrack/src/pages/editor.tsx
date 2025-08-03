@@ -79,7 +79,19 @@ const EditorPage = () => {
   const fullscreen = useGraph(state => state.fullscreen);
 
   useEffect(() => {
-    if (isReady) checkEditorSession(query?.json);
+    if (isReady) {
+      // Check for session parameter first, then json parameter
+      const sessionParam = query?.session;
+      const jsonParam = query?.json;
+      
+      if (sessionParam) {
+        checkEditorSession(`session=${sessionParam}`);
+      } else if (jsonParam) {
+        checkEditorSession(jsonParam);
+      } else {
+        checkEditorSession(undefined);
+      }
+    }
   }, [checkEditorSession, isReady, query]);
 
   useEffect(() => {

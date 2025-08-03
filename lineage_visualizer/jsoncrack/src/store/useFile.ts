@@ -142,11 +142,29 @@ const useFile = create<FileStates & JsonActions>()((set, get) => ({
       toast.error("Failed to fetch document from URL!");
     }
   },
-  checkEditorSession: (url, widget) => {
+  checkEditorSession: async (url, widget) => {
     if (url && typeof url === "string") {
       // Check if it's a URL first
       if (isURL(url)) {
         return get().fetchUrl(url);
+      }
+      
+      // Check if it's a session ID
+      if (url.startsWith('session=')) {
+        const sessionId = url.replace('session=', '');
+        try {
+          const response = await fetch(`/api/get-json-data?sessionId=${sessionId}`);
+          if (response.ok) {
+            const result = await response.json();
+            const jsonString = JSON.stringify(result.data, null, 2);
+            get().setContents({ contents: jsonString, hasChanges: false });
+            return;
+          } else {
+            console.warn("Failed to retrieve session data:", response.statusText);
+          }
+        } catch (error) {
+          console.warn("Error retrieving session data:", error);
+        }
       }
       
       // Check if it's JSON data (starts with { or [)

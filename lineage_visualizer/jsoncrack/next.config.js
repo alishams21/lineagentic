@@ -7,12 +7,14 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
  * @type {import('next').NextConfig}
  */
 const config = {
-  output: "export",
+  // Remove static export to enable API routes
+  // output: "export",
   reactStrictMode: false,
   productionBrowserSourceMaps: true,
   compiler: {
     styledComponents: true,
   },
+  // Body parser configuration is handled in API routes
   webpack: (config, { isServer }) => {
     config.resolve.fallback = { fs: false };
     config.output.webassemblyModuleFilename = "static/wasm/[modulehash].wasm";
