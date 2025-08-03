@@ -71,8 +71,13 @@ function openInBrowser(url) {
 
 // Function to create URL for JSONCrack editor
 function createEditorUrl(jsonData) {
+  // Convert JSON data to string and encode it directly in the URL
   const jsonString = JSON.stringify(jsonData, null, 2);
   const encodedJson = encodeURIComponent(jsonString);
+  
+  console.log(`📄 JSON data encoded in URL (${jsonString.length} characters)`);
+  
+  // Return URL with JSON data directly encoded in the parameter
   return `http://localhost:3000/editor?json=${encodedJson}`;
 }
 
@@ -124,10 +129,34 @@ async function processUrls(urls, options = {}) {
 // Function to read JSON from file
 function readJsonFromFile(filePath) {
   try {
-    const fileContent = fs.readFileSync(filePath, 'utf8');
-    return JSON.parse(fileContent);
+    const fileContent = fs.readFileSync(filePath, 'utf8').trim();
+    
+    // First, try to parse as a single JSON object
+    try {
+      const parsed = JSON.parse(fileContent);
+      console.log(`📄 Successfully read JSON object from file`);
+      return parsed;
+    } catch (parseError) {
+      // If single JSON parsing fails, try JSONL format
+      console.log(`📄 Single JSON parsing failed, trying JSONL format...`);
+    }
+    
+    // Check if it's newline-delimited JSON (JSONL format)
+    const lines = fileContent.split('\n');
+    if (lines.length > 1) {
+      // It's JSONL format - read the last line as the most recent record
+      const lastLine = lines[lines.length - 1];
+      if (lastLine.trim()) {
+        console.log(`📄 Reading last JSON record from JSONL file (${lines.length} total records)`);
+        return JSON.parse(lastLine.trim());
+      }
+    }
+    
+    // If we get here, something went wrong
+    throw new Error('Unable to parse JSON from file');
   } catch (error) {
     console.error(`❌ Error reading JSON file ${filePath}:`, error.message);
+    console.error(`📄 File content preview:`, fs.readFileSync(filePath, 'utf8').substring(0, 200));
     return null;
   }
 }
@@ -167,6 +196,7 @@ async function processJsonData(jsonData, options = {}) {
     } else {
       console.log('📋 URL ready - open manually:', editorUrl);
     }
+    
   } catch (error) {
     console.error('❌ Error processing JSON data:', error.message);
   }
