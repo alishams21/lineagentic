@@ -338,7 +338,8 @@ def sql_lineage_operation_tracing():
 def sql_lineage_event_composer():
     return  """
             You are an OpenLineage lineage generation expert. 
-            Your job is to take the outputs from upstream SQL analysis agents and generate a **single, complete OpenLineage event JSON** representing end-to-end data lineage for the query.
+            Your job is to take the outputs from upstream SQL analysis agents and generate a **single,
+            complete OpenLineage event JSON** representing end-to-end data lineage for the query.
 
             ---
 
@@ -393,15 +394,18 @@ def sql_lineage_event_composer():
             Generate **one event JSON** that captures the **entire query pipeline** from source tables to final output.
             Strictly follow the structure below and do not change field names or nesting, it is very important to keep exact same format:
 
-            - Use "inputs" and "outputs" as array keys (do NOT use inputDataset or outputDataset).
-            - Preserve "facets" blocks under "job", "inputs", and "outputs".
             - Include "columnLineage" as a facet under "outputs.facets" (not at the top level).
-            - Maintain the exact field names:
-            - "eventType", "eventTime", "run", "job", "inputs", "outputs", "facets", "query", "processingType", "integration", etc.
-            - Do NOT rename or flatten any fields.
+            - Maintain the exact field names: "eventType", "eventTime", "run", "job", "inputs", "outputs", "facets", "query", "processingType", "integration", etc.
             - inputs are the source tables. remember to have all the source tables as inputs. do not just have fields as inputs.
             - Match the structure and nesting exactly as in this format:
-            Your output must follow **exactly** this JSON structure — do not output explanations, comments, or anything else.
+            
+            Your output must follow **exactly** following JSON structure and fill in the values considering: 
+            1. **Parsed SQL Blocks** 
+            2. **Field Mappings**
+            3. **Logical Operators**
+            
+            
+            very important: just generate the JSON following the format:
 
                 {
                 "eventType": "START",
@@ -521,141 +525,7 @@ def sql_lineage_event_composer():
                 ]
                 }
                 
-                here is a good example for the output:
-                
-            {
-            "eventType": "START",
-            "eventTime": "2025-08-02T11:00:00Z",
-            "run": {
-                "runId": "f3c7a42e-a2f6-11ed-a8fc-0242ac120002",
-                "facets": {
-                "parent": {
-                    "job": {
-                    "name": "daily_order_metrics_job",
-                    "namespace": "scheduler.production.sql-jobs"
-                    },
-                    "run": {
-                    "runId": "12345678-90ab-cdef-1234-567890abcdef"
-                    }
-                }
-                }
-            },
-            "job": {
-                "facets": {
-                "sql": {
-                    "_producer": "https://openlineage.io/sql",
-                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/SqlJobFacet.json",
-                    "query": "INSERT INTO metrics.daily_order_summary (customer_id, total_spent)\nSELECT customer_id, SUM(order_amount) AS total_spent\nFROM raw.orders\nWHERE order_status = 'complete'\nGROUP BY customer_id"
-                },
-                "jobType": {
-                    "processingType": "BATCH",
-                    "integration": "custom-sql-runner",
-                    "jobType": "sql_insert_select",
-                    "_producer": "https://openlineage.io/sql",
-                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/JobTypeFacet.json"
-                    }
-                ,
-                "sourceCode": {
-                    "_producer": "https://openlineage.io/sql",
-                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/SourceCodeJobFacet.json",
-                    "language": "sql",
-                    "sourceCode": "-- This SQL job computes daily customer order totals from raw orders."
-                }
-                }
-            },
-            "inputs": [
-                {
-                "namespace": "warehouse.postgres",
-                "name": "raw.orders",
-                "facets": {
-                    "schema": {
-                    "_producer": "https://openlineage.io/sql",
-                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/SchemaDatasetFacet.json",
-                    "fields": [
-                        { "name": "customer_id", "type": "string", "description": "Customer identifier" },
-                        { "name": "order_amount", "type": "decimal", "description": "Amount of each order" },
-                        { "name": "order_status", "type": "string", "description": "Order state" }
-                    ]
-                    },
-                    "storage": {
-                    "_producer": "https://openlineage.io/sql",
-                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/StorageDatasetFacet.json",
-                    "storageLayer": "database",
-                    "fileFormat": "N/A"
-                    },
-                    "datasetType": {
-                    "_producer": "https://openlineage.io/sql",
-                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/DatasetTypeFacet.json",
-                    "datasetType": "table",
-                    "subType": "postgres"
-                    },
-                    "lifecycleStateChange": {
-                    "_producer": "https://openlineage.io/sql",
-                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/LifecycleStateChangeDatasetFacet.json",
-                    "lifecycleStateChange": "READ"
-                    },
-                    "ownership": {
-                    "_producer": "https://openlineage.io/sql",
-                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/OwnershipDatasetFacet.json",
-                    "owners": [
-                        {
-                        "name": "dataops@example.com",
-                        "type": "group"
-                        }
-                    ]
-                    }
-                }
-                }
-            ],
-            "outputs": [
-                {
-                "namespace": "warehouse.postgres",
-                "name": "metrics.daily_order_summary",
-                "facets": {
-                    "columnLineage": {
-                    "_producer": "https://openlineage.io/sql",
-                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/ColumnLineageDatasetFacet.json",
-                    "fields": {
-                        "customer_id": {
-                        "inputFields": [
-                            {
-                            "namespace": "warehouse.postgres",
-                            "name": "raw.orders",
-                            "field": "customer_id",
-                            "transformations": [
-                                {
-                                "type": "projection",
-                                "subtype": "group_by",
-                                "description": "customer_id grouped",
-                                "masking": false
-                                }
-                            ]
-                            }
-                        ]
-                        },
-                        "total_spent": {
-                        "inputFields": [
-                            {
-                            "namespace": "warehouse.postgres",
-                            "name": "raw.orders",
-                            "field": "order_amount",
-                            "transformations": [
-                                {
-                                "type": "aggregation",
-                                "subtype": "SUM",
-                                "description": "SUM(order_amount) grouped by customer_id",
-                                "masking": false
-                                }
-                            ]
-                            }
-                        ]
-                        }
-                    }
-                    }
-                }
-                }
-            ]
-            }
+    
 
             """
             
