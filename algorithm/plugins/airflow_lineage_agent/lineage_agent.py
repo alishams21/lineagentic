@@ -154,4 +154,5 @@ def get_plugin_info() -> Dict[str, Any]:
         "author": "Ali Shamsaddinlou",
         "agent_class": AirflowLineageAgent,
         "factory_function": create_airflow_lineage_agent,
+        "supported_operations": ["lineage_analysis"],
     } 

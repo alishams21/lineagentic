@@ -7,10 +7,10 @@ help:
 	@echo "🚀 LineAgent Project"
 	@echo ""			
 	@echo "Available commands:"
-	@echo "  make start-api-server-with-lineage-visualizer-and-watchdog-and-demo-server - Start all services (API, Demo, Visualizer, Watchdog)"
-	@echo "  make start-api-server-with-lineage-visualizer-and-watchdog - Start API server with visualizer and watchdog"
-	@echo "  make start-demo-server-with-lineage-visualizer-and-watchdog - Start demo server with visualizer and watchdog"
-	@echo "  make start-only-api-server - Start only API server"
+	@echo "  make start-cli-api-server-with-lineage-visualizer-and-watchdog-and-demo-server - Start all services (API, Demo, Visualizer, Watchdog)"
+	@echo "  make start-cli-api-server-with-lineage-visualizer-and-watchdog - Start API server with visualizer and watchdog"
+	@echo "  make start-cli-demo-server-with-lineage-visualizer-and-watchdog - Start demo server with visualizer and watchdog"
+	@echo "  make start-cli-api-server - Start only API server"
 	@echo ""
 	@echo "Individual commands:"
 	@echo "  make create-venv    - Create virtual environment"
@@ -87,7 +87,7 @@ test-module:
 # =============================================================================
 
 # Start all services in background
-start-api-server-with-lineage-visualizer-and-watchdog-and-demo-server:
+start-cli-api-server-with-lineage-visualizer-and-watchdog-and-demo-server:
 	@echo "🚀 Starting all services in background..."
 	@$(MAKE) create-venv
 	@sleep 2
@@ -115,7 +115,7 @@ start-api-server-with-lineage-visualizer-and-watchdog-and-demo-server:
 	@echo "🛑 To stop all services, run: make clean"
 
 # Start API server with lineage visualizer and watchdog
-start-api-server-with-lineage-visualizer-and-watchdog:
+start-cli-api-server-with-lineage-visualizer-and-watchdog:
 	@echo "🚀 Starting API server with lineage visualizer and watchdog..."
 	@$(MAKE) create-venv
 	@sleep 2
@@ -136,7 +136,7 @@ start-api-server-with-lineage-visualizer-and-watchdog:
 	@echo "✅ Services started!"
 
 # Start demo server with lineage visualizer and watchdog
-start-demo-server-with-lineage-visualizer-and-watchdog:
+start-cli-demo-server-with-lineage-visualizer-and-watchdog:
 	@echo "🚀 Starting demo server with lineage visualizer and watchdog..."
 	@$(MAKE) create-venv
 	@sleep 2
@@ -157,7 +157,7 @@ start-demo-server-with-lineage-visualizer-and-watchdog:
 	@echo "✅ Services started!"
 
 # Start only API server
-start-only-api-server:
+start-cli-api-server:
 	@echo "🚀 Starting only API server..."
 	@$(MAKE) create-venv
 	@sleep 2

@@ -23,22 +23,24 @@ Lineagentic is designed to be modular and customizable.
 
 ## How to use
 
+## Activating web Interface and API and CLI
+
 In order to simplify the usage of Lineagentic, we have created a Makefile which can be used to start the services. you can find different targets in the Makefile.
 
 to start the api server, lineage visualizer, watchdog and demo server, run the following command:
 
 ```bash
-make start-api-server-with-lineage-visualizer-and-watchdog-and-demo-server
+make start-cli-api-server-with-lineage-visualizer-and-watchdog-and-demo-server
 ```
 to start the api server, lineage visualizer and watchdog, run the following command:
 
 ```bash
-make start-api-server-with-lineage-visualizer-and-watchdog
+make start-cli-api-server-with-lineage-visualizer-and-watchdog
 ```
 to start the api server, run the following command:
 
 ```bash
-make start-only-api-server
+make start-cli-api-server
 ```
 
 In order to deploy Lineagentic to Hugging Face Spaces, run the following command ( you need to have huggingface account and put secret keys there if you are going to use paid models):
@@ -46,6 +48,40 @@ In order to deploy Lineagentic to Hugging Face Spaces, run the following command
 ```bash
 make gradio-deploy
 ```
+
+### Command Line Interface (CLI)
+
+Lineagentic provides a powerful CLI tool for quick analysis:
+
+```bash
+# List available agents
+lineagentic --list-agents
+
+# List supported operations
+lineagentic --list-operations
+
+# Analyze Airflow DAG
+lineagentic --agent-name airflow-lineage-agent --query "your airflow code here"
+
+# Analyze SQL query
+lineagentic --agent-name sql-lineage-agent --query "SELECT * FROM table"
+
+# Analyze Python script
+lineagentic --agent-name python-lineage-agent --query "import pandas as pd; df = pd.read_csv('file.csv')"
+
+# Use operation-based analysis (auto-selects appropriate agent)
+lineagentic --operation lineage_analysis --query "your code here"
+
+# Analyze code from file
+lineagentic --agent-name airflow-lineage-agent --query-file path/to/your/script.py
+
+# Save results to file
+lineagentic --agent-name sql-lineage-agent --query "your sql" --output results.json --pretty
+```
+
+For more CLI options, see the [CLI documentation](cli/README.md).
+
+
 ## environment variables
 
 - HF_TOKEN   (HUGGINGFACE_TOKEN)
