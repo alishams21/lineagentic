@@ -3,17 +3,17 @@
   <img src="images/logo.svg" alt="Lineagentic Logo" width="280" height="60">
 </div>
 
-# Lineagentic
+## Lineagentic
 
 Lineagentic is an agentic ai solution for extracting data lineage across diverse types of data processing scripts.
 
-## Features
+### Features
 
 - Simple customizable gentic lineage analysis algorithm
 - Interactive web lineage visualizer
 - Support for multiple data processing script types (SQL, Python, etc.)
 
-## How it works
+### How it works
 
 Lineagentic is designed to be modular and customizable. 
 
@@ -26,9 +26,9 @@ Lineagentic is designed to be modular and customizable.
 - Demo module is for teams who want to demo Lineagentic in fast and simple way deployable into huggingface spaces.
 
 
-## How to use
+### How to use
 
-## Activating web Interface and API and CLI
+#### Activating web Interface and API and CLI
 
 In order to simplify the usage of Lineagentic, we have created a Makefile which can be used to start the services. you can find different targets in the Makefile.
 
@@ -54,7 +54,7 @@ In order to deploy Lineagentic to Hugging Face Spaces, run the following command
 make gradio-deploy
 ```
 
-### Command Line Interface (CLI)
+#### Command Line Interface (CLI)
 
 Lineagentic provides a powerful CLI tool for quick analysis:
 
@@ -87,22 +87,22 @@ lineagentic --agent-name sql-lineage-agent --query "your sql" --output results.j
 For more CLI options, see the [CLI documentation](cli/README.md).
 
 
-## environment variables
+### environment variables
 
 - HF_TOKEN   (HUGGINGFACE_TOKEN)
 - OPENAI_API_KEY
 
 
-## How algorithm works
+### How algorithm works
 
 
-# architecture
+## architecture
 
 Following is the architecture of how agentic chain of thought systems designed to extract lineage across various data processing script types.
 
 ![Architecture Diagram](images/architecture.png)
 
-## agent framework 
+### agent framework 
 The agent framework dose IO operations ,memory management, and prompt engineering according to the script type (T) and its content (C).
 
 $$
