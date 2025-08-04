@@ -1,0 +1,235 @@
+{
+  "summary": {
+    "total_nodes": 12,
+    "total_edges": 12,
+    "jobs": 5,
+    "datasets": 7
+  },
+  "technology_analysis": {
+    "python": {
+      "nodes": [
+        "python_pipeline:python_job"
+      ],
+      "input_datasets": [
+        "input_db:input_table"
+      ],
+      "output_datasets": [
+        "output_db:table"
+      ],
+      "job_count": 1,
+      "dataset_count": 0
+    },
+    "database": {
+      "nodes": [
+        "input_db:input_table",
+        "output_db:table",
+        "public:customer_4",
+        "public:orders",
+        "public:order_items",
+        "public:customer_5",
+        "input_db:table"
+      ],
+      "input_datasets": [],
+      "output_datasets": [],
+      "job_count": 0,
+      "dataset_count": 7
+    },
+    "sql": {
+      "nodes": [
+        "sql_pipeline:insert_customer_5"
+      ],
+      "input_datasets": [
+        "public:customer_4",
+        "public:orders",
+        "public:order_items"
+      ],
+      "output_datasets": [
+        "public:customer_5"
+      ],
+      "job_count": 1,
+      "dataset_count": 0
+    },
+    "airflow": {
+      "nodes": [
+        "airflow_pipeline:fetch_raw_data"
+      ],
+      "input_datasets": [
+        "input_db:table"
+      ],
+      "output_datasets": [
+        "output_db:table"
+      ],
+      "job_count": 1,
+      "dataset_count": 0
+    },
+    "java": {
+      "nodes": [
+        "java_pipeline:insert_customer_2"
+      ],
+      "input_datasets": [
+        "input_db:table"
+      ],
+      "output_datasets": [
+        "output_db:table"
+      ],
+      "job_count": 1,
+      "dataset_count": 0
+    },
+    "spark": {
+      "nodes": [
+        "spark_pipeline:spark_job"
+      ],
+      "input_datasets": [
+        "input_db:table"
+      ],
+      "output_datasets": [
+        "output_db:table"
+      ],
+      "job_count": 1,
+      "dataset_count": 0
+    }
+  },
+  "critical_paths": [
+    [
+      "input_db:input_table",
+      "python_pipeline:python_job",
+      "output_db:table"
+    ],
+    [
+      "public:customer_4",
+      "sql_pipeline:insert_customer_5",
+      "public:customer_5"
+    ],
+    [
+      "public:orders",
+      "sql_pipeline:insert_customer_5",
+      "public:customer_5"
+    ],
+    [
+      "public:order_items",
+      "sql_pipeline:insert_customer_5",
+      "public:customer_5"
+    ],
+    [
+      "input_db:table",
+      "airflow_pipeline:fetch_raw_data",
+      "output_db:table"
+    ]
+  ],
+  "data_quality_issues": [
+    {
+      "type": "orphan_dataset",
+      "dataset": "input_db:input_table",
+      "description": "Dataset has no input sources"
+    },
+    {
+      "type": "orphan_dataset",
+      "dataset": "public:customer_4",
+      "description": "Dataset has no input sources"
+    },
+    {
+      "type": "orphan_dataset",
+      "dataset": "public:orders",
+      "description": "Dataset has no input sources"
+    },
+    {
+      "type": "orphan_dataset",
+      "dataset": "public:order_items",
+      "description": "Dataset has no input sources"
+    },
+    {
+      "type": "orphan_dataset",
+      "dataset": "input_db:table",
+      "description": "Dataset has no input sources"
+    }
+  ],
+  "top_datasets": [
+    {
+      "dataset": "output_db:table",
+      "name": "customer_3",
+      "namespace": "<OUTPUT_NAMESPACE>",
+      "in_degree": 4,
+      "out_degree": 0,
+      "total_degree": 4
+    },
+    {
+      "dataset": "input_db:table",
+      "name": "/data/source/raw_customers.csv",
+      "namespace": "<INPUT_NAMESPACE>",
+      "in_degree": 0,
+      "out_degree": 3,
+      "total_degree": 3
+    },
+    {
+      "dataset": "input_db:input_table",
+      "name": "<INPUT_NAME>",
+      "namespace": "<INPUT_NAMESPACE>",
+      "in_degree": 0,
+      "out_degree": 1,
+      "total_degree": 1
+    },
+    {
+      "dataset": "public:customer_4",
+      "name": "customer_4",
+      "namespace": "public",
+      "in_degree": 0,
+      "out_degree": 1,
+      "total_degree": 1
+    },
+    {
+      "dataset": "public:orders",
+      "name": "orders",
+      "namespace": "public",
+      "in_degree": 0,
+      "out_degree": 1,
+      "total_degree": 1
+    }
+  ],
+  "top_jobs": [
+    {
+      "job": "sql_pipeline:insert_customer_5",
+      "name": "insert_customer_5",
+      "namespace": "sql_pipeline",
+      "technology": "sql",
+      "input_count": 3,
+      "output_count": 1,
+      "complexity_score": 3
+    },
+    {
+      "job": "python_pipeline:python_job",
+      "name": "python_job",
+      "namespace": "python_pipeline",
+      "technology": "python",
+      "input_count": 1,
+      "output_count": 1,
+      "complexity_score": 1
+    },
+    {
+      "job": "airflow_pipeline:fetch_raw_data",
+      "name": "fetch_raw_data",
+      "namespace": "airflow_pipeline",
+      "technology": "airflow",
+      "input_count": 1,
+      "output_count": 1,
+      "complexity_score": 1
+    },
+    {
+      "job": "java_pipeline:insert_customer_2",
+      "name": "insert_customer_2",
+      "namespace": "java_pipeline",
+      "technology": "java",
+      "input_count": 1,
+      "output_count": 1,
+      "complexity_score": 1
+    },
+    {
+      "job": "spark_pipeline:spark_job",
+      "name": "spark_job",
+      "namespace": "spark_pipeline",
+      "technology": "spark",
+      "input_count": 1,
+      "output_count": 1,
+      "complexity_score": 1
+    }
+  ]
+}

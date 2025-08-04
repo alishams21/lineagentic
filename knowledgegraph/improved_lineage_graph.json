@@ -1,0 +1,1220 @@
+{
+  "nodes": [
+    {
+      "id": "python_pipeline:python_job",
+      "name": "python_job",
+      "namespace": "python_pipeline",
+      "node_type": "job",
+      "technology": "python",
+      "metadata": {
+        "event_type": "START",
+        "source_code": "import pandas as pd\nimport numpy as np\nimport sqlite3\n\nconn = sqlite3.connect('/data/database.db')\ndf = pd.read_sql_query(\"SELECT * FROM customer_2\", conn)\ndf['first_name'] = df['first_name'].str.strip().str.title()\ndf['last_name'] = df['last_name'].str.strip().str.title()\ndf['full_name'] = df['first_name'] + ' ' + df['last_name']\ndf['birthdate'] = pd.to_datetime(df['birthdate'])\ndf['age'] = (pd.Timestamp('today') - df['birthdate']).dt.days // 365\ndf['age_group'] = np.where(df['age'] >= 60, 'Senior', np.where(df['age'] >= 30, 'Adult', 'Young'))\ndf = df[df['email'].notnull()]\ndf.to_sql('customer_3', conn, if_exists='replace', index=False)\nconn.close()",
+        "source_file": "python-lineage-agent.json"
+      }
+    },
+    {
+      "id": "input_db:input_table",
+      "name": "<INPUT_NAME>",
+      "namespace": "<INPUT_NAMESPACE>",
+      "node_type": "dataset",
+      "technology": "database",
+      "metadata": {
+        "schema": {
+          "_producer": "<PRODUCER_URL>",
+          "_schemaURL": "<SCHEMA_URL>",
+          "fields": [
+            {
+              "name": "first_name",
+              "type": "string",
+              "description": "Customer's first name"
+            },
+            {
+              "name": "last_name",
+              "type": "string",
+              "description": "Customer's last name"
+            },
+            {
+              "name": "birthdate",
+              "type": "date",
+              "description": "Customer's birthdate"
+            },
+            {
+              "name": "email",
+              "type": "string",
+              "description": "Customer's email address"
+            }
+          ]
+        },
+        "storage": {
+          "_producer": "<PRODUCER_URL>",
+          "_schemaURL": "<SCHEMA_URL>",
+          "storageLayer": "<STORAGE_LAYER>",
+          "fileFormat": "<FILE_FORMAT>"
+        }
+      }
+    },
+    {
+      "id": "output_db:table",
+      "name": "customer_3",
+      "namespace": "<OUTPUT_NAMESPACE>",
+      "node_type": "dataset",
+      "technology": "database",
+      "metadata": {
+        "schema": {},
+        "column_lineage": {
+          "_producer": "<PRODUCER_URL>",
+          "_schemaURL": "<SCHEMA_URL>",
+          "fields": {
+            "first_name": {
+              "inputFields": [
+                {
+                  "namespace": "<INPUT_NAMESPACE>",
+                  "name": "<INPUT_NAME>",
+                  "field": "first_name",
+                  "transformations": [
+                    {
+                      "type": "Transformation",
+                      "subtype": "String Manipulation",
+                      "description": "Stripped whitespace and converted to title case",
+                      "masking": false
+                    }
+                  ]
+                }
+              ]
+            },
+            "last_name": {
+              "inputFields": [
+                {
+                  "namespace": "<INPUT_NAMESPACE>",
+                  "name": "<INPUT_NAME>",
+                  "field": "last_name",
+                  "transformations": [
+                    {
+                      "type": "Transformation",
+                      "subtype": "String Manipulation",
+                      "description": "Stripped whitespace and converted to title case",
+                      "masking": false
+                    }
+                  ]
+                }
+              ]
+            },
+            "full_name": {
+              "inputFields": [
+                {
+                  "namespace": "<INPUT_NAMESPACE>",
+                  "name": "<INPUT_NAME>",
+                  "field": "first_name",
+                  "transformations": [
+                    {
+                      "type": "Transformation",
+                      "subtype": "Concatenation",
+                      "description": "Concatenation of first_name and last_name with a space",
+                      "masking": false
+                    }
+                  ]
+                },
+                {
+                  "namespace": "<INPUT_NAMESPACE>",
+                  "name": "<INPUT_NAME>",
+                  "field": "last_name",
+                  "transformations": [
+                    {
+                      "type": "Transformation",
+                      "subtype": "Concatenation",
+                      "description": "Concatenation of first_name and last_name with a space",
+                      "masking": false
+                    }
+                  ]
+                }
+              ]
+            },
+            "birthdate": {
+              "inputFields": [
+                {
+                  "namespace": "<INPUT_NAMESPACE>",
+                  "name": "<INPUT_NAME>",
+                  "field": "birthdate",
+                  "transformations": [
+                    {
+                      "type": "Transformation",
+                      "subtype": "Date Conversion",
+                      "description": "Converted to datetime format",
+                      "masking": false
+                    }
+                  ]
+                }
+              ]
+            },
+            "age": {
+              "inputFields": [
+                {
+                  "namespace": "<INPUT_NAMESPACE>",
+                  "name": "<INPUT_NAME>",
+                  "field": "birthdate",
+                  "transformations": [
+                    {
+                      "type": "Transformation",
+                      "subtype": "Age Calculation",
+                      "description": "Calculated age in years from birthdate",
+                      "masking": false
+                    }
+                  ]
+                }
+              ]
+            },
+            "age_group": {
+              "inputFields": [
+                {
+                  "namespace": "<INPUT_NAMESPACE>",
+                  "name": "<INPUT_NAME>",
+                  "field": "age",
+                  "transformations": [
+                    {
+                      "type": "Transformation",
+                      "subtype": "Categorization",
+                      "description": "Categorized age into 'Senior', 'Adult', or 'Young' based on age",
+                      "masking": false
+                    }
+                  ]
+                }
+              ]
+            },
+            "email": {
+              "inputFields": [
+                {
+                  "namespace": "<INPUT_NAMESPACE>",
+                  "name": "<INPUT_NAME>",
+                  "field": "email",
+                  "transformations": [
+                    {
+                      "type": "Transformation",
+                      "subtype": "Filtering",
+                      "description": "Filtered out rows with missing email (not null)",
+                      "masking": false
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "sql_pipeline:insert_customer_5",
+      "name": "insert_customer_5",
+      "namespace": "sql_pipeline",
+      "node_type": "job",
+      "technology": "sql",
+      "metadata": {
+        "event_type": "START",
+        "source_code": "-- Read from customer_4 and orders tables, then write to customer_5\nINSERT INTO customer_5 (\n    customer_id,\n    customer_name,\n    email,\n    region,\n    status,\n    total_orders,\n    total_revenue,\n    avg_order_value,\n    last_order_date,\n    processed_date\n)\nSELECT \n    c.customer_id,\n    c.customer_name,\n    c.email,\n    c.region,\n    c.status,\n    COUNT(DISTINCT o.order_id) AS total_orders,\n    SUM(oi.item_total) AS total_revenue,\n    AVG(oi.item_total) AS avg_order_value,\n    MAX(o.order_date) AS last_order_date,\n    CURRENT_DATE AS processed_date\nFROM \n    customer_4 c\nJOIN \n    orders o ON c.customer_id = o.customer_id\nJOIN \n    order_items oi ON o.order_id = oi.order_id\nWHERE \n    c.status = 'active'\n    AND o.order_date BETWEEN '2025-01-01' AND '2025-06-30'\nGROUP BY \n    c.customer_id,\n    c.customer_name,\n    c.email,\n    c.region,\n    c.status\nHAVING \n    SUM(oi.item_total) > 5000\nORDER BY \n    total_revenue DESC;",
+        "source_file": "sql-lineage-agent.json"
+      }
+    },
+    {
+      "id": "public:customer_4",
+      "name": "customer_4",
+      "namespace": "public",
+      "node_type": "dataset",
+      "technology": "database",
+      "metadata": {
+        "schema": {
+          "_producer": "<PRODUCER_URL>",
+          "_schemaURL": "<SCHEMA_URL>",
+          "fields": [
+            {
+              "name": "customer_id",
+              "type": "INT",
+              "description": "Unique identifier for the customer"
+            },
+            {
+              "name": "customer_name",
+              "type": "STRING",
+              "description": "Name of the customer"
+            },
+            {
+              "name": "email",
+              "type": "STRING",
+              "description": "Email address of the customer"
+            },
+            {
+              "name": "region",
+              "type": "STRING",
+              "description": "Region where the customer is located"
+            },
+            {
+              "name": "status",
+              "type": "STRING",
+              "description": "Status of the customer"
+            }
+          ]
+        },
+        "storage": {
+          "_producer": "<PRODUCER_URL>",
+          "_schemaURL": "<SCHEMA_URL>",
+          "storageLayer": "DATABASE",
+          "fileFormat": "TABLE"
+        }
+      }
+    },
+    {
+      "id": "public:orders",
+      "name": "orders",
+      "namespace": "public",
+      "node_type": "dataset",
+      "technology": "database",
+      "metadata": {
+        "schema": {
+          "_producer": "<PRODUCER_URL>",
+          "_schemaURL": "<SCHEMA_URL>",
+          "fields": [
+            {
+              "name": "customer_id",
+              "type": "INT",
+              "description": "Identifier for the customer who made the order"
+            },
+            {
+              "name": "order_date",
+              "type": "DATE",
+              "description": "Date when the order was placed"
+            }
+          ]
+        },
+        "storage": {
+          "_producer": "<PRODUCER_URL>",
+          "_schemaURL": "<SCHEMA_URL>",
+          "storageLayer": "DATABASE",
+          "fileFormat": "TABLE"
+        }
+      }
+    },
+    {
+      "id": "public:order_items",
+      "name": "order_items",
+      "namespace": "public",
+      "node_type": "dataset",
+      "technology": "database",
+      "metadata": {
+        "schema": {
+          "_producer": "<PRODUCER_URL>",
+          "_schemaURL": "<SCHEMA_URL>",
+          "fields": [
+            {
+              "name": "item_total",
+              "type": "FLOAT",
+              "description": "Total price of the item in the order"
+            }
+          ]
+        },
+        "storage": {
+          "_producer": "<PRODUCER_URL>",
+          "_schemaURL": "<SCHEMA_URL>",
+          "storageLayer": "DATABASE",
+          "fileFormat": "TABLE"
+        }
+      }
+    },
+    {
+      "id": "public:customer_5",
+      "name": "customer_5",
+      "namespace": "public",
+      "node_type": "dataset",
+      "technology": "database",
+      "metadata": {
+        "schema": {},
+        "column_lineage": {
+          "_producer": "<PRODUCER_URL>",
+          "_schemaURL": "<SCHEMA_URL>",
+          "fields": {
+            "customer_id": {
+              "inputFields": [
+                {
+                  "namespace": "public",
+                  "name": "customer_4",
+                  "field": "customer_id",
+                  "transformations": [
+                    {
+                      "type": "COPY",
+                      "subtype": "DIRECT",
+                      "description": "Directly copied from source",
+                      "masking": false
+                    }
+                  ]
+                }
+              ]
+            },
+            "customer_name": {
+              "inputFields": [
+                {
+                  "namespace": "public",
+                  "name": "customer_4",
+                  "field": "customer_name",
+                  "transformations": [
+                    {
+                      "type": "COPY",
+                      "subtype": "DIRECT",
+                      "description": "Directly copied from source",
+                      "masking": false
+                    }
+                  ]
+                }
+              ]
+            },
+            "email": {
+              "inputFields": [
+                {
+                  "namespace": "public",
+                  "name": "customer_4",
+                  "field": "email",
+                  "transformations": [
+                    {
+                      "type": "COPY",
+                      "subtype": "DIRECT",
+                      "description": "Directly copied from source",
+                      "masking": false
+                    }
+                  ]
+                }
+              ]
+            },
+            "region": {
+              "inputFields": [
+                {
+                  "namespace": "public",
+                  "name": "customer_4",
+                  "field": "region",
+                  "transformations": [
+                    {
+                      "type": "COPY",
+                      "subtype": "DIRECT",
+                      "description": "Directly copied from source",
+                      "masking": false
+                    }
+                  ]
+                }
+              ]
+            },
+            "status": {
+              "inputFields": [
+                {
+                  "namespace": "public",
+                  "name": "customer_4",
+                  "field": "status",
+                  "transformations": [
+                    {
+                      "type": "COPY",
+                      "subtype": "DIRECT",
+                      "description": "Directly copied from source",
+                      "masking": false
+                    }
+                  ]
+                }
+              ]
+            },
+            "total_orders": {
+              "inputFields": [
+                {
+                  "namespace": "public",
+                  "name": "orders",
+                  "field": "order_id",
+                  "transformations": [
+                    {
+                      "type": "AGGREGATE",
+                      "subtype": "COUNT",
+                      "description": "Count of distinct order IDs",
+                      "masking": false
+                    }
+                  ]
+                }
+              ]
+            },
+            "total_revenue": {
+              "inputFields": [
+                {
+                  "namespace": "public",
+                  "name": "order_items",
+                  "field": "item_total",
+                  "transformations": [
+                    {
+                      "type": "AGGREGATE",
+                      "subtype": "SUM",
+                      "description": "Sum of item totals from order items",
+                      "masking": false
+                    }
+                  ]
+                }
+              ]
+            },
+            "avg_order_value": {
+              "inputFields": [
+                {
+                  "namespace": "public",
+                  "name": "order_items",
+                  "field": "item_total",
+                  "transformations": [
+                    {
+                      "type": "AGGREGATE",
+                      "subtype": "AVG",
+                      "description": "Average of item totals from order items",
+                      "masking": false
+                    }
+                  ]
+                }
+              ]
+            },
+            "last_order_date": {
+              "inputFields": [
+                {
+                  "namespace": "public",
+                  "name": "orders",
+                  "field": "order_date",
+                  "transformations": [
+                    {
+                      "type": "AGGREGATE",
+                      "subtype": "MAX",
+                      "description": "Maximum order date from orders",
+                      "masking": false
+                    }
+                  ]
+                }
+              ]
+            },
+            "processed_date": {
+              "inputFields": [
+                {
+                  "namespace": "public",
+                  "name": "customer_5",
+                  "field": "processed_date",
+                  "transformations": [
+                    {
+                      "type": "COPY",
+                      "subtype": "CURRENT_DATE",
+                      "description": "Current date",
+                      "masking": false
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "airflow_pipeline:fetch_raw_data",
+      "name": "fetch_raw_data",
+      "namespace": "airflow_pipeline",
+      "node_type": "job",
+      "technology": "airflow",
+      "metadata": {
+        "event_type": "START",
+        "source_code": "from airflow import DAG\nfrom airflow.operators.python import PythonOperator\nfrom datetime import datetime\nimport pandas as pd\nimport numpy as np\nimport shutil\n\ndef fetch_raw_data():\n    shutil.copy('/data/source/raw_customers.csv', '/data/input/customers.csv')\n\ndef transform_customer_data():\n    df = pd.read_csv('/data/input/customers.csv')\n    df['first_name'] = df['first_name'].str.strip().str.title()\n    df['last_name'] = df['last_name'].str.strip().str.title()\n    df['full_name'] = df['first_name'] + ' ' + df['last_name']\n    df['birthdate'] = pd.to_datetime(df['birthdate'])\n    df['age'] = (pd.Timestamp('today') - df['birthdate']).dt.days // 365\n    df['age_group'] = np.where(df['age'] >= 60, 'Senior', np.where(df['age'] >= 30, 'Adult', 'Young'))\n    df = df[df['email'].notnull()]\n    df.to_csv('/data/output/cleaned_customers.csv', index=False)\n\ndef load_to_warehouse():\n    df = pd.read_csv('/data/output/cleaned_customers.csv')\n    pg_hook = PostgresHook(postgres_conn_id='warehouse_connection')\n    engine = pg_hook.get_sqlalchemy_engine()\n    df.to_sql('customers_1', engine, if_exists='replace', index=False)",
+        "source_file": "airflow-lineage-agent.json"
+      }
+    },
+    {
+      "id": "input_db:table",
+      "name": "/data/source/raw_customers.csv",
+      "namespace": "<INPUT_NAMESPACE>",
+      "node_type": "dataset",
+      "technology": "database",
+      "metadata": {
+        "schema": {
+          "_producer": "<PRODUCER_URL>",
+          "_schemaURL": "<SCHEMA_URL>",
+          "fields": []
+        },
+        "storage": {
+          "_producer": "<PRODUCER_URL>",
+          "_schemaURL": "<SCHEMA_URL>",
+          "storageLayer": "<STORAGE_LAYER>",
+          "fileFormat": "<FILE_FORMAT>"
+        }
+      }
+    },
+    {
+      "id": "java_pipeline:insert_customer_2",
+      "name": "insert_customer_2",
+      "namespace": "java_pipeline",
+      "node_type": "job",
+      "technology": "java",
+      "metadata": {
+        "event_type": "START",
+        "source_code": "<SOURCE_CODE>",
+        "source_file": "java-lineage-agent.json"
+      }
+    },
+    {
+      "id": "spark_pipeline:spark_job",
+      "name": "spark_job",
+      "namespace": "spark_pipeline",
+      "node_type": "job",
+      "technology": "spark",
+      "metadata": {
+        "event_type": "START",
+        "source_code": "from pyspark.sql import SparkSession\nfrom pyspark.sql.functions import col, when, year, current_date\n# Initialize Spark session\nspark = SparkSession.builder \\\n            .appName(\"CustomerDataProcessing\") \\\n            .config(\"spark.sql.adaptive.enabled\", \"true\") \\\n            .getOrCreate()\n# Step 1: Read from customer_3 table\ndf = spark.table('customer_3')\n# Step 2: Clean whitespace from names\ndf = df.withColumn('first_name', col('first_name').cast('string').trim()) \\\n               .withColumn('last_name', col('last_name').cast('string').trim())\n# Step 3: Create full name\ndf = df.withColumn('full_name', col('first_name') + ' ' + col('last_name'))\n# Step 4: Convert birthdate to date and calculate age\ndf = df.withColumn('birthdate', col('birthdate').cast('date')) \\\n               .withColumn('age', year(current_date()) - year(col('birthdate')))\n# Step 5: Categorize by age group\ndf = df.withColumn('age_group', \\\n            when(col('age') >= 60, 'Senior') \\\n            .when(col('age') >= 30, 'Adult') \\\n            .otherwise('Young'))\n# Step 6: Filter out rows with missing email\ndf = df.filter(col('email').isNotNull())\n# Step 7: Write result to customer_4 table\ndf.write.mode('overwrite').saveAsTable('customer_4')",
+        "source_file": "spark-lineage-agent.json"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "input_db:input_table",
+      "target": "python_pipeline:python_job",
+      "edge_type": "reads",
+      "technology": "python",
+      "transformation_details": {}
+    },
+    {
+      "source": "python_pipeline:python_job",
+      "target": "output_db:table",
+      "edge_type": "writes",
+      "technology": "python",
+      "transformation_details": {
+        "first_name": [
+          {
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "<INPUT_NAME>",
+            "field": "first_name",
+            "transformations": [
+              {
+                "type": "Transformation",
+                "subtype": "String Manipulation",
+                "description": "Stripped whitespace and converted to title case",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "last_name": [
+          {
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "<INPUT_NAME>",
+            "field": "last_name",
+            "transformations": [
+              {
+                "type": "Transformation",
+                "subtype": "String Manipulation",
+                "description": "Stripped whitespace and converted to title case",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "full_name": [
+          {
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "<INPUT_NAME>",
+            "field": "first_name",
+            "transformations": [
+              {
+                "type": "Transformation",
+                "subtype": "Concatenation",
+                "description": "Concatenation of first_name and last_name with a space",
+                "masking": false
+              }
+            ]
+          },
+          {
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "<INPUT_NAME>",
+            "field": "last_name",
+            "transformations": [
+              {
+                "type": "Transformation",
+                "subtype": "Concatenation",
+                "description": "Concatenation of first_name and last_name with a space",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "birthdate": [
+          {
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "<INPUT_NAME>",
+            "field": "birthdate",
+            "transformations": [
+              {
+                "type": "Transformation",
+                "subtype": "Date Conversion",
+                "description": "Converted to datetime format",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "age": [
+          {
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "<INPUT_NAME>",
+            "field": "birthdate",
+            "transformations": [
+              {
+                "type": "Transformation",
+                "subtype": "Age Calculation",
+                "description": "Calculated age in years from birthdate",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "age_group": [
+          {
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "<INPUT_NAME>",
+            "field": "age",
+            "transformations": [
+              {
+                "type": "Transformation",
+                "subtype": "Categorization",
+                "description": "Categorized age into 'Senior', 'Adult', or 'Young' based on age",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "email": [
+          {
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "<INPUT_NAME>",
+            "field": "email",
+            "transformations": [
+              {
+                "type": "Transformation",
+                "subtype": "Filtering",
+                "description": "Filtered out rows with missing email (not null)",
+                "masking": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "source": "public:customer_4",
+      "target": "sql_pipeline:insert_customer_5",
+      "edge_type": "reads",
+      "technology": "sql",
+      "transformation_details": {}
+    },
+    {
+      "source": "public:orders",
+      "target": "sql_pipeline:insert_customer_5",
+      "edge_type": "reads",
+      "technology": "sql",
+      "transformation_details": {}
+    },
+    {
+      "source": "public:order_items",
+      "target": "sql_pipeline:insert_customer_5",
+      "edge_type": "reads",
+      "technology": "sql",
+      "transformation_details": {}
+    },
+    {
+      "source": "sql_pipeline:insert_customer_5",
+      "target": "public:customer_5",
+      "edge_type": "writes",
+      "technology": "sql",
+      "transformation_details": {
+        "customer_id": [
+          {
+            "namespace": "public",
+            "name": "customer_4",
+            "field": "customer_id",
+            "transformations": [
+              {
+                "type": "COPY",
+                "subtype": "DIRECT",
+                "description": "Directly copied from source",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "customer_name": [
+          {
+            "namespace": "public",
+            "name": "customer_4",
+            "field": "customer_name",
+            "transformations": [
+              {
+                "type": "COPY",
+                "subtype": "DIRECT",
+                "description": "Directly copied from source",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "email": [
+          {
+            "namespace": "public",
+            "name": "customer_4",
+            "field": "email",
+            "transformations": [
+              {
+                "type": "COPY",
+                "subtype": "DIRECT",
+                "description": "Directly copied from source",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "region": [
+          {
+            "namespace": "public",
+            "name": "customer_4",
+            "field": "region",
+            "transformations": [
+              {
+                "type": "COPY",
+                "subtype": "DIRECT",
+                "description": "Directly copied from source",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "status": [
+          {
+            "namespace": "public",
+            "name": "customer_4",
+            "field": "status",
+            "transformations": [
+              {
+                "type": "COPY",
+                "subtype": "DIRECT",
+                "description": "Directly copied from source",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "total_orders": [
+          {
+            "namespace": "public",
+            "name": "orders",
+            "field": "order_id",
+            "transformations": [
+              {
+                "type": "AGGREGATE",
+                "subtype": "COUNT",
+                "description": "Count of distinct order IDs",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "total_revenue": [
+          {
+            "namespace": "public",
+            "name": "order_items",
+            "field": "item_total",
+            "transformations": [
+              {
+                "type": "AGGREGATE",
+                "subtype": "SUM",
+                "description": "Sum of item totals from order items",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "avg_order_value": [
+          {
+            "namespace": "public",
+            "name": "order_items",
+            "field": "item_total",
+            "transformations": [
+              {
+                "type": "AGGREGATE",
+                "subtype": "AVG",
+                "description": "Average of item totals from order items",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "last_order_date": [
+          {
+            "namespace": "public",
+            "name": "orders",
+            "field": "order_date",
+            "transformations": [
+              {
+                "type": "AGGREGATE",
+                "subtype": "MAX",
+                "description": "Maximum order date from orders",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "processed_date": [
+          {
+            "namespace": "public",
+            "name": "customer_5",
+            "field": "processed_date",
+            "transformations": [
+              {
+                "type": "COPY",
+                "subtype": "CURRENT_DATE",
+                "description": "Current date",
+                "masking": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "source": "input_db:table",
+      "target": "airflow_pipeline:fetch_raw_data",
+      "edge_type": "reads",
+      "technology": "airflow",
+      "transformation_details": {}
+    },
+    {
+      "source": "airflow_pipeline:fetch_raw_data",
+      "target": "output_db:table",
+      "edge_type": "writes",
+      "technology": "airflow",
+      "transformation_details": {
+        "customers_1": [
+          {
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "/data/output/cleaned_customers.csv",
+            "field": "",
+            "transformations": [
+              {
+                "type": "LOAD",
+                "subtype": "",
+                "description": "Load cleaned data to customers_1 table in database",
+                "masking": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "source": "input_db:table",
+      "target": "java_pipeline:insert_customer_2",
+      "edge_type": "reads",
+      "technology": "java",
+      "transformation_details": {}
+    },
+    {
+      "source": "java_pipeline:insert_customer_2",
+      "target": "output_db:table",
+      "edge_type": "writes",
+      "technology": "java",
+      "transformation_details": {
+        "firstName": [
+          {
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "customer_1",
+            "field": "first_name",
+            "transformations": [
+              {
+                "type": "RETRIEVAL",
+                "subtype": "DB_QUERY",
+                "description": "Retrieved from database query result for first_name",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "lastName": [
+          {
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "customer_1",
+            "field": "last_name",
+            "transformations": [
+              {
+                "type": "RETRIEVAL",
+                "subtype": "DB_QUERY",
+                "description": "Retrieved from database query result for last_name",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "email": [
+          {
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "customer_1",
+            "field": "email",
+            "transformations": [
+              {
+                "type": "RETRIEVAL",
+                "subtype": "DB_QUERY",
+                "description": "Retrieved from database query result for email",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "birthdate": [
+          {
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "customer_1",
+            "field": "birthdate",
+            "transformations": [
+              {
+                "type": "RETRIEVAL",
+                "subtype": "DB_QUERY",
+                "description": "Retrieved from database query result for birthdate",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "cleanedFirstName": [
+          {
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "customer_1",
+            "field": "first_name",
+            "transformations": [
+              {
+                "type": "TRANSFORMATION",
+                "subtype": "CLEANING",
+                "description": "Trimmed whitespace from first name",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "cleanedLastName": [
+          {
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "customer_1",
+            "field": "last_name",
+            "transformations": [
+              {
+                "type": "TRANSFORMATION",
+                "subtype": "CLEANING",
+                "description": "Trimmed whitespace from last name",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "fullName": [
+          {
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "customer_1",
+            "field": "first_name",
+            "transformations": [
+              {
+                "type": "TRANSFORMATION",
+                "subtype": "CONCATENATION",
+                "description": "Concatenated first and last name with a space",
+                "masking": false
+              }
+            ]
+          },
+          {
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "customer_1",
+            "field": "last_name",
+            "transformations": [
+              {
+                "type": "TRANSFORMATION",
+                "subtype": "CONCATENATION",
+                "description": "Concatenated first and last name with a space",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "age": [
+          {
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "customer_1",
+            "field": "birthdate",
+            "transformations": [
+              {
+                "type": "CALCULATION",
+                "subtype": "AGE_CALCULATION",
+                "description": "Calculated age from birthdate using current date",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "ageGroup": [
+          {
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "customer_1",
+            "field": "age",
+            "transformations": [
+              {
+                "type": "CATEGORIZATION",
+                "subtype": "AGE_GROUP",
+                "description": "Categorized age into age group based on age value",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "filteredCustomers": [
+          {
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "customer_1",
+            "field": "email",
+            "transformations": [
+              {
+                "type": "FILTER",
+                "subtype": "EMAIL_FILTER",
+                "description": "Filtered customers with non-empty email addresses",
+                "masking": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "source": "input_db:table",
+      "target": "spark_pipeline:spark_job",
+      "edge_type": "reads",
+      "technology": "spark",
+      "transformation_details": {}
+    },
+    {
+      "source": "spark_pipeline:spark_job",
+      "target": "output_db:table",
+      "edge_type": "writes",
+      "technology": "spark",
+      "transformation_details": {
+        "first_name": [
+          {
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "customer_3",
+            "field": "first_name",
+            "transformations": [
+              {
+                "type": "Transformation",
+                "subtype": "Casting and Trimming",
+                "description": "Casted to string and trimmed whitespace",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "last_name": [
+          {
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "customer_3",
+            "field": "last_name",
+            "transformations": [
+              {
+                "type": "Transformation",
+                "subtype": "Casting and Trimming",
+                "description": "Casted to string and trimmed whitespace",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "full_name": [
+          {
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "customer_3",
+            "field": "first_name, last_name",
+            "transformations": [
+              {
+                "type": "Transformation",
+                "subtype": "Concatenation",
+                "description": "Concatenated first_name and last_name with a space",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "birthdate": [
+          {
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "customer_3",
+            "field": "birthdate",
+            "transformations": [
+              {
+                "type": "Transformation",
+                "subtype": "Casting",
+                "description": "Casted to date",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "age": [
+          {
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "customer_3",
+            "field": "birthdate",
+            "transformations": [
+              {
+                "type": "Transformation",
+                "subtype": "Calculation",
+                "description": "Calculated as the difference between the current year and the year of birthdate",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "age_group": [
+          {
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "customer_3",
+            "field": "age",
+            "transformations": [
+              {
+                "type": "Transformation",
+                "subtype": "Categorization",
+                "description": "Categorized into 'Senior', 'Adult', or 'Young' based on age",
+                "masking": false
+              }
+            ]
+          }
+        ],
+        "email": [
+          {
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "customer_3",
+            "field": "email",
+            "transformations": [
+              {
+                "type": "Transformation",
+                "subtype": "Filter",
+                "description": "Filtered out rows where email is null",
+                "masking": false
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "statistics": {
+    "total_nodes": 12,
+    "total_edges": 12,
+    "technologies": {
+      "python": 1,
+      "database": 7,
+      "sql": 1,
+      "airflow": 1,
+      "java": 1,
+      "spark": 1
+    },
+    "node_types": {
+      "job": 5,
+      "dataset": 7
+    }
+  }
+}
