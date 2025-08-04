@@ -96,7 +96,7 @@ For more CLI options, see the [CLI documentation](cli/README.md).
 ### How algorithm works
 
 
-## architecture
+### architecture
 
 Following is the architecture of how agentic chain of thought systems designed to extract lineage across various data processing script types.
 
