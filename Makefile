@@ -103,7 +103,7 @@ start-cli-api-server-with-lineage-visualizer-and-watchdog-and-demo-server:
 	@sleep 2
 	@echo "🚀 Starting lineage visualizer in background..."
 	@$(MAKE) start-lineage-visualizer
-	@sleep 2
+	@sleep 10
 	@echo "🚀 Starting watchdog in background..."
 	@$(MAKE) start-watchdog
 	@echo ""
@@ -128,7 +128,7 @@ start-cli-api-server-with-lineage-visualizer-and-watchdog:
 	@sleep 2
 	@echo "🚀 Starting lineage visualizer in background..."
 	@$(MAKE) start-lineage-visualizer
-	@sleep 2
+	@sleep 10
 	@echo "🚀 Starting watchdog in background..."
 	@$(MAKE) start-watchdog
 	@echo "  - API Server: http://localhost:8000"
@@ -149,7 +149,7 @@ start-cli-demo-server-with-lineage-visualizer-and-watchdog:
 	@sleep 2
 	@echo "🚀 Starting lineage visualizer in background..."
 	@$(MAKE) start-lineage-visualizer
-	@sleep 2
+	@sleep 10
 	@echo "🚀 Starting watchdog in background..."
 	@$(MAKE) start-watchdog
 	@echo "  - Demo Server: http://localhost:7860"

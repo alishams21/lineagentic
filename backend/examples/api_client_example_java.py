@@ -16,7 +16,7 @@ class JavaLineageAPIClient:
             response.raise_for_status()
         return response.json()
     
-    def analyze_query(self, query: str, model_name: str = "gpt-4o", agent_name: str = "java-lineage-agent") -> Dict[str, Any]:
+    def analyze_query(self, query: str, model_name: str = "gpt-4o-mini", agent_name: str = "java-lineage-agent") -> Dict[str, Any]:
         """
         Analyze a single Java query using the java_lineage_agent plugin
         

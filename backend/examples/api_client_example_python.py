@@ -16,7 +16,7 @@ class PythonLineageAPIClient:
             response.raise_for_status()
         return response.json()
     
-    def analyze_query(self, query: str, model_name: str = "gpt-4o", agent_name: str = "python-lineage-agent") -> Dict[str, Any]:
+    def analyze_query(self, query: str, model_name: str = "gpt-4o-mini", agent_name: str = "python-lineage-agent") -> Dict[str, Any]:
         """
         Analyze a single Python query using the python_lineage_agent plugin
         

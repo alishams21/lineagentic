@@ -16,7 +16,7 @@ class SparkLineageAPIClient:
             response.raise_for_status()
         return response.json()
     
-    def analyze_query(self, query: str, model_name: str = "gpt-4o", agent_name: str = "spark-lineage-agent") -> Dict[str, Any]:
+    def analyze_query(self, query: str, model_name: str = "gpt-4o-mini", agent_name: str = "spark-lineage-agent") -> Dict[str, Any]:
         """
         Analyze a single Spark query using the spark_lineage_agent plugin
         
