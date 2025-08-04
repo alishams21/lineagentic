@@ -9,9 +9,9 @@ Lineagentic is an agentic ai solution for building end-to-end data lineage acros
 
 ### Features
 
-- Simple customizable gentic lineage analysis algorithm
-- Interactive web lineage visualizer
-- Support for multiple data processing script types (SQL, Python, etc.)
+- Plugin based architecture, simple to extend and customize.
+- Interactive web lineage visualizer for development and debugging.
+- Support for multiple data processing script types (SQL, Python, Airflow, etc.)
 
 ### How it works
 
@@ -28,21 +28,21 @@ Lineagentic is designed to be modular and customizable.
 
 ### How to use
 
-#### Activating web Interface and API and CLI
+#### Activation and Deployment
 
 In order to simplify the usage of Lineagentic, we have created a Makefile which can be used to start the services. you can find different targets in the Makefile.
 
-to start the api server, lineage visualizer, watchdog and demo server, run the following command:
+to start the cli,api server, lineage visualizer, watchdog and demo server, run the following command:
 
 ```bash
 make start-cli-api-server-with-lineage-visualizer-and-watchdog-and-demo-server
 ```
-to start the api server, lineage visualizer and watchdog, run the following command:
+to start the cli, api server, lineage visualizer and watchdog, run the following command:
 
 ```bash
 make start-cli-api-server-with-lineage-visualizer-and-watchdog
 ```
-to start the api server, run the following command:
+to start the cli, ßapi server, run the following command:
 
 ```bash
 make start-cli-api-server
@@ -109,9 +109,9 @@ $$
 P := f(T, C)
 $$
 
-## planning agent
+## Runtime orchestration agent
 
-The planning agent orchestrates the execution of the prompt provided by the agent framework (P) by selecting the appropriate agent (A) and its corresponding task (T).
+The runtime orchestration agent orchestrates the execution of the required agents provided by the agent framework (P) by selecting the appropriate agent (A) and its corresponding task (T).
 
 $$
 G=h([\{(A_1, T_1), (A_2, T_2), (A_3, T_3), (A_4, T_4)\}],P)
