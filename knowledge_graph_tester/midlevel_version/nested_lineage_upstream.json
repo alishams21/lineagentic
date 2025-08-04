@@ -123,370 +123,8 @@
         },
         "consuming_jobs": [
           {
-            "job_name": "Job-2",
-            "job_namespace": "unknown",
-            "run_id": "abc12345-python-run",
-            "event_time": "2025-08-04T12:00:00Z",
-            "job_type": "data_cleaning",
-            "integration": "pandas",
-            "original_outputs": [
-              {
-                "namespace": "data-lake",
-                "name": "analytics.cleaned_sales",
-                "facets": {
-                  "columnLineage": {
-                    "_producer": "https://my-company/pipeline/metadata",
-                    "_schemaURL": "https://schemas.openlineage.io/columnLineage/1-0-0",
-                    "fields": {
-                      "region": {
-                        "inputFields": [
-                          {
-                            "namespace": "data-lake",
-                            "name": "analytics.sales_summary",
-                            "field": "region",
-                            "transformations": [
-                              {
-                                "type": "cleaning",
-                                "subtype": "whitespace_trim",
-                                "description": "Removed whitespace and standardized casing",
-                                "masking": false
-                              }
-                            ]
-                          }
-                        ]
-                      },
-                      "total_sales": {
-                        "inputFields": [
-                          {
-                            "namespace": "data-lake",
-                            "name": "analytics.sales_summary",
-                            "field": "total_sales",
-                            "transformations": [
-                              {
-                                "type": "transformation",
-                                "subtype": "type_cast",
-                                "description": "Cast from string to float",
-                                "masking": false
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    }
-                  }
-                },
-                "consuming_jobs": [
-                  {
-                    "job_name": "trigger_sales_report",
-                    "job_namespace": "airflow-dags",
-                    "run_id": "run-airflow-001",
-                    "event_time": "2025-08-04T15:00:00Z",
-                    "job_type": "orchestration",
-                    "integration": "airflow",
-                    "original_outputs": [
-                      {
-                        "namespace": "reporting",
-                        "name": "final_sales_report",
-                        "facets": {
-                          "columnLineage": {
-                            "_producer": "https://my-company/pipeline/metadata",
-                            "_schemaURL": "https://schemas.openlineage.io/columnLineage/1-0-0",
-                            "fields": {
-                              "region": {
-                                "inputFields": [
-                                  {
-                                    "namespace": "data-lake",
-                                    "name": "analytics.cleaned_sales",
-                                    "field": "region",
-                                    "transformations": [
-                                      {
-                                        "type": "aggregation",
-                                        "subtype": "none",
-                                        "description": "Used directly for reporting",
-                                        "masking": false
-                                      }
-                                    ]
-                                  }
-                                ]
-                              },
-                              "total_sales": {
-                                "inputFields": [
-                                  {
-                                    "namespace": "data-lake",
-                                    "name": "analytics.cleaned_sales",
-                                    "field": "total_sales",
-                                    "transformations": [
-                                      {
-                                        "type": "aggregation",
-                                        "subtype": "sum",
-                                        "description": "Aggregated for dashboard",
-                                        "masking": false
-                                      }
-                                    ]
-                                  }
-                                ]
-                              }
-                            }
-                          }
-                        }
-                      }
-                    ],
-                    "original_inputs": [
-                      {
-                        "namespace": "data-lake",
-                        "name": "analytics.cleaned_sales",
-                        "facets": {
-                          "schema": {
-                            "_producer": "https://my-company/pipeline/metadata",
-                            "_schemaURL": "https://schemas.openlineage.io/schema/1-0-0",
-                            "fields": [
-                              {
-                                "name": "region",
-                                "type": "string",
-                                "description": "Sales region"
-                              },
-                              {
-                                "name": "total_sales",
-                                "type": "float",
-                                "description": "Cleaned sales amount"
-                              }
-                            ]
-                          },
-                          "storage": {
-                            "_producer": "https://my-company/pipeline/metadata",
-                            "_schemaURL": "https://schemas.openlineage.io/storage/1-0-0",
-                            "storageLayer": "s3",
-                            "fileFormat": "csv"
-                          },
-                          "datasetType": {
-                            "_producer": "https://my-company/pipeline/metadata",
-                            "_schemaURL": "https://schemas.openlineage.io/datasetType/1-0-0",
-                            "datasetType": "table",
-                            "subType": "intermediate"
-                          },
-                          "lifecycleStateChange": {
-                            "_producer": "https://my-company/pipeline/metadata",
-                            "_schemaURL": "https://schemas.openlineage.io/lifecycleStateChange/1-0-0",
-                            "lifecycleStateChange": "USED"
-                          },
-                          "ownership": {
-                            "_producer": "https://my-company/pipeline/metadata",
-                            "_schemaURL": "https://schemas.openlineage.io/ownership/1-0-0",
-                            "owners": [
-                              {
-                                "name": "analytics@company.com",
-                                "type": "group"
-                              }
-                            ]
-                          }
-                        }
-                      }
-                    ],
-                    "facets": {
-                      "jobType": {
-                        "processingType": "BATCH",
-                        "integration": "airflow",
-                        "jobType": "orchestration",
-                        "_producer": "https://my-company/pipeline/metadata",
-                        "_schemaURL": "https://schemas.openlineage.io/jobType/1-0-0"
-                      },
-                      "sourceCode": {
-                        "_producer": "https://my-company/pipeline/metadata",
-                        "_schemaURL": "https://schemas.openlineage.io/sourceCode/1-0-0",
-                        "language": "python",
-                        "sourceCode": "def task():\n    df = pd.read_csv('/data/cleaned_sales.csv')\n    # trigger report generation...\n"
-                      }
-                    },
-                    "run": {
-                      "runId": "run-airflow-001",
-                      "facets": {
-                        "parent": {
-                          "job": {
-                            "name": "clean_sales_data_processing",
-                            "namespace": "python-jobs"
-                          },
-                          "run": {
-                            "runId": "abc12345-python-run"
-                          }
-                        }
-                      }
-                    },
-                    "eventType": "START",
-                    "eventTime": "2025-08-04T15:00:00Z",
-                    "inputs": [
-                      {
-                        "namespace": "data-lake",
-                        "name": "analytics.cleaned_sales",
-                        "facets": {
-                          "schema": {
-                            "_producer": "https://my-company/pipeline/metadata",
-                            "_schemaURL": "https://schemas.openlineage.io/schema/1-0-0",
-                            "fields": [
-                              {
-                                "name": "region",
-                                "type": "string",
-                                "description": "Sales region"
-                              },
-                              {
-                                "name": "total_sales",
-                                "type": "float",
-                                "description": "Cleaned sales amount"
-                              }
-                            ]
-                          },
-                          "storage": {
-                            "_producer": "https://my-company/pipeline/metadata",
-                            "_schemaURL": "https://schemas.openlineage.io/storage/1-0-0",
-                            "storageLayer": "s3",
-                            "fileFormat": "csv"
-                          },
-                          "datasetType": {
-                            "_producer": "https://my-company/pipeline/metadata",
-                            "_schemaURL": "https://schemas.openlineage.io/datasetType/1-0-0",
-                            "datasetType": "table",
-                            "subType": "intermediate"
-                          },
-                          "lifecycleStateChange": {
-                            "_producer": "https://my-company/pipeline/metadata",
-                            "_schemaURL": "https://schemas.openlineage.io/lifecycleStateChange/1-0-0",
-                            "lifecycleStateChange": "USED"
-                          },
-                          "ownership": {
-                            "_producer": "https://my-company/pipeline/metadata",
-                            "_schemaURL": "https://schemas.openlineage.io/ownership/1-0-0",
-                            "owners": [
-                              {
-                                "name": "analytics@company.com",
-                                "type": "group"
-                              }
-                            ]
-                          }
-                        }
-                      }
-                    ],
-                    "outputs": [
-                      {
-                        "namespace": "reporting",
-                        "name": "final_sales_report",
-                        "facets": {
-                          "columnLineage": {
-                            "_producer": "https://my-company/pipeline/metadata",
-                            "_schemaURL": "https://schemas.openlineage.io/columnLineage/1-0-0",
-                            "fields": {
-                              "region": {
-                                "inputFields": [
-                                  {
-                                    "namespace": "data-lake",
-                                    "name": "analytics.cleaned_sales",
-                                    "field": "region",
-                                    "transformations": [
-                                      {
-                                        "type": "aggregation",
-                                        "subtype": "none",
-                                        "description": "Used directly for reporting",
-                                        "masking": false
-                                      }
-                                    ]
-                                  }
-                                ]
-                              },
-                              "total_sales": {
-                                "inputFields": [
-                                  {
-                                    "namespace": "data-lake",
-                                    "name": "analytics.cleaned_sales",
-                                    "field": "total_sales",
-                                    "transformations": [
-                                      {
-                                        "type": "aggregation",
-                                        "subtype": "sum",
-                                        "description": "Aggregated for dashboard",
-                                        "masking": false
-                                      }
-                                    ]
-                                  }
-                                ]
-                              }
-                            }
-                          }
-                        }
-                      }
-                    ]
-                  }
-                ],
-                "lineage_relationship": {
-                  "type": "feeds_into",
-                  "description": "This output feeds into trigger_sales_report",
-                  "consuming_dataset": "data-lake.analytics.cleaned_sales"
-                }
-              }
-            ],
-            "original_inputs": [
-              {
-                "namespace": "data-lake",
-                "name": "analytics.sales_summary",
-                "facets": {
-                  "schema": {
-                    "_producer": "https://my-company/pipeline/metadata",
-                    "_schemaURL": "https://schemas.openlineage.io/schema/1-0-0",
-                    "fields": [
-                      {
-                        "name": "region",
-                        "type": "string",
-                        "description": "Sales region"
-                      },
-                      {
-                        "name": "total_sales",
-                        "type": "float",
-                        "description": "Total sales amount"
-                      }
-                    ]
-                  },
-                  "storage": {
-                    "_producer": "https://my-company/pipeline/metadata",
-                    "_schemaURL": "https://schemas.openlineage.io/storage/1-0-0",
-                    "storageLayer": "s3",
-                    "fileFormat": "csv"
-                  },
-                  "datasetType": {
-                    "_producer": "https://my-company/pipeline/metadata",
-                    "_schemaURL": "https://schemas.openlineage.io/datasetType/1-0-0",
-                    "datasetType": "table",
-                    "subType": "external"
-                  },
-                  "lifecycleStateChange": {
-                    "_producer": "https://my-company/pipeline/metadata",
-                    "_schemaURL": "https://schemas.openlineage.io/lifecycleStateChange/1-0-0",
-                    "lifecycleStateChange": "USED"
-                  },
-                  "ownership": {
-                    "_producer": "https://my-company/pipeline/metadata",
-                    "_schemaURL": "https://schemas.openlineage.io/ownership/1-0-0",
-                    "owners": [
-                      {
-                        "name": "data.engineering@company.com",
-                        "type": "group"
-                      }
-                    ]
-                  }
-                }
-              }
-            ],
-            "facets": {
-              "sourceCode": {
-                "_producer": "https://my-company/pipeline/metadata",
-                "_schemaURL": "https://schemas.openlineage.io/sourceCode/1-0-0",
-                "language": "python",
-                "sourceCode": "import pandas as pd\nsales = pd.read_csv('/data/sales_summary.csv')\n..."
-              },
-              "jobType": {
-                "processingType": "BATCH",
-                "integration": "pandas",
-                "jobType": "data_cleaning",
-                "_producer": "https://my-company/pipeline/metadata",
-                "_schemaURL": "https://schemas.openlineage.io/jobType/1-0-0"
-              }
-            },
+            "eventType": "START",
+            "eventTime": "2025-08-04T12:00:00Z",
             "run": {
               "runId": "abc12345-python-run",
               "facets": {
@@ -501,8 +139,23 @@
                 }
               }
             },
-            "eventType": "START",
-            "eventTime": "2025-08-04T12:00:00Z",
+            "job": {
+              "facets": {
+                "sourceCode": {
+                  "_producer": "https://my-company/pipeline/metadata",
+                  "_schemaURL": "https://schemas.openlineage.io/sourceCode/1-0-0",
+                  "language": "python",
+                  "sourceCode": "import pandas as pd\nsales = pd.read_csv('/data/sales_summary.csv')\n..."
+                },
+                "jobType": {
+                  "processingType": "BATCH",
+                  "integration": "pandas",
+                  "jobType": "data_cleaning",
+                  "_producer": "https://my-company/pipeline/metadata",
+                  "_schemaURL": "https://schemas.openlineage.io/jobType/1-0-0"
+                }
+              }
+            },
             "inputs": [
               {
                 "namespace": "data-lake",
@@ -602,126 +255,8 @@
                 },
                 "consuming_jobs": [
                   {
-                    "job_name": "trigger_sales_report",
-                    "job_namespace": "airflow-dags",
-                    "run_id": "run-airflow-001",
-                    "event_time": "2025-08-04T15:00:00Z",
-                    "job_type": "orchestration",
-                    "integration": "airflow",
-                    "original_outputs": [
-                      {
-                        "namespace": "reporting",
-                        "name": "final_sales_report",
-                        "facets": {
-                          "columnLineage": {
-                            "_producer": "https://my-company/pipeline/metadata",
-                            "_schemaURL": "https://schemas.openlineage.io/columnLineage/1-0-0",
-                            "fields": {
-                              "region": {
-                                "inputFields": [
-                                  {
-                                    "namespace": "data-lake",
-                                    "name": "analytics.cleaned_sales",
-                                    "field": "region",
-                                    "transformations": [
-                                      {
-                                        "type": "aggregation",
-                                        "subtype": "none",
-                                        "description": "Used directly for reporting",
-                                        "masking": false
-                                      }
-                                    ]
-                                  }
-                                ]
-                              },
-                              "total_sales": {
-                                "inputFields": [
-                                  {
-                                    "namespace": "data-lake",
-                                    "name": "analytics.cleaned_sales",
-                                    "field": "total_sales",
-                                    "transformations": [
-                                      {
-                                        "type": "aggregation",
-                                        "subtype": "sum",
-                                        "description": "Aggregated for dashboard",
-                                        "masking": false
-                                      }
-                                    ]
-                                  }
-                                ]
-                              }
-                            }
-                          }
-                        }
-                      }
-                    ],
-                    "original_inputs": [
-                      {
-                        "namespace": "data-lake",
-                        "name": "analytics.cleaned_sales",
-                        "facets": {
-                          "schema": {
-                            "_producer": "https://my-company/pipeline/metadata",
-                            "_schemaURL": "https://schemas.openlineage.io/schema/1-0-0",
-                            "fields": [
-                              {
-                                "name": "region",
-                                "type": "string",
-                                "description": "Sales region"
-                              },
-                              {
-                                "name": "total_sales",
-                                "type": "float",
-                                "description": "Cleaned sales amount"
-                              }
-                            ]
-                          },
-                          "storage": {
-                            "_producer": "https://my-company/pipeline/metadata",
-                            "_schemaURL": "https://schemas.openlineage.io/storage/1-0-0",
-                            "storageLayer": "s3",
-                            "fileFormat": "csv"
-                          },
-                          "datasetType": {
-                            "_producer": "https://my-company/pipeline/metadata",
-                            "_schemaURL": "https://schemas.openlineage.io/datasetType/1-0-0",
-                            "datasetType": "table",
-                            "subType": "intermediate"
-                          },
-                          "lifecycleStateChange": {
-                            "_producer": "https://my-company/pipeline/metadata",
-                            "_schemaURL": "https://schemas.openlineage.io/lifecycleStateChange/1-0-0",
-                            "lifecycleStateChange": "USED"
-                          },
-                          "ownership": {
-                            "_producer": "https://my-company/pipeline/metadata",
-                            "_schemaURL": "https://schemas.openlineage.io/ownership/1-0-0",
-                            "owners": [
-                              {
-                                "name": "analytics@company.com",
-                                "type": "group"
-                              }
-                            ]
-                          }
-                        }
-                      }
-                    ],
-                    "facets": {
-                      "jobType": {
-                        "processingType": "BATCH",
-                        "integration": "airflow",
-                        "jobType": "orchestration",
-                        "_producer": "https://my-company/pipeline/metadata",
-                        "_schemaURL": "https://schemas.openlineage.io/jobType/1-0-0"
-                      },
-                      "sourceCode": {
-                        "_producer": "https://my-company/pipeline/metadata",
-                        "_schemaURL": "https://schemas.openlineage.io/sourceCode/1-0-0",
-                        "language": "python",
-                        "sourceCode": "def task():\n    df = pd.read_csv('/data/cleaned_sales.csv')\n    # trigger report generation...\n"
-                      }
-                    },
+                    "eventType": "START",
+                    "eventTime": "2025-08-04T15:00:00Z",
                     "run": {
                       "runId": "run-airflow-001",
                       "facets": {
@@ -736,8 +271,25 @@
                         }
                       }
                     },
-                    "eventType": "START",
-                    "eventTime": "2025-08-04T15:00:00Z",
+                    "job": {
+                      "facets": {
+                        "jobType": {
+                          "processingType": "BATCH",
+                          "integration": "airflow",
+                          "jobType": "orchestration",
+                          "_producer": "https://my-company/pipeline/metadata",
+                          "_schemaURL": "https://schemas.openlineage.io/jobType/1-0-0"
+                        },
+                        "sourceCode": {
+                          "_producer": "https://my-company/pipeline/metadata",
+                          "_schemaURL": "https://schemas.openlineage.io/sourceCode/1-0-0",
+                          "language": "python",
+                          "sourceCode": "def task():\n    df = pd.read_csv('/data/cleaned_sales.csv')\n    # trigger report generation...\n"
+                        }
+                      },
+                      "name": "trigger_sales_report",
+                      "namespace": "airflow-dags"
+                    },
                     "inputs": [
                       {
                         "namespace": "data-lake",
@@ -834,6 +386,292 @@
                               }
                             }
                           }
+                        },
+                        "consuming_jobs": [
+                          {
+                            "eventType": "START",
+                            "eventTime": "2025-08-04T16:00:00Z",
+                            "run": {
+                              "runId": "run-flink-001",
+                              "facets": {
+                                "parent": {
+                                  "job": {
+                                    "name": "trigger_sales_report",
+                                    "namespace": "airflow-dags"
+                                  },
+                                  "run": {
+                                    "runId": "run-airflow-001"
+                                  }
+                                }
+                              }
+                            },
+                            "job": {
+                              "facets": {
+                                "jobType": {
+                                  "processingType": "STREAM",
+                                  "integration": "flink",
+                                  "jobType": "stream_enrichment",
+                                  "_producer": "https://my-company/pipeline/metadata",
+                                  "_schemaURL": "https://schemas.openlineage.io/jobType/1-0-0"
+                                },
+                                "sourceCode": {
+                                  "_producer": "https://my-company/pipeline/metadata",
+                                  "_schemaURL": "https://schemas.openlineage.io/sourceCode/1-0-0",
+                                  "language": "scala",
+                                  "sourceCode": "val stream = env.readCsvFile(\"/data/final_sales_report.csv\")\n// join, enrich, output\n"
+                                }
+                              },
+                              "name": "enrich_sales_stream",
+                              "namespace": "flink-jobs"
+                            },
+                            "inputs": [
+                              {
+                                "namespace": "reporting",
+                                "name": "final_sales_report",
+                                "facets": {
+                                  "schema": {
+                                    "_producer": "https://my-company/pipeline/metadata",
+                                    "_schemaURL": "https://schemas.openlineage.io/schema/1-0-0",
+                                    "fields": [
+                                      {
+                                        "name": "region",
+                                        "type": "string",
+                                        "description": "Sales region"
+                                      },
+                                      {
+                                        "name": "total_sales",
+                                        "type": "float",
+                                        "description": "Reported total sales"
+                                      }
+                                    ]
+                                  },
+                                  "storage": {
+                                    "_producer": "https://my-company/pipeline/metadata",
+                                    "_schemaURL": "https://schemas.openlineage.io/storage/1-0-0",
+                                    "storageLayer": "kafka",
+                                    "fileFormat": "json"
+                                  },
+                                  "datasetType": {
+                                    "_producer": "https://my-company/pipeline/metadata",
+                                    "_schemaURL": "https://schemas.openlineage.io/datasetType/1-0-0",
+                                    "datasetType": "stream",
+                                    "subType": "output"
+                                  },
+                                  "lifecycleStateChange": {
+                                    "_producer": "https://my-company/pipeline/metadata",
+                                    "_schemaURL": "https://schemas.openlineage.io/lifecycleStateChange/1-0-0",
+                                    "lifecycleStateChange": "USED"
+                                  },
+                                  "ownership": {
+                                    "_producer": "https://my-company/pipeline/metadata",
+                                    "_schemaURL": "https://schemas.openlineage.io/ownership/1-0-0",
+                                    "owners": [
+                                      {
+                                        "name": "streaming@company.com",
+                                        "type": "group"
+                                      }
+                                    ]
+                                  }
+                                }
+                              }
+                            ],
+                            "outputs": [
+                              {
+                                "namespace": "streaming",
+                                "name": "enriched_sales_stream",
+                                "facets": {
+                                  "columnLineage": {
+                                    "_producer": "https://my-company/pipeline/metadata",
+                                    "_schemaURL": "https://schemas.openlineage.io/columnLineage/1-0-0",
+                                    "fields": {
+                                      "region": {
+                                        "inputFields": [
+                                          {
+                                            "namespace": "reporting",
+                                            "name": "final_sales_report",
+                                            "field": "region",
+                                            "transformations": [
+                                              {
+                                                "type": "stream_processing",
+                                                "subtype": "filter",
+                                                "description": "Filtered low-volume regions",
+                                                "masking": false
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      "total_sales": {
+                                        "inputFields": [
+                                          {
+                                            "namespace": "reporting",
+                                            "name": "final_sales_report",
+                                            "field": "total_sales",
+                                            "transformations": [
+                                              {
+                                                "type": "stream_processing",
+                                                "subtype": "enrich",
+                                                "description": "Enriched with currency conversion rates",
+                                                "masking": false
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  }
+                                },
+                                "consuming_jobs": [
+                                  {
+                                    "eventType": "START",
+                                    "eventTime": "2025-08-04T17:00:00Z",
+                                    "run": {
+                                      "runId": "run-storm-001",
+                                      "facets": {
+                                        "parent": {
+                                          "job": {
+                                            "name": "enrich_sales_stream",
+                                            "namespace": "flink-jobs"
+                                          },
+                                          "run": {
+                                            "runId": "run-flink-001"
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "job": {
+                                      "facets": {
+                                        "jobType": {
+                                          "processingType": "STREAM",
+                                          "integration": "storm",
+                                          "jobType": "alerting",
+                                          "_producer": "https://my-company/pipeline/metadata",
+                                          "_schemaURL": "https://schemas.openlineage.io/jobType/1-0-0"
+                                        },
+                                        "sourceCode": {
+                                          "_producer": "https://my-company/pipeline/metadata",
+                                          "_schemaURL": "https://schemas.openlineage.io/sourceCode/1-0-0",
+                                          "language": "java",
+                                          "sourceCode": "// Storm topology logic: detect spikes in sales volume and send alerts"
+                                        }
+                                      },
+                                      "name": "generate_sales_alerts",
+                                      "namespace": "storm-jobs"
+                                    },
+                                    "inputs": [
+                                      {
+                                        "namespace": "streaming",
+                                        "name": "enriched_sales_stream",
+                                        "facets": {
+                                          "schema": {
+                                            "_producer": "https://my-company/pipeline/metadata",
+                                            "_schemaURL": "https://schemas.openlineage.io/schema/1-0-0",
+                                            "fields": [
+                                              {
+                                                "name": "region",
+                                                "type": "string",
+                                                "description": "Region of sales"
+                                              },
+                                              {
+                                                "name": "total_sales",
+                                                "type": "float",
+                                                "description": "Sales amount after enrichment"
+                                              }
+                                            ]
+                                          },
+                                          "storage": {
+                                            "_producer": "https://my-company/pipeline/metadata",
+                                            "_schemaURL": "https://schemas.openlineage.io/storage/1-0-0",
+                                            "storageLayer": "kafka",
+                                            "fileFormat": "json"
+                                          },
+                                          "datasetType": {
+                                            "_producer": "https://my-company/pipeline/metadata",
+                                            "_schemaURL": "https://schemas.openlineage.io/datasetType/1-0-0",
+                                            "datasetType": "stream",
+                                            "subType": "input"
+                                          },
+                                          "lifecycleStateChange": {
+                                            "_producer": "https://my-company/pipeline/metadata",
+                                            "_schemaURL": "https://schemas.openlineage.io/lifecycleStateChange/1-0-0",
+                                            "lifecycleStateChange": "USED"
+                                          },
+                                          "ownership": {
+                                            "_producer": "https://my-company/pipeline/metadata",
+                                            "_schemaURL": "https://schemas.openlineage.io/ownership/1-0-0",
+                                            "owners": [
+                                              {
+                                                "name": "realtime.alerts@company.com",
+                                                "type": "group"
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      }
+                                    ],
+                                    "outputs": [
+                                      {
+                                        "namespace": "alerts",
+                                        "name": "marketing.alerts_stream",
+                                        "facets": {
+                                          "columnLineage": {
+                                            "_producer": "https://my-company/pipeline/metadata",
+                                            "_schemaURL": "https://schemas.openlineage.io/columnLineage/1-0-0",
+                                            "fields": {
+                                              "region": {
+                                                "inputFields": [
+                                                  {
+                                                    "namespace": "streaming",
+                                                    "name": "enriched_sales_stream",
+                                                    "field": "region",
+                                                    "transformations": [
+                                                      {
+                                                        "type": "stream_alert",
+                                                        "subtype": "region_alert_check",
+                                                        "description": "Detect high sales region",
+                                                        "masking": false
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              },
+                                              "alert_message": {
+                                                "inputFields": [
+                                                  {
+                                                    "namespace": "streaming",
+                                                    "name": "enriched_sales_stream",
+                                                    "field": "total_sales",
+                                                    "transformations": [
+                                                      {
+                                                        "type": "stream_alert",
+                                                        "subtype": "threshold_check",
+                                                        "description": "Trigger alert when sales > $10,000",
+                                                        "masking": false
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    ]
+                                  }
+                                ],
+                                "lineage_relationship": {
+                                  "type": "feeds_into",
+                                  "description": "This output feeds into generate_sales_alerts",
+                                  "consuming_dataset": "streaming.enriched_sales_stream"
+                                }
+                              }
+                            ]
+                          }
+                        ],
+                        "lineage_relationship": {
+                          "type": "feeds_into",
+                          "description": "This output feeds into enrich_sales_stream",
+                          "consuming_dataset": "reporting.final_sales_report"
                         }
                       }
                     ]
@@ -850,7 +688,7 @@
         ],
         "lineage_relationship": {
           "type": "feeds_into",
-          "description": "This output feeds into Job-2",
+          "description": "This output feeds into Job-4",
           "consuming_dataset": "data-lake.analytics.sales_summary"
         }
       }

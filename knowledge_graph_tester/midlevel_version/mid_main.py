@@ -1,12 +1,43 @@
 import json
 import os
 import glob
+import hashlib
 from typing import Dict, List, Any, Optional
+from dataclasses import dataclass
+from collections import defaultdict
+
+@dataclass
+class JobNode:
+    """Linked list node representing a job with its lineage relationships."""
+    job_data: Dict[str, Any]
+    job_index: int
+    downstream_jobs: List['JobNode'] = None
+    
+    def __post_init__(self):
+        if self.downstream_jobs is None:
+            self.downstream_jobs = []
 
 def load_json_file(file_path: str) -> Dict[str, Any]:
     """Load JSON file and return as dictionary."""
     with open(file_path, 'r') as f:
         return json.load(f)
+
+def create_job_hash(job_data: Dict[str, Any]) -> str:
+    """Create a hash of the job data to uniquely identify it."""
+    # Create a normalized version of the job data for hashing
+    # We'll focus on the key identifying fields
+    job_info = {
+        'name': job_data.get('job', {}).get('name', ''),
+        'namespace': job_data.get('job', {}).get('namespace', ''),
+        'runId': job_data.get('run', {}).get('runId', ''),
+        'eventTime': job_data.get('eventTime', ''),
+        'inputs': sorted([get_dataset_key(input_dataset) for input_dataset in job_data.get('inputs', [])]),
+        'outputs': sorted([get_dataset_key(output_dataset) for output_dataset in job_data.get('outputs', [])])
+    }
+    
+    # Convert to JSON string and hash it
+    job_json = json.dumps(job_info, sort_keys=True)
+    return hashlib.md5(job_json.encode()).hexdigest()
 
 def discover_and_load_json_files(directory: str) -> List[Dict[str, Any]]:
     """Discover and load all JSON files in the given directory."""
@@ -63,13 +94,13 @@ def extract_inputs_and_outputs(job_data: Dict[str, Any]) -> tuple[List[Dict], Li
     outputs = job_data.get('outputs', [])
     return inputs, outputs
 
-def find_lineage_relationships(jobs: List[Dict[str, Any]]) -> Dict[str, List[str]]:
-    """Find which jobs feed into other jobs based on input/output relationships."""
+def build_job_graph(jobs: List[Dict[str, Any]]) -> Dict[int, JobNode]:
+    """Build a linked list graph of jobs based on lineage relationships."""
     # Create a mapping of dataset keys to jobs that produce them
-    dataset_to_producers = {}
+    dataset_to_producers = defaultdict(list)
     
     # Create a mapping of dataset keys to jobs that consume them
-    dataset_to_consumers = {}
+    dataset_to_consumers = defaultdict(list)
     
     for i, job in enumerate(jobs):
         inputs, outputs = extract_inputs_and_outputs(job)
@@ -77,18 +108,14 @@ def find_lineage_relationships(jobs: List[Dict[str, Any]]) -> Dict[str, List[str
         # Map outputs to this job
         for output in outputs:
             output_key = get_dataset_key(output)
-            if output_key not in dataset_to_producers:
-                dataset_to_producers[output_key] = []
             dataset_to_producers[output_key].append(i)
         
         # Map inputs to this job
         for input_dataset in inputs:
             input_key = get_dataset_key(input_dataset)
-            if input_key not in dataset_to_consumers:
-                dataset_to_consumers[input_key] = []
             dataset_to_consumers[input_key].append(i)
     
-    # Find lineage relationships
+    # Build lineage relationships
     lineage_map = {}
     for dataset_key, consumer_jobs in dataset_to_consumers.items():
         if dataset_key in dataset_to_producers:
@@ -99,96 +126,137 @@ def find_lineage_relationships(jobs: List[Dict[str, Any]]) -> Dict[str, List[str
                         lineage_map[producer_job_idx] = []
                     lineage_map[producer_job_idx].append(consumer_job_idx)
     
-    return lineage_map
+    # Create JobNode objects
+    job_nodes = {}
+    for i, job in enumerate(jobs):
+        job_nodes[i] = JobNode(job_data=job, job_index=i)
+    
+    # Build the linked list structure
+    for producer_idx, consumer_indices in lineage_map.items():
+        for consumer_idx in consumer_indices:
+            if producer_idx in job_nodes and consumer_idx in job_nodes:
+                job_nodes[producer_idx].downstream_jobs.append(job_nodes[consumer_idx])
+    
+    return job_nodes
+
+def identify_main_jobs(job_nodes: Dict[int, JobNode], lineage_map: Dict[int, List[int]]) -> List[int]:
+    """Identify which jobs should be kept as main jobs."""
+    main_jobs = set()
+    
+    # Find jobs that are not consumed by any other job (true upstream jobs)
+    for i, job_node in job_nodes.items():
+        is_consumed = False
+        for producer_idx, consumer_indices in lineage_map.items():
+            if i in consumer_indices:
+                is_consumed = True
+                break
+        if not is_consumed:
+            main_jobs.add(i)
+    
+    # Only keep the most upstream job (SQL) as the main job
+    # All other jobs will be nested within the chain
+    if main_jobs:
+        # Return only the first upstream job to create a single chain
+        return [min(main_jobs)]
+    
+    return list(main_jobs)
 
 def create_nested_structure_in_outputs(jobs: List[Dict[str, Any]], lineage_map: Dict[str, List[str]]) -> List[Dict[str, Any]]:
-    """Create nested structure where downstream jobs are nested within the outputs field of upstream jobs using recursion."""
-    nested_jobs = []
-    jobs_to_remove = set()  # Track jobs that should be removed from final output
+    """Create nested structure using linked list approach, ensuring each job is only fully nested once."""
+    # Convert lineage_map to use integer indices
+    int_lineage_map = {}
+    for k, v in lineage_map.items():
+        int_lineage_map[int(k)] = [int(x) for x in v]
     
-    # Find the most upstream jobs (jobs that are not produced by any other job)
-    upstream_jobs = set()
-    for i, job in enumerate(jobs):
-        is_upstream = True
-        for producer_idx, consumer_indices in lineage_map.items():
-            if i in consumer_indices:  # This job is consumed by another job
-                is_upstream = False
-                break
-        if is_upstream:
-            upstream_jobs.add(i)
+    # Build the job graph using linked list structure
+    job_nodes = build_job_graph(jobs)
     
-    def nest_downstream_jobs(job_idx: int, job_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Recursively nest downstream jobs within the outputs of a job."""
-        nested_job = json.loads(json.dumps(job_data))  # Deep copy
-        
-        # Check if this job produces outputs that are consumed by other jobs
-        if job_idx in lineage_map:
-            # For each output in this job, check if it's consumed by downstream jobs
-            for output in nested_job.get('outputs', []):
-                output_key = get_dataset_key(output)
-                
-                # Find which downstream jobs consume this job's outputs
-                for consumer_job_idx in lineage_map[job_idx]:
-                    if consumer_job_idx in jobs_to_remove:
-                        continue  # Skip jobs that are already marked for removal
-                        
-                    consumer_job = jobs[consumer_job_idx]
-                    consumer_inputs, consumer_outputs = extract_inputs_and_outputs(consumer_job)
+    # Identify main jobs
+    main_job_indices = identify_main_jobs(job_nodes, int_lineage_map)
+    
+    # Create nested structure
+    jobs_to_remove = set()
+    processed_jobs = set()  # Track processed jobs to prevent duplicates
+    global_nested_jobs = {}  # job_hash -> nested job
+    final_jobs = []
+    
+    # First, mark all main jobs so they won't be nested within other jobs
+    for main_job_idx in main_job_indices:
+        jobs_to_remove.add(main_job_idx)
+    
+    for main_job_idx in main_job_indices:
+        if main_job_idx in job_nodes:
+            nested_job = nest_job_recursively_with_tracking(job_nodes[main_job_idx], jobs_to_remove, processed_jobs, global_nested_jobs)
+            final_jobs.append(nested_job)
+    
+    return final_jobs
+
+def nest_job_recursively_with_tracking(job_node: JobNode, jobs_to_remove: set, processed_jobs: set, global_nested_jobs: dict) -> Dict[str, Any]:
+    """Recursively nest downstream jobs within the outputs of a job using linked list structure with hash-based duplicate tracking and global registry."""
+    job_hash = create_job_hash(job_node.job_data)
+    if job_hash in global_nested_jobs:
+        # Return a reference stub
+        return {"job_name": job_node.job_data.get('job', {}).get('name', f'Job-{job_node.job_index}'), "reference": True}
+    
+    nested_job = json.loads(json.dumps(job_node.job_data))  # Deep copy
+    global_nested_jobs[job_hash] = nested_job  # Register this job as nested
+    
+    # Check if this job has downstream jobs
+    if job_node.downstream_jobs:
+        # For each output in this job, check if it's consumed by downstream jobs
+        for output in nested_job.get('outputs', []):
+            output_key = get_dataset_key(output)
+            
+            # Find which downstream jobs consume this job's outputs
+            for downstream_node in job_node.downstream_jobs:
+                if downstream_node.job_index in jobs_to_remove:
+                    continue  # Skip jobs that are already marked for removal
                     
-                    # Check if this output is consumed by the consumer job
-                    for consumer_input in consumer_inputs:
-                        consumer_input_key = get_dataset_key(consumer_input)
+                downstream_job = downstream_node.job_data
+                downstream_inputs, downstream_outputs = extract_inputs_and_outputs(downstream_job)
+                
+                # Check if this output is consumed by the downstream job
+                for downstream_input in downstream_inputs:
+                    downstream_input_key = get_dataset_key(downstream_input)
+                    
+                    # If this job's output is consumed by the downstream job
+                    if output_key == downstream_input_key:
+                        # Add the downstream job information to this output
+                        if 'consuming_jobs' not in output:
+                            output['consuming_jobs'] = []
                         
-                        # If this job's output is consumed by the consumer job
-                        if output_key == consumer_input_key:
-                            # Add the consumer job information to this output
-                            if 'consuming_jobs' not in output:
-                                output['consuming_jobs'] = []
+                        # Create a hash of the downstream job to uniquely identify it
+                        downstream_job_hash = create_job_hash(downstream_job)
+                        downstream_job_name = downstream_job.get('job', {}).get('name', f'Job-{downstream_node.job_index}')
+                        
+                        # Check if this specific job is already processed globally (not just for this output)
+                        job_already_processed = downstream_job_hash in processed_jobs
+                        
+                        if not job_already_processed:
+                            # Mark this job as processed globally
+                            processed_jobs.add(downstream_job_hash)
                             
-                            # Recursively nest downstream jobs within the consumer job
-                            nested_consumer_job = nest_downstream_jobs(consumer_job_idx, consumer_job)
+                            # Recursively nest downstream jobs within the downstream job
+                            nested_downstream_job = nest_job_recursively_with_tracking(downstream_node, jobs_to_remove, processed_jobs, global_nested_jobs)
                             
-                            # Add the nested consumer job as a consumer
-                            consumer_job_info = {
-                                'job_name': nested_consumer_job.get('job', {}).get('name', f'Job-{consumer_job_idx}'),
-                                'job_namespace': nested_consumer_job.get('job', {}).get('namespace', 'unknown'),
-                                'run_id': nested_consumer_job.get('run', {}).get('runId', 'unknown'),
-                                'event_time': nested_consumer_job.get('eventTime', 'unknown'),
-                                'job_type': nested_consumer_job.get('job', {}).get('facets', {}).get('jobType', {}).get('jobType', 'unknown'),
-                                'integration': nested_consumer_job.get('job', {}).get('facets', {}).get('jobType', {}).get('integration', 'unknown'),
-                                'original_outputs': nested_consumer_job.get('outputs', []),
-                                'original_inputs': nested_consumer_job.get('inputs', []),
-                                'facets': nested_consumer_job.get('job', {}).get('facets', {}),
-                                'run': nested_consumer_job.get('run', {}),
-                                'eventType': nested_consumer_job.get('eventType', ''),
-                                'eventTime': nested_consumer_job.get('eventTime', ''),
-                                'inputs': nested_consumer_job.get('inputs', []),
-                                'outputs': nested_consumer_job.get('outputs', [])
-                            }
-                            
-                            output['consuming_jobs'].append(consumer_job_info)
+                            # Add the nested downstream job as a consumer
+                            output['consuming_jobs'].append(nested_downstream_job)
                             
                             # Add lineage relationship info
                             output['lineage_relationship'] = {
                                 'type': 'feeds_into',
-                                'description': f"This output feeds into {consumer_job_info['job_name']}",
-                                'consuming_dataset': consumer_input_key
+                                'description': f"This output feeds into {downstream_job_name}",
+                                'consuming_dataset': downstream_input_key
                             }
                             
-                            # Mark the consumer job for removal from final output
-                            jobs_to_remove.add(consumer_job_idx)
-        
-        return nested_job
+                            # Mark the downstream job for removal from final output
+                            jobs_to_remove.add(downstream_node.job_index)
+                        else:
+                            # If job is already processed, add a reference stub
+                            output['consuming_jobs'].append({"job_name": downstream_job_name, "reference": True})
+                            jobs_to_remove.add(downstream_node.job_index)
     
-    # Process jobs in order, starting with the most upstream jobs
-    for i, job in enumerate(jobs):
-        nested_job = nest_downstream_jobs(i, job)
-        nested_jobs.append(nested_job)
-    
-    # Keep only the upstream jobs in the final output
-    final_jobs = [job for i, job in enumerate(nested_jobs) if i in upstream_jobs]
-    
-    return final_jobs
+    return nested_job
 
 def analyze_and_nest_lineage():
     """Main function to analyze lineage and create nested structure."""
@@ -210,15 +278,21 @@ def analyze_and_nest_lineage():
     
     print(f"\nLoaded {len(jobs)} JSON files for analysis")
     
-    # Find lineage relationships
-    lineage_map = find_lineage_relationships(jobs)
+    # Build lineage relationships using the linked list approach
+    job_nodes = build_job_graph(jobs)
+    
+    # Convert to lineage map format for compatibility
+    lineage_map = {}
+    for i, job_node in job_nodes.items():
+        if job_node.downstream_jobs:
+            lineage_map[str(i)] = [str(downstream.job_index) for downstream in job_node.downstream_jobs]
     
     print("=== Lineage Analysis ===")
     print(f"Found {len(lineage_map)} jobs that feed into other jobs")
     
     for producer_idx, consumer_indices in lineage_map.items():
-        producer_name = jobs[producer_idx].get('job', {}).get('name', f'Job-{producer_idx}')
-        consumer_names = [jobs[idx].get('job', {}).get('name', f'Job-{idx}') for idx in consumer_indices]
+        producer_name = jobs[int(producer_idx)].get('job', {}).get('name', f'Job-{producer_idx}')
+        consumer_names = [jobs[int(idx)].get('job', {}).get('name', f'Job-{idx}') for idx in consumer_indices]
         print(f"  {producer_name} feeds into: {', '.join(consumer_names)}")
     
     # Create nested structure within outputs
@@ -237,9 +311,16 @@ def analyze_and_nest_lineage():
             if 'consuming_jobs' in output:
                 print(f"    Feeds into {len(output['consuming_jobs'])} downstream job(s):")
                 for consuming_job in output['consuming_jobs']:
-                    print(f"      - {consuming_job['job_name']} ({consuming_job['integration']})")
-                    print(f"        Run ID: {consuming_job['run_id']}")
-                    print(f"        Job Type: {consuming_job['job_type']}")
+                    if consuming_job.get('reference'):
+                        print(f"      - {consuming_job['job_name']} (reference)")
+                    elif 'job' in consuming_job:
+                        print(f"      - {consuming_job['job'].get('name', 'unknown')} ({consuming_job['job'].get('facets', {}).get('jobType', {}).get('integration', 'unknown')})")
+                        print(f"        Run ID: {consuming_job.get('run', {}).get('runId', 'unknown')}")
+                        print(f"        Job Type: {consuming_job['job'].get('facets', {}).get('jobType', {}).get('jobType', 'unknown')}")
+                    else:
+                        print(f"      - {consuming_job.get('job_name', 'unknown')} ({consuming_job.get('integration', 'unknown')})")
+                        print(f"        Run ID: {consuming_job.get('run_id', 'unknown')}")
+                        print(f"        Job Type: {consuming_job.get('job_type', 'unknown')}")
                 
                 if 'lineage_relationship' in output:
                     print(f"    Lineage: {output['lineage_relationship']['description']}")

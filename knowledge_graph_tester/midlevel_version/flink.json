@@ -1,0 +1,137 @@
+{
+    "eventType": "START",
+    "eventTime": "2025-08-04T16:00:00Z",
+    "run": {
+      "runId": "run-flink-001",
+      "facets": {
+        "parent": {
+          "job": {
+            "name": "trigger_sales_report",
+            "namespace": "airflow-dags"
+          },
+          "run": {
+            "runId": "run-airflow-001"
+          }
+        }
+      }
+    },
+    "job": {
+      "facets": {
+        "jobType": {
+          "processingType": "STREAM",
+          "integration": "flink",
+          "jobType": "stream_enrichment",
+          "_producer": "https://my-company/pipeline/metadata",
+          "_schemaURL": "https://schemas.openlineage.io/jobType/1-0-0"
+        },
+        "sourceCode": {
+          "_producer": "https://my-company/pipeline/metadata",
+          "_schemaURL": "https://schemas.openlineage.io/sourceCode/1-0-0",
+          "language": "scala",
+          "sourceCode": "val stream = env.readCsvFile(\"/data/final_sales_report.csv\")\n// join, enrich, output\n"
+        }
+      },
+      "name": "enrich_sales_stream",
+      "namespace": "flink-jobs"
+    },
+    "inputs": [
+      {
+        "namespace": "reporting",
+        "name": "final_sales_report",
+        "facets": {
+          "schema": {
+            "_producer": "https://my-company/pipeline/metadata",
+            "_schemaURL": "https://schemas.openlineage.io/schema/1-0-0",
+            "fields": [
+              {
+                "name": "region",
+                "type": "string",
+                "description": "Sales region"
+              },
+              {
+                "name": "total_sales",
+                "type": "float",
+                "description": "Reported total sales"
+              }
+            ]
+          },
+          "storage": {
+            "_producer": "https://my-company/pipeline/metadata",
+            "_schemaURL": "https://schemas.openlineage.io/storage/1-0-0",
+            "storageLayer": "kafka",
+            "fileFormat": "json"
+          },
+          "datasetType": {
+            "_producer": "https://my-company/pipeline/metadata",
+            "_schemaURL": "https://schemas.openlineage.io/datasetType/1-0-0",
+            "datasetType": "stream",
+            "subType": "output"
+          },
+          "lifecycleStateChange": {
+            "_producer": "https://my-company/pipeline/metadata",
+            "_schemaURL": "https://schemas.openlineage.io/lifecycleStateChange/1-0-0",
+            "lifecycleStateChange": "USED"
+          },
+          "ownership": {
+            "_producer": "https://my-company/pipeline/metadata",
+            "_schemaURL": "https://schemas.openlineage.io/ownership/1-0-0",
+            "owners": [
+              {
+                "name": "streaming@company.com",
+                "type": "group"
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "outputs": [
+      {
+        "namespace": "streaming",
+        "name": "enriched_sales_stream",
+        "facets": {
+          "columnLineage": {
+            "_producer": "https://my-company/pipeline/metadata",
+            "_schemaURL": "https://schemas.openlineage.io/columnLineage/1-0-0",
+            "fields": {
+              "region": {
+                "inputFields": [
+                  {
+                    "namespace": "reporting",
+                    "name": "final_sales_report",
+                    "field": "region",
+                    "transformations": [
+                      {
+                        "type": "stream_processing",
+                        "subtype": "filter",
+                        "description": "Filtered low-volume regions",
+                        "masking": false
+                      }
+                    ]
+                  }
+                ]
+              },
+              "total_sales": {
+                "inputFields": [
+                  {
+                    "namespace": "reporting",
+                    "name": "final_sales_report",
+                    "field": "total_sales",
+                    "transformations": [
+                      {
+                        "type": "stream_processing",
+                        "subtype": "enrich",
+                        "description": "Enriched with currency conversion rates",
+                        "masking": false
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+  
