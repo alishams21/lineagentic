@@ -1,84 +1,84 @@
-<svg width="400" height="60" viewBox="0 0 400 60" xmlns="http://www.w3.org/2000/svg">
-  <!-- Original nodes -->
-  <circle cx="16" cy="16" r="3.5" fill="#60a5fa" />
-  <circle cx="32" cy="12" r="3" fill="#34d399" />
-  <circle cx="44" cy="14" r="3.2" fill="#fbbf24" />
-  <circle cx="80" cy="20" r="3.5" fill="#3b82f6" />
-  <circle cx="12" cy="48" r="3" fill="#10b981" />
-  <circle cx="36" cy="52" r="3.5" fill="#f59e0b" />
-  <circle cx="84" cy="44" r="3.2" fill="#60a5fa" />
-  <circle cx="48" cy="32" r="4.5" fill="#8b5cf6" />
+<svg width="800" height="120" viewBox="0 0 800 120" xmlns="http://www.w3.org/2000/svg">
+  <!-- Original nodes - much bigger -->
+  <circle cx="35" cy="30" r="8" fill="#60a5fa" />
+  <circle cx="65" cy="25" r="7.5" fill="#34d399" />
+  <circle cx="90" cy="27" r="7.8" fill="#fbbf24" />
+  <circle cx="160" cy="35" r="8" fill="#3b82f6" />
+  <circle cx="25" cy="90" r="7.5" fill="#10b981" />
+  <circle cx="70" cy="95" r="8" fill="#f59e0b" />
+  <circle cx="165" cy="85" r="7.8" fill="#60a5fa" />
+  <circle cx="95" cy="60" r="9" fill="#8b5cf6" />
   
-  <!-- Additional nodes for enhanced lineage -->
-  <circle cx="60" cy="8" r="3.3" fill="#ef4444" />
-  <circle cx="24" cy="36" r="3.1" fill="#06b6d4" />
-  <circle cx="68" cy="56" r="3.4" fill="#84cc16" />
+  <!-- Additional nodes for enhanced lineage - much bigger -->
+  <circle cx="120" cy="20" r="7.8" fill="#ef4444" />
+  <circle cx="50" cy="65" r="7.5" fill="#06b6d4" />
+  <circle cx="135" cy="100" r="8" fill="#84cc16" />
   
-  <!-- New nodes for data sources -->
-  <circle cx="8" cy="8" r="3" fill="#f97316" />
+  <!-- New nodes for data sources - much bigger -->
+  <circle cx="20" cy="20" r="7.5" fill="#f97316" />
   
-  <!-- New nodes for processing steps -->
-  <circle cx="72" cy="12" r="3.3" fill="#eab308" />
-  <circle cx="96" cy="28" r="3.4" fill="#f43f5e" />
+  <!-- New nodes for processing steps - much bigger -->
+  <circle cx="145" cy="25" r="7.8" fill="#eab308" />
+  <circle cx="190" cy="55" r="8" fill="#f43f5e" />
   
-  <!-- New nodes for intermediate results -->
-  <circle cx="64" cy="24" r="3.2" fill="#8b5cf6" />
-  <circle cx="76" cy="36" r="3.3" fill="#10b981" />
+  <!-- New nodes for intermediate results - much bigger -->
+  <circle cx="130" cy="50" r="7.8" fill="#8b5cf6" />
+  <circle cx="155" cy="65" r="7.8" fill="#10b981" />
   
-  <!-- New nodes for outputs -->
-  <circle cx="100" cy="48" r="3.5" fill="#3b82f6" />
-  <circle cx="88" cy="52" r="3.2" fill="#ef4444" />
+  <!-- New nodes for outputs - much bigger -->
+  <circle cx="200" cy="90" r="8" fill="#3b82f6" />
+  <circle cx="180" cy="95" r="7.8" fill="#ef4444" />
   
-  <!-- New nodes for data sinks -->
-  <circle cx="20" cy="56" r="3.1" fill="#f97316" />
-  <circle cx="40" cy="58" r="3.2" fill="#14b8a6" />
-  <circle cx="56" cy="54" r="3.3" fill="#a855f7" />
+  <!-- New nodes for data sinks - much bigger -->
+  <circle cx="40" cy="100" r="7.5" fill="#f97316" />
+  <circle cx="75" cy="105" r="7.8" fill="#14b8a6" />
+  <circle cx="110" cy="100" r="7.8" fill="#a855f7" />
   
-  <!-- Original edges -->
-  <g stroke="#a855f7" stroke-width="1" fill="none" opacity="0.6">
-    <path d="M21 17 L41 32" />
-    <path d="M36 15 L44 28" />
-    <path d="M49 18 L50 26" />
-    <path d="M75 20 L55 32" />
-    <path d="M16 44 L41 48" />
-    <path d="M41 48 L44 38" />
-    <path d="M79 44 L55 36" />
+  <!-- Original edges - much bigger -->
+  <g stroke="#a855f7" stroke-width="3.5" fill="none" opacity="0.6">
+    <path d="M42 32 L82 60" />
+    <path d="M72 28 L90 54" />
+    <path d="M98 30 L100 48" />
+    <path d="M152 38 L110 60" />
+    <path d="M32 85 L82 90" />
+    <path d="M82 90 L90 72" />
+    <path d="M158 87 L110 68" />
     
-    <!-- New edges connecting to new nodes -->
-    <path d="M44 14 L60 8" />
-    <path d="M60 8 L48 32" />
-    <path d="M16 16 L24 36" />
-    <path d="M24 36 L36 52" />
-    <path d="M84 44 L68 56" />
-    <path d="M68 56 L36 52" />
+    <!-- New edges connecting to new nodes - much bigger -->
+    <path d="M90 27 L120 20" />
+    <path d="M120 20 L95 60" />
+    <path d="M32 32 L50 65" />
+    <path d="M50 65 L70 95" />
+    <path d="M165 85 L135 100" />
+    <path d="M135 100 L70 95" />
     
-    <!-- Data source connections -->
-    <path d="M8 8 L16 16" />
-    <path d="M60 8 L72 12" />
+    <!-- Data source connections - much bigger -->
+    <path d="M20 20 L35 30" />
+    <path d="M120 20 L145 25" />
     
-    <!-- Processing flow -->
-    <path d="M72 12 L80 20" />
-    <path d="M80 20 L96 28" />
-    <path d="M96 28 L100 48" />
+    <!-- Processing flow - much bigger -->
+    <path d="M145 25 L160 35" />
+    <path d="M160 35 L190 55" />
+    <path d="M190 55 L200 90" />
     
-    <!-- Intermediate processing -->
-    <path d="M80 20 L64 24" />
-    <path d="M64 24 L76 36" />
-    <path d="M76 36 L88 52" />
+    <!-- Intermediate processing - much bigger -->
+    <path d="M160 35 L130 50" />
+    <path d="M130 50 L155 65" />
+    <path d="M155 65 L180 95" />
     
-    <!-- Cross connections for complex lineage -->
-    <path d="M64 24 L48 32" />
-    <path d="M76 36 L84 44" />
+    <!-- Cross connections for complex lineage - much bigger -->
+    <path d="M130 50 L95 60" />
+    <path d="M155 65 L165 85" />
     
-    <!-- Data sink connections -->
-    <path d="M12 48 L20 56" />
-    <path d="M36 52 L40 58" />
-    <path d="M68 56 L56 54" />
+    <!-- Data sink connections - much bigger -->
+    <path d="M25 90 L40 100" />
+    <path d="M70 95 L75 105" />
+    <path d="M135 100 L110 100" />
     
-    <!-- Additional cross-connections -->
-    <path d="M24 36 L64 24" />
-    <path d="M48 32 L76 36" />
-    <path d="M60 8 L64 24" />
+    <!-- Additional cross-connections - much bigger -->
+    <path d="M50 65 L130 50" />
+    <path d="M95 60 L155 65" />
+    <path d="M120 20 L130 50" />
   </g>
   
   <defs>
@@ -89,6 +89,6 @@
     </linearGradient>
   </defs>
   
-  <text x="110" y="28" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="url(#textGradient)">Lineagentic</text>
-  <text x="110" y="44" font-family="Arial, sans-serif" font-size="14" fill="#6b7280">Data Lineage Builder Agent</text>
+  <text x="240" y="45" font-family="Arial, sans-serif" font-size="64" font-weight="bold" fill="url(#textGradient)">Lineagentic</text>
+  <text x="240" y="95" font-family="Arial, sans-serif" font-size="32" fill="#6b7280">Data Lineage Mapping Agent</text>
 </svg> 
