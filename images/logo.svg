@@ -90,5 +90,5 @@
   </defs>
   
   <text x="240" y="45" font-family="Arial, sans-serif" font-size="64" font-weight="bold" fill="url(#textGradient)">Lineagentic</text>
-  <text x="240" y="95" font-family="Arial, sans-serif" font-size="32" fill="#6b7280">Data Lineage Mapping Agent</text>
+  <text x="240" y="95" font-family="Arial, sans-serif" font-size="32" fill="#6b7280">Data Lineage Builder Agent</text>
 </svg> 
