@@ -11,6 +11,8 @@ Lineagentic is an agentic ai solution for building end-to-end data lineage acros
 
 - Plugin based architecture, simple to extend and customize.
 - Interactive web lineage visualizer for development and debugging.
+- Command line interface.
+- Rest API for integration with other systems.
 - Support for multiple data processing script types (SQL, Python, Airflow, etc.)
 
 ### How it works
