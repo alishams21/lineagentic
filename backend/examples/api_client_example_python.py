@@ -101,9 +101,11 @@ def main():
     sample_query = """
         import pandas as pd
         import numpy as np
+        import sqlite3
 
-        # Step 1: Load input CSV
-        df = pd.read_csv('/data/input/customers.csv')
+        # Step 1: Load input table
+        conn = sqlite3.connect('/data/database.db')
+        df = pd.read_sql_query("SELECT * FROM customer_2", conn)
 
         # Step 2: Clean whitespace from names
         df['first_name'] = df['first_name'].str.strip().str.title()
@@ -123,8 +125,9 @@ def main():
         # Step 6: Filter out rows with missing email
         df = df[df['email'].notnull()]
 
-        # Step 7: Write result to new CSV
-        df.to_csv('/data/output/cleaned_customers.csv', index=False)
+        # Step 7: Write result to new table
+        df.to_sql('customer_3', conn, if_exists='replace', index=False)
+        conn.close()
     """
 
     # Run Python lineage agent directly

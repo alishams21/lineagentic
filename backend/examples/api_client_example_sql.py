@@ -16,7 +16,7 @@ class SQLLineageAPIClient:
             response.raise_for_status()
         return response.json()
     
-    def analyze_query(self, query: str, model_name: str = "gpt-4o", agent_name: str = "sql-lineage-agent") -> Dict[str, Any]:
+    def analyze_query(self, query: str, model_name: str = "gpt-4o-mini", agent_name: str = "sql-lineage-agent") -> Dict[str, Any]:
         """
         Analyze a single SQL query using the sql_lineage_agent plugin
         
@@ -99,24 +99,47 @@ def main():
     
     # Example SQL query
     sample_query = """
+    -- Read from customer_4 and orders tables, then write to customer_5
+    INSERT INTO customer_5 (
+        customer_id,
+        customer_name,
+        email,
+        region,
+        status,
+        total_orders,
+        total_revenue,
+        avg_order_value,
+        last_order_date,
+        processed_date
+    )
     SELECT 
+        c.customer_id,
+        c.customer_name,
+        c.email,
         c.region,
+        c.status,
         COUNT(DISTINCT o.order_id) AS total_orders,
-        COUNT(DISTINCT oi.item_id) AS total_items_sold,
-        SUM(oi.item_total) AS total_revenue
+        SUM(oi.item_total) AS total_revenue,
+        AVG(oi.item_total) AS avg_order_value,
+        MAX(o.order_date) AS last_order_date,
+        CURRENT_DATE AS processed_date
     FROM 
-        customers c
+        customer_4 c
     JOIN 
         orders o ON c.customer_id = o.customer_id
     JOIN 
         order_items oi ON o.order_id = oi.order_id
     WHERE 
-        o.order_date BETWEEN '2025-01-01' AND '2025-06-30'
-        AND c.status = 'active'
+        c.status = 'active'
+        AND o.order_date BETWEEN '2025-01-01' AND '2025-06-30'
     GROUP BY 
-        c.region
+        c.customer_id,
+        c.customer_name,
+        c.email,
+        c.region,
+        c.status
     HAVING 
-        SUM(oi.item_total) > 10000
+        SUM(oi.item_total) > 5000
     ORDER BY 
         total_revenue DESC;
     """

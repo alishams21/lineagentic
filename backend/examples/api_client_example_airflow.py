@@ -128,8 +128,17 @@ def main():
             df.to_csv('/data/output/cleaned_customers.csv', index=False)
 
         def load_to_warehouse():
-            # Simulate writing cleaned data to a warehouse location
-            shutil.copy('/data/output/cleaned_customers.csv', '/data/warehouse/final_customers.csv')
+            # Load cleaned data to customers_1 table in database
+            df = pd.read_csv('/data/output/cleaned_customers.csv')
+            
+            # Get database connection
+            pg_hook = PostgresHook(postgres_conn_id='warehouse_connection')
+            engine = pg_hook.get_sqlalchemy_engine()
+            
+            # Write to customers_1 table
+            df.to_sql('customers_1', engine, if_exists='replace', index=False)
+            
+            print(f"Successfully loaded {len(df)} records to customers_1 table")
 
         default_args = {
             'start_date': datetime(2025, 8, 1),

@@ -103,85 +103,99 @@ def main():
         import java.util.*;
         import java.time.*;
         import java.time.format.*;
-        import java.nio.file.*;
+        import java.sql.*;
         import java.util.stream.*;
 
         public class CustomerDataProcessor {
             public static void main(String[] args) throws IOException {
-                // Step 1: Load input CSV
-                List<String> lines = Files.readAllLines(Paths.get("/data/input/customers.csv"));
-                List<Customer> customers = new ArrayList<>();
+                // Database connection parameters
+                String url = "jdbc:mysql://localhost:3306/customer_db";
+                String username = "root";
+                String password = "password";
                 
-                // Skip header
-                for (int i = 1; i < lines.size(); i++) {
-                    String[] parts = lines.get(i).split(",");
-                    if (parts.length >= 4) {
-                        Customer customer = new Customer();
-                        customer.setFirstName(parts[0].trim());
-                        customer.setLastName(parts[1].trim());
-                        customer.setEmail(parts[2].trim());
-                        customer.setBirthdate(parts[3].trim());
-                        customers.add(customer);
+                try (Connection connection = DriverManager.getConnection(url, username, password)) {
+                    // Step 1: Read from customer_1 table
+                    List<Customer> customers = new ArrayList<>();
+                    String selectQuery = "SELECT first_name, last_name, email, birthdate FROM customer_1";
+                    
+                    try (PreparedStatement stmt = connection.prepareStatement(selectQuery);
+                         ResultSet rs = stmt.executeQuery()) {
+                        
+                        while (rs.next()) {
+                            Customer customer = new Customer();
+                            customer.setFirstName(rs.getString("first_name"));
+                            customer.setLastName(rs.getString("last_name"));
+                            customer.setEmail(rs.getString("email"));
+                            customer.setBirthdate(rs.getString("birthdate"));
+                            customers.add(customer);
+                        }
                     }
-                }
 
-                // Step 2: Clean whitespace from names
-                customers.forEach(customer -> {
-                    customer.setFirstName(customer.getFirstName().trim());
-                    customer.setLastName(customer.getLastName().trim());
-                });
+                    // Step 2: Clean whitespace from names
+                    customers.forEach(customer -> {
+                        customer.setFirstName(customer.getFirstName().trim());
+                        customer.setLastName(customer.getLastName().trim());
+                    });
 
-                // Step 3: Create full name
-                customers.forEach(customer -> {
-                    String fullName = customer.getFirstName() + " " + customer.getLastName();
-                    customer.setFullName(fullName);
-                });
+                    // Step 3: Create full name
+                    customers.forEach(customer -> {
+                        String fullName = customer.getFirstName() + " " + customer.getLastName();
+                        customer.setFullName(fullName);
+                    });
 
-                // Step 4: Convert birthdate and calculate age
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-                LocalDate today = LocalDate.now();
-                
-                customers.forEach(customer -> {
-                    try {
-                        LocalDate birthdate = LocalDate.parse(customer.getBirthdate(), formatter);
-                        int age = Period.between(birthdate, today).getYears();
-                        customer.setAge(age);
-                    } catch (Exception e) {
-                        customer.setAge(0);
+                    // Step 4: Convert birthdate and calculate age
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+                    LocalDate today = LocalDate.now();
+                    
+                    customers.forEach(customer -> {
+                        try {
+                            LocalDate birthdate = LocalDate.parse(customer.getBirthdate(), formatter);
+                            int age = Period.between(birthdate, today).getYears();
+                            customer.setAge(age);
+                        } catch (Exception e) {
+                            customer.setAge(0);
+                        }
+                    });
+
+                    // Step 5: Categorize by age group
+                    customers.forEach(customer -> {
+                        String ageGroup;
+                        if (customer.getAge() >= 60) {
+                            ageGroup = "Senior";
+                        } else if (customer.getAge() >= 30) {
+                            ageGroup = "Adult";
+                        } else {
+                            ageGroup = "Young";
+                        }
+                        customer.setAgeGroup(ageGroup);
+                    });
+
+                    // Step 6: Filter out rows with missing email
+                    List<Customer> filteredCustomers = customers.stream()
+                        .filter(customer -> customer.getEmail() != null && !customer.getEmail().isEmpty())
+                        .collect(Collectors.toList());
+
+                    // Step 7: Write result to customer_2 table
+                    String insertQuery = "INSERT INTO customer_2 (first_name, last_name, email, birthdate, full_name, age, age_group) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                    
+                    try (PreparedStatement insertStmt = connection.prepareStatement(insertQuery)) {
+                        for (Customer customer : filteredCustomers) {
+                            insertStmt.setString(1, customer.getFirstName());
+                            insertStmt.setString(2, customer.getLastName());
+                            insertStmt.setString(3, customer.getEmail());
+                            insertStmt.setString(4, customer.getBirthdate());
+                            insertStmt.setString(5, customer.getFullName());
+                            insertStmt.setInt(6, customer.getAge());
+                            insertStmt.setString(7, customer.getAgeGroup());
+                            insertStmt.executeUpdate();
+                        }
                     }
-                });
-
-                // Step 5: Categorize by age group
-                customers.forEach(customer -> {
-                    String ageGroup;
-                    if (customer.getAge() >= 60) {
-                        ageGroup = "Senior";
-                    } else if (customer.getAge() >= 30) {
-                        ageGroup = "Adult";
-                    } else {
-                        ageGroup = "Young";
-                    }
-                    customer.setAgeGroup(ageGroup);
-                });
-
-                // Step 6: Filter out rows with missing email
-                List<Customer> filteredCustomers = customers.stream()
-                    .filter(customer -> customer.getEmail() != null && !customer.getEmail().isEmpty())
-                    .collect(Collectors.toList());
-
-                // Step 7: Write result to new CSV
-                try (PrintWriter writer = new PrintWriter(new FileWriter("/data/output/cleaned_customers.csv"))) {
-                    writer.println("first_name,last_name,email,birthdate,full_name,age,age_group");
-                    for (Customer customer : filteredCustomers) {
-                        writer.printf("%s,%s,%s,%s,%s,%d,%s%n",
-                            customer.getFirstName(),
-                            customer.getLastName(),
-                            customer.getEmail(),
-                            customer.getBirthdate(),
-                            customer.getFullName(),
-                            customer.getAge(),
-                            customer.getAgeGroup());
-                    }
+                    
+                    System.out.println("Successfully processed " + filteredCustomers.size() + " customers from customer_1 to customer_2");
+                    
+                } catch (SQLException e) {
+                    System.err.println("Database error: " + e.getMessage());
+                    e.printStackTrace();
                 }
             }
         }

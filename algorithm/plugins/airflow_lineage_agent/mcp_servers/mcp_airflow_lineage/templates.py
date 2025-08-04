@@ -303,7 +303,20 @@ def airflow_lineage_field_derivation():
             - For PythonOperators, infer logic from the function if possible.
             - For SQL or BashOperators, parse the SQL or script if included.
             - Your job is to extract lineage-relevant inputs, transformations, and outputs.
-
+            - look into all the operators and their parameters, and infer the inputs, outputs, and transformations.
+            - if the operator is a PythonOperator, look into the function and infer the inputs, outputs, and transformations.
+            - if the operator is a SQLOperator, look into the SQL and infer the inputs, outputs, and transformations.
+            - if the operator is a BashOperator, look into the Bash command and infer the inputs, outputs, and transformations.
+            - if the operator is a PostgresOperator, look into the SQL and infer the inputs, outputs, and transformations.
+            - if the operator is a MySQLOperator, look into the SQL and infer the inputs, outputs, and transformations.
+            - if the operator is a OracleOperator, look into the SQL and infer the inputs, outputs, and transformations.
+            - if the operator is a SparkOperator, look into the Spark code and infer the inputs, outputs, and transformations.
+            - if the operator is a HiveOperator, look into the Hive code and infer the inputs, outputs, and transformations.
+            - if the operator is a KafkaOperator, look into the Kafka code and infer the inputs, outputs, and transformations.
+            - if the operator is a S3Operator, look into the S3 code and infer the inputs, outputs, and transformations.
+            - if the operator is a GCSOperator, look into the GCS code and infer the inputs, outputs, and transformations.
+            - if the operator is a FTPOperator, look into the FTP code and infer the inputs, outputs, and transformations.
+            - if the operator is a SFTPOperator, look into the SFTP code and infer the inputs, outputs, and transformations.
             Output Format:
             {
             "task_field_mappings": [
@@ -317,81 +330,125 @@ def airflow_lineage_field_derivation():
             ]
             }
 
-            ---
+  
 
-            Positive Example 1:
-
-            Input:
-            from airflow.operators.postgres_operator import PostgresOperator
-
-            t1 = PostgresOperator(
-                task_id='extract_data',
-                sql='SELECT * FROM users WHERE status = \'active\'',
-                postgres_conn_id='my_db'
-            )
-
-            Expected Output:
-            {
-            "task_field_mappings": [
-                {
-                "task_id": "extract_data",
-                "inputs": ["users.status"],
-                "outputs": ["users.*"],
-                "transformations": ["Filter rows where status = 'active'"]
-                }
-            ]
-            }
-
-            ---
-
-            Positive Example 2:
+            Positive Example :
 
             Input:
+            from airflow import DAG
             from airflow.operators.python import PythonOperator
+            from datetime import datetime
+            import pandas as pd
+            import numpy as np
+            import shutil
+      
+            def fetch_raw_data():
+                # Simulate a data pull or raw copy
+                shutil.copy('/data/source/raw_customers.csv', '/data/input/customers.csv')
 
-            def calculate_revenue():
-                df = pd.read_csv("sales.csv")
-                df["revenue"] = df["price"] * df["quantity"]
-                df.to_csv("revenue.csv", index=False)
+            def transform_customer_data():
+                df = pd.read_csv('/data/input/customers.csv')
 
-            t2 = PythonOperator(
-                task_id='compute_revenue',
-                python_callable=calculate_revenue
-            )
+                df['first_name'] = df['first_name'].str.strip().str.title()
+                df['last_name'] = df['last_name'].str.strip().str.title()
+                df['full_name'] = df['first_name'] + ' ' + df['last_name']
+
+                df['birthdate'] = pd.to_datetime(df['birthdate'])
+                df['age'] = (pd.Timestamp('today') - df['birthdate']).dt.days // 365
+
+                df['age_group'] = np.where(df['age'] >= 60, 'Senior',
+                                    np.where(df['age'] >= 30, 'Adult', 'Young'))
+
+                df = df[df['email'].notnull()]
+
+                df.to_csv('/data/output/cleaned_customers.csv', index=False)
+
+            def load_to_warehouse():
+                # Load cleaned data to customers_1 table in database
+                df = pd.read_csv('/data/output/cleaned_customers.csv')
+                
+                # Get database connection
+                pg_hook = PostgresHook(postgres_conn_id='warehouse_connection')
+                engine = pg_hook.get_sqlalchemy_engine()
+                
+                # Write to customers_1 table
+                df.to_sql('customers_1', engine, if_exists='replace', index=False)
+                
+                print(f"Successfully loaded {len(df)} records to customers_1 table")
+
+            default_args = {
+                'start_date': datetime(2025, 8, 1),
+            }
+
+            with DAG(
+                dag_id='customer_etl_pipeline_extended',
+                default_args=default_args,
+                schedule_interval='@daily',
+                catchup=False,
+                tags=['etl', 'example']
+            ) as dag:
+
+                ff = PythonOperator(
+                    task_id='fetch_data',
+                    python_callable=fetch_raw_data
+                )
+
+                tt = PythonOperator(
+                    task_id='transform_and_clean',
+                    python_callable=transform_customer_data
+                )
+
+                ll = PythonOperator(
+                    task_id='load_to_warehouse',
+            python_callable=load_to_warehouse
+                )
+
+                ff >> tt >> ll
 
             Expected Output:
             {
             "task_field_mappings": [
                 {
-                "task_id": "compute_revenue",
-                "inputs": ["sales.csv", "sales.price", "sales.quantity"],
-                "outputs": ["revenue.csv", "revenue"],
-                "transformations": ["Read CSV", "Compute revenue as price * quantity", "Write to CSV"]
+                "task_id": "fetch_data",
+                "operator": "PythonOperator",
+                "inputs": ["raw_customers.csv"],
+                "outputs": ["customers.csv"],
+                "transformations": ["Copy raw data to input directory"],    
+                "params": {
+                    "python_callable": "fetch_raw_data" 
+                },
+                "upstream": [],
+                "downstream": ["transform_and_clean"]
+                },
+                {
+                "task_id": "transform_and_clean",
+                "operator": "PythonOperator",
+                "inputs": ["customers.csv"],
+                "outputs": ["cleaned_customers.csv"],
+                "transformations": ["Transform and clean data"],
+                "params": {
+                    "python_callable": "transform_customer_data"
+                },
+                "upstream": ["fetch_data"],
+                "downstream": ["load_to_warehouse"]
+                },
+                {
+                "task_id": "load_to_warehouse",
+                "operator": "PythonOperator",
+                "inputs": ["cleaned_customers.csv"],
+                "outputs": ["customers_1"],
+                "transformations": ["Load cleaned data to customers_1 table in database"],
+                "params": {
+                    "python_callable": "load_to_warehouse"
+                },
+                "upstream": ["transform_and_clean"],
+                "downstream": []
                 }
             ]
             }
+  
 
-            ---
 
-            Negative Example 1:
-
-            Input:
-            from airflow.operators.bash import BashOperator
-
-            t3 = BashOperator(
-                task_id='run_script',
-                bash_command='python process.py'
-            )
-
-            Incorrect Output:
-            {
-            "run_script": "BashOperator"
-            }
-
-            Reason:
-            - The output is not structured as a `task_field_mappings` array.
-            - No `inputs`, `outputs`, or `transformations` are provided.
-            - It is missing the required nested dictionary format for proper parsing.
             """
 
 

@@ -109,8 +109,8 @@ def main():
             .config("spark.sql.adaptive.enabled", "true") \\
             .getOrCreate()
 
-        # Step 1: Load input CSV
-        df = spark.read.csv('/data/input/customers.csv', header=True, inferSchema=True)
+        # Step 1: Read from customer_3 table
+        df = spark.table('customer_3')
 
         # Step 2: Clean whitespace from names
         df = df.withColumn('first_name', col('first_name').cast('string').trim()) \\
@@ -132,8 +132,8 @@ def main():
         # Step 6: Filter out rows with missing email
         df = df.filter(col('email').isNotNull())
 
-        # Step 7: Write result to new CSV
-        df.write.mode('overwrite').csv('/data/output/cleaned_customers.csv', header=True)
+        # Step 7: Write result to customer_4 table
+        df.write.mode('overwrite').saveAsTable('customer_4')
     """
 
     # Run Spark lineage agent directly
