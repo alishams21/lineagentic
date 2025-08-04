@@ -1,0 +1,137 @@
+{
+    "eventType": "START",
+    "eventTime": "2025-08-04T15:00:00Z",
+    "run": {
+      "runId": "run-airflow-001",
+      "facets": {
+        "parent": {
+          "job": {
+            "name": "clean_sales_data_processing",
+            "namespace": "python-jobs"
+          },
+          "run": {
+            "runId": "abc12345-python-run"
+          }
+        }
+      }
+    },
+    "job": {
+      "facets": {
+        "jobType": {
+          "processingType": "BATCH",
+          "integration": "airflow",
+          "jobType": "orchestration",
+          "_producer": "https://my-company/pipeline/metadata",
+          "_schemaURL": "https://schemas.openlineage.io/jobType/1-0-0"
+        },
+        "sourceCode": {
+          "_producer": "https://my-company/pipeline/metadata",
+          "_schemaURL": "https://schemas.openlineage.io/sourceCode/1-0-0",
+          "language": "python",
+          "sourceCode": "def task():\n    df = pd.read_csv('/data/cleaned_sales.csv')\n    # trigger report generation...\n"
+        }
+      },
+      "name": "trigger_sales_report",
+      "namespace": "airflow-dags"
+    },
+    "inputs": [
+      {
+        "namespace": "data-lake",
+        "name": "analytics.cleaned_sales",
+        "facets": {
+          "schema": {
+            "_producer": "https://my-company/pipeline/metadata",
+            "_schemaURL": "https://schemas.openlineage.io/schema/1-0-0",
+            "fields": [
+              {
+                "name": "region",
+                "type": "string",
+                "description": "Sales region"
+              },
+              {
+                "name": "total_sales",
+                "type": "float",
+                "description": "Cleaned sales amount"
+              }
+            ]
+          },
+          "storage": {
+            "_producer": "https://my-company/pipeline/metadata",
+            "_schemaURL": "https://schemas.openlineage.io/storage/1-0-0",
+            "storageLayer": "s3",
+            "fileFormat": "csv"
+          },
+          "datasetType": {
+            "_producer": "https://my-company/pipeline/metadata",
+            "_schemaURL": "https://schemas.openlineage.io/datasetType/1-0-0",
+            "datasetType": "table",
+            "subType": "intermediate"
+          },
+          "lifecycleStateChange": {
+            "_producer": "https://my-company/pipeline/metadata",
+            "_schemaURL": "https://schemas.openlineage.io/lifecycleStateChange/1-0-0",
+            "lifecycleStateChange": "USED"
+          },
+          "ownership": {
+            "_producer": "https://my-company/pipeline/metadata",
+            "_schemaURL": "https://schemas.openlineage.io/ownership/1-0-0",
+            "owners": [
+              {
+                "name": "analytics@company.com",
+                "type": "group"
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "outputs": [
+      {
+        "namespace": "reporting",
+        "name": "final_sales_report",
+        "facets": {
+          "columnLineage": {
+            "_producer": "https://my-company/pipeline/metadata",
+            "_schemaURL": "https://schemas.openlineage.io/columnLineage/1-0-0",
+            "fields": {
+              "region": {
+                "inputFields": [
+                  {
+                    "namespace": "data-lake",
+                    "name": "analytics.cleaned_sales",
+                    "field": "region",
+                    "transformations": [
+                      {
+                        "type": "aggregation",
+                        "subtype": "none",
+                        "description": "Used directly for reporting",
+                        "masking": false
+                      }
+                    ]
+                  }
+                ]
+              },
+              "total_sales": {
+                "inputFields": [
+                  {
+                    "namespace": "data-lake",
+                    "name": "analytics.cleaned_sales",
+                    "field": "total_sales",
+                    "transformations": [
+                      {
+                        "type": "aggregation",
+                        "subtype": "sum",
+                        "description": "Aggregated for dashboard",
+                        "masking": false
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+  

@@ -1,5 +1,6 @@
 import json
 import os
+import glob
 from typing import Dict, List, Any, Optional
 
 def load_json_file(file_path: str) -> Dict[str, Any]:
@@ -7,12 +8,57 @@ def load_json_file(file_path: str) -> Dict[str, Any]:
     with open(file_path, 'r') as f:
         return json.load(f)
 
+def discover_and_load_json_files(directory: str) -> List[Dict[str, Any]]:
+    """Discover and load all JSON files in the given directory."""
+    json_files = []
+    
+    # Find all .json files in the directory
+    pattern = os.path.join(directory, '*.json')
+    json_file_paths = glob.glob(pattern)
+    
+    # Filter out the output file (nested_lineage_upstream.json)
+    json_file_paths = [f for f in json_file_paths if not f.endswith('nested_lineage_upstream.json')]
+    
+    print(f"Found {len(json_file_paths)} JSON files in {directory}:")
+    for file_path in json_file_paths:
+        filename = os.path.basename(file_path)
+        print(f"  - {filename}")
+    
+    # Load each JSON file
+    for file_path in json_file_paths:
+        try:
+            data = load_json_file(file_path)
+            
+            # Handle different file types
+            if isinstance(data, list):
+                # This is a nested structure file (like nested_lineage_upstream.json)
+                # Extract individual jobs from the list
+                for job in data:
+                    if isinstance(job, dict) and 'job' in job:
+                        json_files.append(job)
+            elif isinstance(data, dict) and 'job' in data:
+                # This is an individual job file
+                json_files.append(data)
+            else:
+                print(f"  ⚠ Skipping {os.path.basename(file_path)}: Not a valid job file")
+                continue
+                
+            print(f"  ✓ Loaded {os.path.basename(file_path)}")
+        except Exception as e:
+            print(f"  ✗ Failed to load {os.path.basename(file_path)}: {e}")
+    
+    return json_files
+
 def get_dataset_key(dataset: Dict[str, Any]) -> str:
     """Create a unique key for a dataset using namespace and name."""
     return f"{dataset['namespace']}.{dataset['name']}"
 
 def extract_inputs_and_outputs(job_data: Dict[str, Any]) -> tuple[List[Dict], List[Dict]]:
     """Extract inputs and outputs from a job."""
+    if isinstance(job_data, list):
+        # Handle case where job_data is a list (shouldn't happen with proper filtering)
+        return [], []
+    
     inputs = job_data.get('inputs', [])
     outputs = job_data.get('outputs', [])
     return inputs, outputs
@@ -56,22 +102,36 @@ def find_lineage_relationships(jobs: List[Dict[str, Any]]) -> Dict[str, List[str
     return lineage_map
 
 def create_nested_structure_in_outputs(jobs: List[Dict[str, Any]], lineage_map: Dict[str, List[str]]) -> List[Dict[str, Any]]:
-    """Create nested structure where downstream jobs are nested within the outputs field of upstream jobs."""
+    """Create nested structure where downstream jobs are nested within the outputs field of upstream jobs using recursion."""
     nested_jobs = []
     jobs_to_remove = set()  # Track jobs that should be removed from final output
     
+    # Find the most upstream jobs (jobs that are not produced by any other job)
+    upstream_jobs = set()
     for i, job in enumerate(jobs):
-        # Create a deep copy of the job for nesting
-        nested_job = json.loads(json.dumps(job))  # Deep copy
+        is_upstream = True
+        for producer_idx, consumer_indices in lineage_map.items():
+            if i in consumer_indices:  # This job is consumed by another job
+                is_upstream = False
+                break
+        if is_upstream:
+            upstream_jobs.add(i)
+    
+    def nest_downstream_jobs(job_idx: int, job_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Recursively nest downstream jobs within the outputs of a job."""
+        nested_job = json.loads(json.dumps(job_data))  # Deep copy
         
         # Check if this job produces outputs that are consumed by other jobs
-        if i in lineage_map:
+        if job_idx in lineage_map:
             # For each output in this job, check if it's consumed by downstream jobs
             for output in nested_job.get('outputs', []):
                 output_key = get_dataset_key(output)
                 
                 # Find which downstream jobs consume this job's outputs
-                for consumer_job_idx in lineage_map[i]:
+                for consumer_job_idx in lineage_map[job_idx]:
+                    if consumer_job_idx in jobs_to_remove:
+                        continue  # Skip jobs that are already marked for removal
+                        
                     consumer_job = jobs[consumer_job_idx]
                     consumer_inputs, consumer_outputs = extract_inputs_and_outputs(consumer_job)
                     
@@ -85,22 +145,25 @@ def create_nested_structure_in_outputs(jobs: List[Dict[str, Any]], lineage_map: 
                             if 'consuming_jobs' not in output:
                                 output['consuming_jobs'] = []
                             
-                            # Add the consumer job as a consumer
+                            # Recursively nest downstream jobs within the consumer job
+                            nested_consumer_job = nest_downstream_jobs(consumer_job_idx, consumer_job)
+                            
+                            # Add the nested consumer job as a consumer
                             consumer_job_info = {
-                                'job_name': consumer_job.get('job', {}).get('name', f'Job-{consumer_job_idx}'),
-                                'job_namespace': consumer_job.get('job', {}).get('namespace', 'unknown'),
-                                'run_id': consumer_job.get('run', {}).get('runId', 'unknown'),
-                                'event_time': consumer_job.get('eventTime', 'unknown'),
-                                'job_type': consumer_job.get('job', {}).get('facets', {}).get('jobType', {}).get('jobType', 'unknown'),
-                                'integration': consumer_job.get('job', {}).get('facets', {}).get('jobType', {}).get('integration', 'unknown'),
-                                'original_outputs': consumer_outputs,
-                                'original_inputs': consumer_inputs,
-                                'facets': consumer_job.get('job', {}).get('facets', {}),
-                                'run': consumer_job.get('run', {}),
-                                'eventType': consumer_job.get('eventType', ''),
-                                'eventTime': consumer_job.get('eventTime', ''),
-                                'inputs': consumer_job.get('inputs', []),
-                                'outputs': consumer_job.get('outputs', [])
+                                'job_name': nested_consumer_job.get('job', {}).get('name', f'Job-{consumer_job_idx}'),
+                                'job_namespace': nested_consumer_job.get('job', {}).get('namespace', 'unknown'),
+                                'run_id': nested_consumer_job.get('run', {}).get('runId', 'unknown'),
+                                'event_time': nested_consumer_job.get('eventTime', 'unknown'),
+                                'job_type': nested_consumer_job.get('job', {}).get('facets', {}).get('jobType', {}).get('jobType', 'unknown'),
+                                'integration': nested_consumer_job.get('job', {}).get('facets', {}).get('jobType', {}).get('integration', 'unknown'),
+                                'original_outputs': nested_consumer_job.get('outputs', []),
+                                'original_inputs': nested_consumer_job.get('inputs', []),
+                                'facets': nested_consumer_job.get('job', {}).get('facets', {}),
+                                'run': nested_consumer_job.get('run', {}),
+                                'eventType': nested_consumer_job.get('eventType', ''),
+                                'eventTime': nested_consumer_job.get('eventTime', ''),
+                                'inputs': nested_consumer_job.get('inputs', []),
+                                'outputs': nested_consumer_job.get('outputs', [])
                             }
                             
                             output['consuming_jobs'].append(consumer_job_info)
@@ -115,10 +178,15 @@ def create_nested_structure_in_outputs(jobs: List[Dict[str, Any]], lineage_map: 
                             # Mark the consumer job for removal from final output
                             jobs_to_remove.add(consumer_job_idx)
         
+        return nested_job
+    
+    # Process jobs in order, starting with the most upstream jobs
+    for i, job in enumerate(jobs):
+        nested_job = nest_downstream_jobs(i, job)
         nested_jobs.append(nested_job)
     
-    # Remove the downstream jobs from the final output
-    final_jobs = [job for i, job in enumerate(nested_jobs) if i not in jobs_to_remove]
+    # Keep only the upstream jobs in the final output
+    final_jobs = [job for i, job in enumerate(nested_jobs) if i in upstream_jobs]
     
     return final_jobs
 
@@ -127,25 +195,20 @@ def analyze_and_nest_lineage():
     # Get the directory of the current script
     current_dir = os.path.dirname(os.path.abspath(__file__))
     
-    # Load the JSON files
-    python_file = os.path.join(current_dir, 'python.json')
-    sql_file = os.path.join(current_dir, 'sql.json')
+    # Try to load all JSON files from current directory
+    jobs = discover_and_load_json_files(current_dir)
     
-    # Check if files exist in current directory, otherwise look in simple_version
-    if not os.path.exists(python_file):
+    # If no files found in current directory, try simple_version directory
+    if not jobs:
         simple_version_dir = os.path.join(current_dir, '..', 'simple_version')
-        python_file = os.path.join(simple_version_dir, 'python.json')
-        sql_file = os.path.join(simple_version_dir, 'sql.json')
+        print(f"\nNo JSON files found in current directory. Trying {simple_version_dir}...")
+        jobs = discover_and_load_json_files(simple_version_dir)
     
-    try:
-        python_data = load_json_file(python_file)
-        sql_data = load_json_file(sql_file)
-    except FileNotFoundError as e:
-        print(f"Error: Could not find JSON files. {e}")
+    if not jobs:
+        print("Error: No JSON files found in either directory.")
         return
     
-    # Create list of jobs
-    jobs = [sql_data, python_data]
+    print(f"\nLoaded {len(jobs)} JSON files for analysis")
     
     # Find lineage relationships
     lineage_map = find_lineage_relationships(jobs)
@@ -197,65 +260,57 @@ def print_detailed_analysis():
     """Print detailed analysis of the lineage relationships."""
     current_dir = os.path.dirname(os.path.abspath(__file__))
     
-    # Load the JSON files
-    python_file = os.path.join(current_dir, 'python.json')
-    sql_file = os.path.join(current_dir, 'sql.json')
+    # Load all JSON files from current directory
+    jobs = discover_and_load_json_files(current_dir)
     
-    if not os.path.exists(python_file):
+    # If no files found in current directory, try simple_version directory
+    if not jobs:
         simple_version_dir = os.path.join(current_dir, '..', 'simple_version')
-        python_file = os.path.join(simple_version_dir, 'python.json')
-        sql_file = os.path.join(simple_version_dir, 'sql.json')
+        print(f"\nNo JSON files found in current directory. Trying {simple_version_dir}...")
+        jobs = discover_and_load_json_files(simple_version_dir)
     
-    try:
-        python_data = load_json_file(python_file)
-        sql_data = load_json_file(sql_file)
-    except FileNotFoundError as e:
-        print(f"Error: Could not find JSON files. {e}")
+    if not jobs:
+        print("Error: No JSON files found in either directory.")
         return
     
     print("=== Detailed Lineage Analysis ===")
     
-    # Analyze SQL job
-    sql_inputs, sql_outputs = extract_inputs_and_outputs(sql_data)
-    sql_name = sql_data.get('job', {}).get('name', 'SQL Job')
+    # Analyze each job
+    for i, job in enumerate(jobs):
+        inputs, outputs = extract_inputs_and_outputs(job)
+        job_name = job.get('job', {}).get('name', f'Job-{i}')
+        
+        print(f"\n{job_name}:")
+        print("  Inputs:")
+        for input_dataset in inputs:
+            input_key = get_dataset_key(input_dataset)
+            print(f"    - {input_key}")
+        
+        print("  Outputs:")
+        for output_dataset in outputs:
+            output_key = get_dataset_key(output_dataset)
+            print(f"    - {output_key}")
     
-    print(f"\n{sql_name}:")
-    print("  Inputs:")
-    for input_dataset in sql_inputs:
-        input_key = get_dataset_key(input_dataset)
-        print(f"    - {input_key}")
-    
-    print("  Outputs:")
-    for output_dataset in sql_outputs:
-        output_key = get_dataset_key(output_dataset)
-        print(f"    - {output_key}")
-    
-    # Analyze Python job
-    python_inputs, python_outputs = extract_inputs_and_outputs(python_data)
-    python_name = python_data.get('job', {}).get('name', 'Python Job')
-    
-    print(f"\n{python_name}:")
-    print("  Inputs:")
-    for input_dataset in python_inputs:
-        input_key = get_dataset_key(input_dataset)
-        print(f"    - {input_key}")
-    
-    print("  Outputs:")
-    for output_dataset in python_outputs:
-        output_key = get_dataset_key(output_dataset)
-        print(f"    - {output_key}")
-    
-    # Check for lineage relationships
+    # Check for lineage relationships between all jobs
     print("\n=== Lineage Relationships ===")
-    sql_output_keys = [get_dataset_key(output) for output in sql_outputs]
-    python_input_keys = [get_dataset_key(input_dataset) for input_dataset in python_inputs]
-    
-    for sql_output_key in sql_output_keys:
-        if sql_output_key in python_input_keys:
-            print(f"✓ {sql_name} produces '{sql_output_key}' which is consumed by {python_name}")
-            print(f"  This creates a lineage relationship where {sql_name} feeds into {python_name}")
-            print(f"  The {python_name} information will be nested within the {sql_name}'s outputs")
-            print(f"  Only the {sql_name} will be kept in the final output")
+    for i, job1 in enumerate(jobs):
+        job1_name = job1.get('job', {}).get('name', f'Job-{i}')
+        job1_inputs, job1_outputs = extract_inputs_and_outputs(job1)
+        job1_output_keys = [get_dataset_key(output) for output in job1_outputs]
+        
+        for j, job2 in enumerate(jobs):
+            if i != j:  # Don't compare job with itself
+                job2_name = job2.get('job', {}).get('name', f'Job-{j}')
+                job2_inputs, job2_outputs = extract_inputs_and_outputs(job2)
+                job2_input_keys = [get_dataset_key(input_dataset) for input_dataset in job2_inputs]
+                
+                # Check if job1's outputs are consumed by job2
+                for output_key in job1_output_keys:
+                    if output_key in job2_input_keys:
+                        print(f"✓ {job1_name} produces '{output_key}' which is consumed by {job2_name}")
+                        print(f"  This creates a lineage relationship where {job1_name} feeds into {job2_name}")
+                        print(f"  The {job2_name} information will be nested within the {job1_name}'s outputs")
+                        print(f"  Only the {job1_name} will be kept in the final output")
 
 if __name__ == "__main__":
     print("Starting lineage analysis...")
