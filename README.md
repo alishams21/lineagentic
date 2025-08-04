@@ -1,6 +1,11 @@
+
+<div align="center">
+  <img src="images/logo.svg" alt="Lineagentic Logo" width="280" height="60">
+</div>
+
 # Lineagentic
 
-Lineagentic is an agentic method designed to extract data lineage across diverse types of data processing scripts.
+Lineagentic is an agentic ai solution for extracting data lineage across diverse types of data processing scripts.
 
 ## Features
 

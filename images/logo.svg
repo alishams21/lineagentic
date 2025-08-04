@@ -1,0 +1,94 @@
+<svg width="280" height="60" viewBox="0 0 280 60" xmlns="http://www.w3.org/2000/svg">
+  <!-- Original nodes -->
+  <circle cx="16" cy="16" r="2.5" fill="#60a5fa" />
+  <circle cx="32" cy="12" r="2" fill="#34d399" />
+  <circle cx="44" cy="14" r="2.2" fill="#fbbf24" />
+  <circle cx="80" cy="20" r="2.5" fill="#3b82f6" />
+  <circle cx="12" cy="48" r="2" fill="#10b981" />
+  <circle cx="36" cy="52" r="2.5" fill="#f59e0b" />
+  <circle cx="84" cy="44" r="2.2" fill="#60a5fa" />
+  <circle cx="48" cy="32" r="3.5" fill="#8b5cf6" />
+  
+  <!-- Additional nodes for enhanced lineage -->
+  <circle cx="60" cy="8" r="2.3" fill="#ef4444" />
+  <circle cx="24" cy="36" r="2.1" fill="#06b6d4" />
+  <circle cx="68" cy="56" r="2.4" fill="#84cc16" />
+  
+  <!-- New nodes for data sources -->
+  <circle cx="8" cy="8" r="2" fill="#f97316" />
+  
+  <!-- New nodes for processing steps -->
+  <circle cx="72" cy="12" r="2.3" fill="#eab308" />
+  <circle cx="96" cy="28" r="2.4" fill="#f43f5e" />
+  
+  <!-- New nodes for intermediate results -->
+  <circle cx="64" cy="24" r="2.2" fill="#8b5cf6" />
+  <circle cx="76" cy="36" r="2.3" fill="#10b981" />
+  
+  <!-- New nodes for outputs -->
+  <circle cx="100" cy="48" r="2.5" fill="#3b82f6" />
+  <circle cx="88" cy="52" r="2.2" fill="#ef4444" />
+  
+  <!-- New nodes for data sinks -->
+  <circle cx="20" cy="56" r="2.1" fill="#f97316" />
+  <circle cx="40" cy="58" r="2.2" fill="#14b8a6" />
+  <circle cx="56" cy="54" r="2.3" fill="#a855f7" />
+  
+  <!-- Original edges -->
+  <g stroke="#a855f7" stroke-width="1" fill="none" opacity="0.6">
+    <path d="M21 17 L41 32" />
+    <path d="M36 15 L44 28" />
+    <path d="M49 18 L50 26" />
+    <path d="M75 20 L55 32" />
+    <path d="M16 44 L41 48" />
+    <path d="M41 48 L44 38" />
+    <path d="M79 44 L55 36" />
+    
+    <!-- New edges connecting to new nodes -->
+    <path d="M44 14 L60 8" />
+    <path d="M60 8 L48 32" />
+    <path d="M16 16 L24 36" />
+    <path d="M24 36 L36 52" />
+    <path d="M84 44 L68 56" />
+    <path d="M68 56 L36 52" />
+    
+    <!-- Data source connections -->
+    <path d="M8 8 L16 16" />
+    <path d="M60 8 L72 12" />
+    
+    <!-- Processing flow -->
+    <path d="M72 12 L80 20" />
+    <path d="M80 20 L96 28" />
+    <path d="M96 28 L100 48" />
+    
+    <!-- Intermediate processing -->
+    <path d="M80 20 L64 24" />
+    <path d="M64 24 L76 36" />
+    <path d="M76 36 L88 52" />
+    
+    <!-- Cross connections for complex lineage -->
+    <path d="M64 24 L48 32" />
+    <path d="M76 36 L84 44" />
+    
+    <!-- Data sink connections -->
+    <path d="M12 48 L20 56" />
+    <path d="M36 52 L40 58" />
+    <path d="M68 56 L56 54" />
+    
+    <!-- Additional cross-connections -->
+    <path d="M24 36 L64 24" />
+    <path d="M48 32 L76 36" />
+    <path d="M60 8 L64 24" />
+  </g>
+  
+  <defs>
+    <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#2563eb" />
+      <stop offset="50%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#ec4899" />
+    </linearGradient>
+  </defs>
+  
+  <text x="110" y="28" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="url(#textGradient)">Lineagentic</text>
+  <text x="110" y="44" font-family="Arial, sans-serif" font-size="12" fill="#6b7280">Agentic Data Lineage Extraction</text>
+</svg> 
