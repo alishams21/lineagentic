@@ -1,0 +1,126 @@
+{
+    "eventType": "START",
+    "eventTime": "2025-08-04T08:00:00Z",
+    "run": {
+      "runId": "xyz98765-sql-run",
+      "facets": {}
+    },
+    "job": {
+      "facets": {
+        "sql": {
+          "_producer": "https://my-company/pipeline/metadata",
+          "_schemaURL": "https://schemas.openlineage.io/sql/1-0-0",
+          "query": "CREATE TABLE analytics.sales_summary AS SELECT region, SUM(sales) AS total_sales FROM raw.sales_data GROUP BY region"
+        },
+        "jobType": {
+          "processingType": "BATCH",
+          "integration": "dbt",
+          "jobType": "sql_transform",
+          "_producer": "https://my-company/pipeline/metadata",
+          "_schemaURL": "https://schemas.openlineage.io/jobType/1-0-0"
+        }
+      },
+      "name": "generate_sales_summary",
+      "namespace": "sql-jobs"
+    },
+    "inputs": [
+      {
+        "namespace": "warehouse",
+        "name": "raw.sales_data",
+        "facets": {
+          "schema": {
+            "_producer": "https://my-company/pipeline/metadata",
+            "_schemaURL": "https://schemas.openlineage.io/schema/1-0-0",
+            "fields": [
+              {
+                "name": "region",
+                "type": "string",
+                "description": "Region of the sale"
+              },
+              {
+                "name": "sales",
+                "type": "float",
+                "description": "Amount of sale"
+              }
+            ]
+          },
+          "storage": {
+            "_producer": "https://my-company/pipeline/metadata",
+            "_schemaURL": "https://schemas.openlineage.io/storage/1-0-0",
+            "storageLayer": "snowflake",
+            "fileFormat": "parquet"
+          },
+          "datasetType": {
+            "_producer": "https://my-company/pipeline/metadata",
+            "_schemaURL": "https://schemas.openlineage.io/datasetType/1-0-0",
+            "datasetType": "table",
+            "subType": "source"
+          },
+          "lifecycleStateChange": {
+            "_producer": "https://my-company/pipeline/metadata",
+            "_schemaURL": "https://schemas.openlineage.io/lifecycleStateChange/1-0-0",
+            "lifecycleStateChange": "USED"
+          },
+          "ownership": {
+            "_producer": "https://my-company/pipeline/metadata",
+            "_schemaURL": "https://schemas.openlineage.io/ownership/1-0-0",
+            "owners": [
+              {
+                "name": "etl_team@company.com",
+                "type": "group"
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "outputs": [
+      {
+        "namespace": "data-lake",
+        "name": "analytics.sales_summary",
+        "facets": {
+          "columnLineage": {
+            "_producer": "https://my-company/pipeline/metadata",
+            "_schemaURL": "https://schemas.openlineage.io/columnLineage/1-0-0",
+            "fields": {
+              "region": {
+                "inputFields": [
+                  {
+                    "namespace": "warehouse",
+                    "name": "raw.sales_data",
+                    "field": "region",
+                    "transformations": [
+                      {
+                        "type": "sql_expression",
+                        "subtype": "group_by",
+                        "description": "GROUP BY region",
+                        "masking": false
+                      }
+                    ]
+                  }
+                ]
+              },
+              "total_sales": {
+                "inputFields": [
+                  {
+                    "namespace": "warehouse",
+                    "name": "raw.sales_data",
+                    "field": "sales",
+                    "transformations": [
+                      {
+                        "type": "sql_expression",
+                        "subtype": "aggregate",
+                        "description": "SUM(sales)",
+                        "masking": false
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+  

@@ -1,0 +1,59 @@
+{
+  "metadata": {
+    "version": "2.0",
+    "description": "Nested hierarchical data lineage",
+    "total_jobs": 2,
+    "root_jobs": 1,
+    "generated_at": "2025-08-04T20:48:37.187347Z"
+  },
+  "lineage": [
+    {
+      "id": "xyz98765-sql-run",
+      "name": "generate_sales_summary",
+      "namespace": "sql-jobs",
+      "type": "sql_transform",
+      "integration": "dbt",
+      "eventTime": "2025-08-04T08:00:00Z",
+      "inputs": [
+        {
+          "namespace": "warehouse",
+          "name": "raw.sales_data"
+        }
+      ],
+      "outputs": [
+        {
+          "namespace": "data-lake",
+          "name": "analytics.sales_summary"
+        }
+      ],
+      "children": [
+        {
+          "id": "abc12345-python-run",
+          "name": "unknown",
+          "namespace": "unknown",
+          "type": "data_cleaning",
+          "integration": "pandas",
+          "eventTime": "2025-08-04T12:00:00Z",
+          "inputs": [
+            {
+              "namespace": "data-lake",
+              "name": "analytics.sales_summary"
+            }
+          ],
+          "outputs": [
+            {
+              "namespace": "data-lake",
+              "name": "analytics.cleaned_sales"
+            }
+          ],
+          "children": [],
+          "parent": {
+            "id": "xyz98765-sql-run",
+            "name": "generate_sales_summary",
+            "connecting_dataset": "data-lake::analytics.sales_summary"
+          }
+        }
+      ]
+    }
+  ]
+}
