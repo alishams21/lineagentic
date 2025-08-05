@@ -17,7 +17,7 @@ Lineagentic is an agentic ai solution for building end-to-end data lineage acros
 
 ## Agent Status Table
 
-Following table shows the current development status of each scrypt in the Lineagentic system:
+Following table shows the current development agents in Lineagentic algorithm:
 
 
 | **Agent Name**       | **Done** | **Under Development** | **In Backlog** | **Comment**                          |
