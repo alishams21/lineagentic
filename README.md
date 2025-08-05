@@ -31,7 +31,7 @@ Following table shows the current development agents in Lineagentic algorithm:
 | beam_lineeage_agent         |          |                        | ✓              |            |
 | shell_lineeage_agent         |          |                        | ✓              |            |
 | scala_lineeage_agent         |          |                        | ✓              |            |
-
+| dbt_lineeage_agent         |          |                        | ✓              |            |
 
 
 ### What are the components of Lineagentic?
