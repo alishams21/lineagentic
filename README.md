@@ -1,6 +1,6 @@
 
 <div align="center">
-  <img src="images/logo.svg" alt="Lineagentic Logo" width="280" height="60">
+  <img src="images/logo2.svg" alt="Lineagentic Logo" width="880" height="300">
 </div>
 
 ## Lineagentic
