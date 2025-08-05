@@ -45,6 +45,7 @@ def event_composer_instructions(name: str):
     and return only the JSON format.
     3. you show have all the fields mentioned in following json schema, either filled in
     based on the data provided or leave it as default mentioned following:
+    4. only produce exact following json format with filled in information above, do not add any text.
             {
                 "eventType": "START",
                 "eventTime": "<ISO_TIMESTAMP>",

@@ -1,7 +1,7 @@
 # LineAgent Project Makefile
 # Centralized build and development commands
 
-.PHONY: help create-venv activate-venv run-start-api-server-with-venv run-start-demo-server-with-venv install-lineage-visualizer-dependencies start-lineage-visualizer stop-lineage-visualizer start-watchdog stop-watchdog clean gradio-deploy query-logs clean-pycache stop-api-server stop-demo-server test test-tracers test-database test-api-server test-verbose test-module
+.PHONY: help create-venv activate-venv run-start-api-server-with-venv run-start-demo-server-with-venv install-lineage-visualizer-dependencies start-lineage-visualizer stop-lineage-visualizer start-watchdog stop-watchdog clean gradio-deploy query-logs clean-pycache stop-api-server stop-demo-server test test-tracers test-database test-api-server test-verbose test-module build-eoe-lineage
 
 help:
 	@echo "🚀 LineAgent Project"
@@ -27,6 +27,9 @@ help:
 	@echo "  make stop-api-server - Stop API server"
 	@echo "  make stop-demo-server - Stop demo server"
 	@echo "  make query-logs  - Query recent logs from agents_logs.db"
+	@echo ""
+	@echo "Lineage commands:"
+	@echo "  make build-eoe-lineage - Build EOE lineage from extraction dumps"
 	@echo ""
 	@echo "Testing commands:"
 	@echo "  make test       - Run all tests"
@@ -321,4 +324,16 @@ query-logs:
 	else \
 		echo "❌ Database file not found: agents_log_db/agents_logs.db"; \
 		echo "   Make sure the database exists before querying."; \
+	fi
+
+# Build EOE lineage from extraction dumps
+build-eoe-lineage:
+	@echo "🔗 Building EOE lineage from extraction dumps..."
+	@if [ -d "lineage_extraction_dumps" ]; then \
+		python lineage_visualizer/eoe_lineage_builder.py; \
+		echo "✅ EOE lineage built successfully!"; \
+		echo "📁 Output saved to: lineage_extraction_dumps/eoe_lineage.json"; \
+	else \
+		echo "❌ Directory not found: lineage_extraction_dumps"; \
+		echo "   Make sure the lineage_extraction_dumps directory exists with JSON files."; \
 	fi 
