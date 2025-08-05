@@ -5,7 +5,7 @@
 
 ## Lineagentic
 
-Lineagentic is an agentic ai solution for building end-to-end data lineage across diverse types of data processing scripts.
+Lineagentic is an agentic ai solution for building end-to-end data lineage across diverse types of data processing scripts across different platforms.
 
 ### Features
 
