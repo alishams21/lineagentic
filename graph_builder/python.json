@@ -1,0 +1,135 @@
+{
+    "eventType": "START",
+    "eventTime": "2025-08-04T12:00:00Z",
+    "run": {
+      "runId": "abc12345-python-run",
+      "facets": {
+        "parent": {
+          "job": {
+            "name": "generate_sales_summary",
+            "namespace": "sql-jobs"
+          },
+          "run": {
+            "runId": "xyz98765-sql-run"
+          }
+        }
+      }
+    },
+    "job": {
+      "facets": {
+        "sourceCode": {
+          "_producer": "https://my-company/pipeline/metadata",
+          "_schemaURL": "https://schemas.openlineage.io/sourceCode/1-0-0",
+          "language": "python",
+          "sourceCode": "import pandas as pd\nsales = pd.read_csv('/data/sales_summary.csv')\n..."
+        },
+        "jobType": {
+          "processingType": "BATCH",
+          "integration": "pandas",
+          "jobType": "data_cleaning",
+          "_producer": "https://my-company/pipeline/metadata",
+          "_schemaURL": "https://schemas.openlineage.io/jobType/1-0-0"
+        }
+      }
+    },
+    "inputs": [
+      {
+        "namespace": "data-lake",
+        "name": "analytics.sales_summary",
+        "facets": {
+          "schema": {
+            "_producer": "https://my-company/pipeline/metadata",
+            "_schemaURL": "https://schemas.openlineage.io/schema/1-0-0",
+            "fields": [
+              {
+                "name": "region",
+                "type": "string",
+                "description": "Sales region"
+              },
+              {
+                "name": "total_sales",
+                "type": "float",
+                "description": "Total sales amount"
+              }
+            ]
+          },
+          "storage": {
+            "_producer": "https://my-company/pipeline/metadata",
+            "_schemaURL": "https://schemas.openlineage.io/storage/1-0-0",
+            "storageLayer": "s3",
+            "fileFormat": "csv"
+          },
+          "datasetType": {
+            "_producer": "https://my-company/pipeline/metadata",
+            "_schemaURL": "https://schemas.openlineage.io/datasetType/1-0-0",
+            "datasetType": "table",
+            "subType": "external"
+          },
+          "lifecycleStateChange": {
+            "_producer": "https://my-company/pipeline/metadata",
+            "_schemaURL": "https://schemas.openlineage.io/lifecycleStateChange/1-0-0",
+            "lifecycleStateChange": "USED"
+          },
+          "ownership": {
+            "_producer": "https://my-company/pipeline/metadata",
+            "_schemaURL": "https://schemas.openlineage.io/ownership/1-0-0",
+            "owners": [
+              {
+                "name": "data.engineering@company.com",
+                "type": "group"
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "outputs": [
+      {
+        "namespace": "data-lake",
+        "name": "analytics.cleaned_sales",
+        "facets": {
+          "columnLineage": {
+            "_producer": "https://my-company/pipeline/metadata",
+            "_schemaURL": "https://schemas.openlineage.io/columnLineage/1-0-0",
+            "fields": {
+              "region": {
+                "inputFields": [
+                  {
+                    "namespace": "data-lake",
+                    "name": "analytics.sales_summary",
+                    "field": "region",
+                    "transformations": [
+                      {
+                        "type": "cleaning",
+                        "subtype": "whitespace_trim",
+                        "description": "Removed whitespace and standardized casing",
+                        "masking": false
+                      }
+                    ]
+                  }
+                ]
+              },
+              "total_sales": {
+                "inputFields": [
+                  {
+                    "namespace": "data-lake",
+                    "name": "analytics.sales_summary",
+                    "field": "total_sales",
+                    "transformations": [
+                      {
+                        "type": "transformation",
+                        "subtype": "type_cast",
+                        "description": "Cast from string to float",
+                        "masking": false
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+  
