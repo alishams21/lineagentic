@@ -53,15 +53,19 @@ class JSONFileHandler(FileSystemEventHandler):
         for json_file in self.watch_directory.glob("*.json"):
             self._initialize_single_file_tracking(json_file)
     
-    def _initialize_single_file_tracking(self, json_file):
+    def _initialize_single_file_tracking(self, json_file, is_new_file=False):
         """Initialize tracking for a single JSON file."""
         if json_file not in self.file_trackers:
+            # For new files detected via on_created, always start with 0
+            # For existing files during startup, use current line count
+            initial_line_count = 0 if is_new_file else self._get_line_count(json_file)
+            
             self.file_trackers[json_file] = {
                 'last_modified': 0,
                 'last_content': None,
-                'last_line_count': self._get_line_count(json_file)
+                'last_line_count': initial_line_count
             }
-            logger.info(f"📄 Initialized tracking for: {json_file.name}")
+            logger.info(f"📄 Initialized tracking for: {json_file.name} with line count: {initial_line_count}")
     
     def _get_line_count(self, json_file):
         """Get the number of non-empty lines in the file."""
@@ -140,7 +144,7 @@ class JSONFileHandler(FileSystemEventHandler):
                 temp_file.unlink()
                 logger.info(f"🗑️ Cleaned up temporary file after error: {temp_file}")
     
-    def _handle_file_change(self, json_file):
+    def _handle_file_change(self, json_file, is_new_file=False):
         """Handle changes to a specific JSON file."""
         if not json_file.exists():
             logger.warning(f"⚠️ File no longer exists: {json_file}")
@@ -153,7 +157,7 @@ class JSONFileHandler(FileSystemEventHandler):
         tracker = self.file_trackers[json_file]
         current_line_count = self._get_line_count(json_file)
         
-        # Check if new records were added
+        # Check if new records were added (including for new files)
         if current_line_count > tracker['last_line_count']:
             logger.info(f"🆕 New records detected in {json_file.name}! Line count: {tracker['last_line_count']} → {current_line_count}")
             
@@ -208,8 +212,8 @@ class JSONFileHandler(FileSystemEventHandler):
         file_path = Path(event.src_path)
         if file_path.parent == self.watch_directory and file_path.suffix == '.json':
             logger.info(f"📄 New JSON file created: {file_path.name}")
-            # Initialize tracking for the new file
-            self._initialize_single_file_tracking(file_path)
+            # Initialize tracking for the new file with is_new_file=True
+            self._initialize_single_file_tracking(file_path, is_new_file=True)
             # Handle any initial content
             self._handle_file_change(file_path)
     
