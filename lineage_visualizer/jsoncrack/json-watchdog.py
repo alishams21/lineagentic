@@ -36,6 +36,8 @@ class JSONFileHandler(FileSystemEventHandler):
         self.generator_script = Path(generator_script)
         self.file_trackers = {}  # Track each file's state
         self.last_modified = 0
+        self.error_count = {}  # Track error counts per file
+        self.max_retries = 3
         
         # Ensure the watch directory exists
         if not self.watch_directory.exists():
@@ -63,8 +65,10 @@ class JSONFileHandler(FileSystemEventHandler):
             self.file_trackers[json_file] = {
                 'last_modified': 0,
                 'last_content': None,
-                'last_line_count': initial_line_count
+                'last_line_count': initial_line_count,
+                'last_processed_time': 0
             }
+            self.error_count[json_file] = 0
             logger.info(f"📄 Initialized tracking for: {json_file.name} with line count: {initial_line_count}")
     
     def _get_line_count(self, json_file):
@@ -93,6 +97,8 @@ class JSONFileHandler(FileSystemEventHandler):
                             records.append(record)
                         except json.JSONDecodeError as e:
                             logger.error(f"❌ Invalid JSON on line {line_num} in {json_file.name}: {e}")
+                            # Log first 200 chars of problematic line
+                            logger.error(f"📄 Problematic line preview: {line[:200]}...")
                             continue
             return records
         except Exception as e:
@@ -108,6 +114,7 @@ class JSONFileHandler(FileSystemEventHandler):
     
     def _call_json_generator(self, json_data, source_file):
         """Call the JSON generator script with the provided data."""
+        temp_file = None
         try:
             logger.info(f"📤 Calling JSON generator with last record from {source_file.name}")
             
@@ -117,32 +124,46 @@ class JSONFileHandler(FileSystemEventHandler):
                 json.dump(json_data, f, indent=2)
             
             logger.info(f"📄 Created temporary file: {temp_file}")
-            logger.info(f"📊 JSON data: {json.dumps(json_data, indent=2)[:200]}...")
+            logger.info(f"📊 JSON data size: {len(json.dumps(json_data))} characters")
             
             # Call the Node.js script with the temporary file
             result = subprocess.run([
                 'node', str(self.generator_script),
                 '--input-file', str(temp_file)
-            ], capture_output=True, text=True, cwd=self.generator_script.parent)
+            ], capture_output=True, text=True, cwd=self.generator_script.parent, timeout=30)
             
-            # Clean up temporary file
-            if temp_file.exists():
-                temp_file.unlink()
-                logger.info(f"🗑️ Cleaned up temporary file: {temp_file}")
+            # Clean up temporary file immediately after passing to Node.js
+            if temp_file and temp_file.exists():
+                try:
+                    temp_file.unlink()
+                    logger.info(f"🗑️ Cleaned up temporary file: {temp_file}")
+                except Exception as e:
+                    logger.error(f"❌ Error cleaning up temp file: {e}")
             
             if result.returncode == 0:
                 logger.info("✅ JSON generator executed successfully")
                 if result.stdout:
                     logger.info(f"📋 Output: {result.stdout.strip()}")
+                # Reset error count on success
+                self.error_count[source_file] = 0
             else:
                 logger.error(f"❌ JSON generator failed: {result.stderr}")
+                self.error_count[source_file] = self.error_count.get(source_file, 0) + 1
                 
+        except subprocess.TimeoutExpired:
+            logger.error(f"❌ JSON generator timed out after 30 seconds")
+            self.error_count[source_file] = self.error_count.get(source_file, 0) + 1
         except Exception as e:
             logger.error(f"❌ Error calling JSON generator: {e}")
-            # Clean up temp file even if there's an error
-            if 'temp_file' in locals() and temp_file.exists():
-                temp_file.unlink()
-                logger.info(f"🗑️ Cleaned up temporary file after error: {temp_file}")
+            self.error_count[source_file] = self.error_count.get(source_file, 0) + 1
+        finally:
+            # Final cleanup in case the above cleanup failed
+            if temp_file and temp_file.exists():
+                try:
+                    temp_file.unlink()
+                    logger.info(f"🗑️ Final cleanup of temporary file: {temp_file}")
+                except Exception as e:
+                    logger.error(f"❌ Error in final cleanup of temp file: {e}")
     
     def _handle_file_change(self, json_file, is_new_file=False):
         """Handle changes to a specific JSON file."""
@@ -152,14 +173,20 @@ class JSONFileHandler(FileSystemEventHandler):
         
         # Initialize tracking if this is a new file
         if json_file not in self.file_trackers:
-            self._initialize_single_file_tracking(json_file)
+            self._initialize_single_file_tracking(json_file, is_new_file)
         
         tracker = self.file_trackers[json_file]
         current_line_count = self._get_line_count(json_file)
+        current_time = time.time()
         
-        # Check if new records were added (including for new files)
-        if current_line_count > tracker['last_line_count']:
-            logger.info(f"🆕 New records detected in {json_file.name}! Line count: {tracker['last_line_count']} → {current_line_count}")
+        # Check if we should process this file (avoid too frequent processing)
+        if current_time - tracker.get('last_processed_time', 0) < 5:  # 5 second cooldown
+            logger.info(f"⏱️ Skipping {json_file.name} - too soon since last processing")
+            return
+        
+        # Check if the file has changed (either new records added OR content replaced)
+        if current_line_count != tracker['last_line_count']:
+            logger.info(f"📊 Line count changed in {json_file.name}: {tracker['last_line_count']} → {current_line_count}")
             
             # Get the last record
             last_record = self._get_last_record(json_file)
@@ -172,12 +199,24 @@ class JSONFileHandler(FileSystemEventHandler):
                 # Update our tracking
                 tracker['last_line_count'] = current_line_count
                 tracker['last_content'] = last_record
+                tracker['last_processed_time'] = current_time
             else:
                 logger.warning(f"⚠️ No valid records found in {json_file.name}")
+                # Still update the line count even if no valid records
+                tracker['last_line_count'] = current_line_count
+        else:
+            # Line count didn't change, but check if content changed
+            current_content = self._get_last_record(json_file)
+            if current_content and current_content != tracker.get('last_content'):
+                logger.info(f"📄 Content changed in {json_file.name} (same line count)")
+                logger.info(f"📄 Processing updated record from {json_file.name}: {current_content.get('eventType', 'Unknown')} event")
                 
-        elif current_line_count != tracker['last_line_count']:
-            logger.info(f"📊 Line count changed in {json_file.name}: {tracker['last_line_count']} → {current_line_count}")
-            tracker['last_line_count'] = current_line_count
+                # Call the JSON generator with the updated record
+                self._call_json_generator(current_content, json_file)
+                
+                # Update our tracking
+                tracker['last_content'] = current_content
+                tracker['last_processed_time'] = current_time
     
     def on_modified(self, event):
         """Handle file modification events."""
@@ -196,9 +235,9 @@ class JSONFileHandler(FileSystemEventHandler):
         
         logger.info(f"✅ File modification detected for watched file: {file_path.name}")
         
-        # Avoid duplicate events
+        # Avoid duplicate events with longer debounce
         current_time = time.time()
-        if current_time - self.last_modified < 1:  # Debounce for 1 second
+        if current_time - self.last_modified < 2:  # Debounce for 2 seconds
             logger.info("⏱️  Debouncing event (too soon after last event)")
             return
         
@@ -215,7 +254,7 @@ class JSONFileHandler(FileSystemEventHandler):
             # Initialize tracking for the new file with is_new_file=True
             self._initialize_single_file_tracking(file_path, is_new_file=True)
             # Handle any initial content
-            self._handle_file_change(file_path)
+            self._handle_file_change(file_path, is_new_file=True)
     
     def on_deleted(self, event):
         """Handle file deletion events."""
@@ -225,7 +264,9 @@ class JSONFileHandler(FileSystemEventHandler):
             # Remove from tracking
             if file_path in self.file_trackers:
                 del self.file_trackers[file_path]
-                logger.info(f"🗑️ Removed {file_path.name} from tracking")
+            if file_path in self.error_count:
+                del self.error_count[file_path]
+            logger.info(f"🗑️ Removed {file_path.name} from tracking")
 
 def main():
     """Main function to run the watchdog."""
@@ -307,9 +348,11 @@ def main():
                                 event_handler._call_json_generator(last_record, json_file)
                                 tracker['last_line_count'] = current_line_count
                                 tracker['last_content'] = last_record
+                                tracker['last_processed_time'] = time.time()
                 except Exception as e:
                     logger.error(f"❌ Polling error: {e}")
-                time.sleep(2)  # Poll every 2 seconds
+                    # Continue polling even if there's an error
+                time.sleep(3)  # Poll every 3 seconds
         
         # Start polling in background
         poll_thread = threading.Thread(target=poll_files, daemon=True)
