@@ -122,13 +122,17 @@ For more CLI options, see the [CLI documentation](cli/README.md).
 ### Mathematic behind algorithm 
 
 
-### Algorithm Architecture
+### Architecture
 
-The following figure illustrates the architecture behind the algorithm, which is essentially an agentic AI system that leverages a chain-of-thought process to construct lineage across various script types.
+The following figure illustrates the architecture behind the Lineagentic, which is essentially a multi-layer architecture front-end, backend and agentic AI algorithm that leverages a chain-of-thought process to construct lineage across various script types.
 
 ![Architecture Diagram](images/architecture.png)
 
-### agent framework 
+## Mathematic of the algorithm
+
+Following shows mathematic behind each layer of algorithm.
+
+### Agent framework 
 The agent framework dose IO operations ,memory management, and prompt engineering according to the script type (T) and its content (C).
 
 $$
