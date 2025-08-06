@@ -22,16 +22,16 @@ Following table shows the current development agents in Lineagentic algorithm:
 
 | **Agent Name**       | **Done** | **Under Development** | **In Backlog** | **Comment**                          |
 |----------------------|:--------:|:----------------------:|:--------------:|--------------------------------------|
-| python-lineeage_agent    | ✓        |                        |                |       |
-| airflow_lineeage_agent       |    ✓        |                      |                |             |
-| java_lineeage_agent      |       ✓     |                        |              |           |
-| spark_lineeage_agent        |  ✓          |                       |                |       |
-| sql_lineeage_agent      | ✓        |                        |                |            |
-| flink_lineeage_agent         |          |                        | ✓              |            |
-| beam_lineeage_agent         |          |                        | ✓              |            |
-| shell_lineeage_agent         |          |                        | ✓              |            |
-| scala_lineeage_agent         |          |                        | ✓              |            |
-| dbt_lineeage_agent         |          |                        | ✓              |            |
+| python-lineage_agent    | ✓        |                        |                |       |
+| airflow_lineage_agent       |    ✓        |                      |                |             |
+| java_lineage_agent      |       ✓     |                        |              |           |
+| spark_lineage_agent        |  ✓          |                       |                |       |
+| sql_lineage_agent      | ✓        |                        |                |            |
+| flink_lineage_agent         |          |                        | ✓              |            |
+| beam_lineage_agent         |          |                        | ✓              |            |
+| shell_lineage_agent         |          |                        | ✓              |            |
+| scala_lineage_agent         |          |                        | ✓              |            |
+| dbt_lineage_agent         |          |                        | ✓              |            |
 
 
 ### What are the components of Lineagentic?
