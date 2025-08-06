@@ -1,0 +1,1 @@
+# REST API Layer - handles HTTP requests and responses

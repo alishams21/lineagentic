@@ -303,6 +303,7 @@ clean-all-services:
 	@rm -rf demo-deploy 2>/dev/null || echo "No demo-deploy folder found"
 	@rm -rf lineagent.egg-info 2>/dev/null || echo "No lineagent.egg-info folder found"
 	@rm -rf .pytest_cache 2>/dev/null || echo "No .pytest_cache folder found"
+	@rm -rf lineage.db 2>/dev/null || echo "No lineage.db file found"
 	@$(MAKE) stop-watchdog
 	@$(MAKE) stop-api-server
 	@$(MAKE) stop-demo-server
