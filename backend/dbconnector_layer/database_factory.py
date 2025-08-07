@@ -59,6 +59,54 @@ class SQLiteConnector(DatabaseConnector):
         return cursor
 
 
+class MySQLConnector(DatabaseConnector):
+    """MySQL database connector"""
+    
+    def __init__(self, host: str, port: int, database: str, username: str, password: str):
+        self.host = host
+        self.port = port
+        self.database = database
+        self.username = username
+        self.password = password
+        self.connection = None
+    
+    def connect(self):
+        """Establish MySQL connection"""
+        try:
+            import mysql.connector
+            self.connection = mysql.connector.connect(
+                host=self.host,
+                port=self.port,
+                database=self.database,
+                user=self.username,
+                password=self.password
+            )
+            return self.connection
+        except ImportError:
+            raise Exception("mysql-connector-python is required for MySQL support. Install with: pip install mysql-connector-python")
+        except Exception as e:
+            raise Exception(f"Failed to connect to MySQL database: {e}")
+    
+    def disconnect(self):
+        """Close MySQL connection"""
+        if self.connection:
+            self.connection.close()
+            self.connection = None
+    
+    def execute_query(self, query: str, params: Optional[tuple] = None):
+        """Execute MySQL query"""
+        if not self.connection:
+            self.connect()
+        
+        cursor = self.connection.cursor(dictionary=True)
+        if params:
+            cursor.execute(query, params)
+        else:
+            cursor.execute(query)
+        
+        return cursor
+
+
 class PostgreSQLConnector(DatabaseConnector):
     """PostgreSQL database connector (placeholder for future implementation)"""
     
@@ -93,7 +141,7 @@ class DatabaseFactory:
         Get appropriate database connector based on type
         
         Args:
-            db_type: Type of database ('sqlite', 'postgresql', etc.)
+            db_type: Type of database ('sqlite', 'mysql', 'postgresql', etc.)
             **kwargs: Database connection parameters
             
         Returns:
@@ -105,6 +153,15 @@ class DatabaseFactory:
         if db_type.lower() == "sqlite":
             db_path = kwargs.get("db_path", os.getenv("SQLITE_DB_PATH", "lineage.db"))
             return SQLiteConnector(db_path)
+        
+        elif db_type.lower() == "mysql":
+            return MySQLConnector(
+                host=kwargs.get("host", os.getenv("MYSQL_HOST", "localhost")),
+                port=kwargs.get("port", int(os.getenv("MYSQL_PORT", "3306"))),
+                database=kwargs.get("database", os.getenv("MYSQL_DB", "lineage")),
+                username=kwargs.get("username", os.getenv("MYSQL_USER", "root")),
+                password=kwargs.get("password", os.getenv("MYSQL_PASSWORD", ""))
+            )
         
         elif db_type.lower() == "postgresql":
             return PostgreSQLConnector(

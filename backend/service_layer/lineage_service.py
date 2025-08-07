@@ -107,7 +107,8 @@ class LineageService:
             # Save to database if requested
             if save_to_db:
                 try:
-                    query_id = self.repository.save_query_analysis(
+                    # Save query analysis (legacy method)
+                    query_id = await self.repository.save_query_analysis(
                         query=query,
                         agent_name=agent_name,
                         model_name=model_name,
@@ -116,6 +117,21 @@ class LineageService:
                     )
                     serializable_result["query_id"] = query_id
                     logger.info(f"Saved query analysis with ID: {query_id}")
+                    
+                    # Save lineage event if result contains lineage data
+                    if isinstance(serializable_result, dict) and 'lineage' in serializable_result:
+                        try:
+                            lineage_event_data = serializable_result['lineage']
+                            if isinstance(lineage_event_data, dict):
+                                lineage_result = await self.repository.save_lineage_event(lineage_event_data)
+                                serializable_result["lineage_event_id"] = lineage_result.get("event_id")
+                                serializable_result["lineage_saved"] = True
+                                logger.info(f"Saved lineage event with ID: {lineage_result.get('event_id')}")
+                        except Exception as lineage_e:
+                            logger.error(f"Failed to save lineage event: {lineage_e}")
+                            serializable_result["lineage_saved"] = False
+                            serializable_result["lineage_error"] = str(lineage_e)
+                    
                 except Exception as e:
                     logger.error(f"Failed to save query analysis: {e}")
                     # Don't fail the entire request if DB save fails
@@ -136,7 +152,7 @@ class LineageService:
             # Save error to database if requested
             if save_to_db:
                 try:
-                    self.repository.save_query_analysis(
+                    await self.repository.save_query_analysis(
                         query=query,
                         agent_name=agent_name,
                         model_name=model_name,
@@ -187,7 +203,7 @@ class LineageService:
                 # Save to database if requested
                 if save_to_db:
                     try:
-                        query_id = self.repository.save_query_analysis(
+                        query_id = await self.repository.save_query_analysis(
                             query=query,
                             agent_name=agent_name,
                             model_name=model_name,
@@ -215,7 +231,7 @@ class LineageService:
                 # Save error to database if requested
                 if save_to_db:
                     try:
-                        self.repository.save_query_analysis(
+                        await self.repository.save_query_analysis(
                             query=query,
                             agent_name=agent_name,
                             model_name=model_name,
@@ -263,7 +279,7 @@ class LineageService:
             # Save to database if requested
             if save_to_db:
                 try:
-                    operation_id = self.repository.save_operation_result(
+                    operation_id = await self.repository.save_operation_result(
                         operation_name=operation_name,
                         query=query,
                         agent_name=agent_name or "auto-selected",
@@ -292,7 +308,7 @@ class LineageService:
             # Save error to database if requested
             if save_to_db:
                 try:
-                    self.repository.save_operation_result(
+                    await self.repository.save_operation_result(
                         operation_name=operation_name,
                         query=query,
                         agent_name=agent_name or "auto-selected",
@@ -308,7 +324,7 @@ class LineageService:
     async def get_query_history(self, limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
         """Get query analysis history"""
         try:
-            return self.repository.get_all_query_analyses(limit=limit, offset=offset)
+            return await self.repository.get_all_query_analyses(limit=limit, offset=offset)
         except Exception as e:
             logger.error(f"Error retrieving query history: {e}")
             raise Exception(f"Error retrieving query history: {str(e)}")
@@ -316,7 +332,7 @@ class LineageService:
     async def get_query_result(self, query_id: int) -> Optional[Dict[str, Any]]:
         """Get specific query analysis result"""
         try:
-            return self.repository.get_query_analysis(query_id)
+            return await self.repository.get_query_analysis(query_id)
         except Exception as e:
             logger.error(f"Error retrieving query result: {e}")
             raise Exception(f"Error retrieving query result: {str(e)}")
@@ -324,7 +340,7 @@ class LineageService:
     async def get_operation_result(self, operation_id: int) -> Optional[Dict[str, Any]]:
         """Get specific operation result"""
         try:
-            return self.repository.get_operation_result(operation_id)
+            return await self.repository.get_operation_result(operation_id)
         except Exception as e:
             logger.error(f"Error retrieving operation result: {e}")
             raise Exception(f"Error retrieving operation result: {str(e)}")
@@ -347,4 +363,35 @@ class LineageService:
             return framework.get_supported_operations()
         except Exception as e:
             logger.error(f"Error getting supported operations: {e}")
-            raise Exception(f"Error getting supported operations: {str(e)}") 
+            raise Exception(f"Error getting supported operations: {str(e)}")
+    
+    async def get_lineage_by_namespace_and_table(self, namespace: str, table_name: str) -> Dict[str, Any]:
+        """
+        Get lineage data for a specific namespace and table.
+        
+        Args:
+            namespace: The namespace to search for
+            table_name: The table name to search for
+            
+        Returns:
+            Dict containing lineage data in OpenLineage format
+        """
+        try:
+            # Validate input
+            if not namespace or not namespace.strip():
+                raise ValueError("Namespace cannot be empty")
+            
+            if not table_name or not table_name.strip():
+                raise ValueError("Table name cannot be empty")
+            
+            # Call repository method
+            lineage_data = self.repository.get_lineage_by_namespace_and_table(namespace, table_name)
+            
+            # Ensure result is serializable
+            serializable_result = self._ensure_serializable(lineage_data)
+            
+            return serializable_result
+            
+        except Exception as e:
+            logger.error(f"Error getting lineage for {namespace}.{table_name}: {e}")
+            raise Exception(f"Error getting lineage for {namespace}.{table_name}: {str(e)}") 

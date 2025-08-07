@@ -5,7 +5,7 @@ import uvicorn
 import logging
 
 from .models import (
-    QueryRequest, BatchQueryRequest, OperationRequest,
+    QueryRequest, BatchQueryRequest, OperationRequest, LineageRequest,
     QueryResponse, BatchQueryResponse, HealthResponse,
     HistoryRequest, HistoryResponse, AgentsResponse, OperationsResponse
 )
@@ -315,6 +315,41 @@ async def get_supported_operations():
         raise HTTPException(
             status_code=500,
             detail=f"Error getting supported operations: {str(e)}"
+        )
+
+
+@app.post("/lineage", response_model=QueryResponse)
+async def get_lineage_by_namespace_and_table(request: LineageRequest):
+    """
+    Get lineage data for a specific namespace and table.
+    
+    Args:
+        request: LineageRequest containing namespace and table_name
+        
+    Returns:
+        QueryResponse with lineage data in OpenLineage format
+    """
+    try:
+        result = await lineage_service.get_lineage_by_namespace_and_table(
+            namespace=request.namespace,
+            table_name=request.table_name
+        )
+        
+        return QueryResponse(
+            success=True,
+            data=result
+        )
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Validation error: {str(e)}"
+        )
+    except Exception as e:
+        logger.error(f"Error getting lineage for {request.namespace}.{request.table_name}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error getting lineage: {str(e)}"
         )
 
 

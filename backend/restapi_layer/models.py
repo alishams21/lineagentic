@@ -23,6 +23,11 @@ class OperationRequest(BaseModel):
     save_to_db: Optional[bool] = Field(default=True, description="Whether to save results to database")
 
 
+class LineageRequest(BaseModel):
+    namespace: str = Field(..., description="The namespace to search for")
+    table_name: str = Field(..., description="The table name to search for")
+
+
 class QueryResponse(BaseModel):
     success: bool
     data: Dict[str, Any]
