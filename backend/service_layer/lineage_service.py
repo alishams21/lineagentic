@@ -108,7 +108,7 @@ class LineageService:
             if save_to_db:
                 try:
                     # Save query analysis (legacy method)
-                    query_id = await self.repository.save_query_analysis(
+                    query_id = self.repository.save_query_analysis(
                         query=query,
                         agent_name=agent_name,
                         model_name=model_name,
@@ -123,7 +123,7 @@ class LineageService:
                         try:
                             lineage_event_data = serializable_result['lineage']
                             if isinstance(lineage_event_data, dict):
-                                lineage_result = await self.repository.save_lineage_event(lineage_event_data)
+                                lineage_result = self.repository.save_lineage_event(lineage_event_data)
                                 serializable_result["lineage_event_id"] = lineage_result.get("event_id")
                                 serializable_result["lineage_saved"] = True
                                 logger.info(f"Saved lineage event with ID: {lineage_result.get('event_id')}")
@@ -203,7 +203,7 @@ class LineageService:
                 # Save to database if requested
                 if save_to_db:
                     try:
-                        query_id = await self.repository.save_query_analysis(
+                        query_id = self.repository.save_query_analysis(
                             query=query,
                             agent_name=agent_name,
                             model_name=model_name,
@@ -231,7 +231,7 @@ class LineageService:
                 # Save error to database if requested
                 if save_to_db:
                     try:
-                        await self.repository.save_query_analysis(
+                        self.repository.save_query_analysis(
                             query=query,
                             agent_name=agent_name,
                             model_name=model_name,
@@ -279,7 +279,7 @@ class LineageService:
             # Save to database if requested
             if save_to_db:
                 try:
-                    operation_id = await self.repository.save_operation_result(
+                    operation_id = self.repository.save_operation_result(
                         operation_name=operation_name,
                         query=query,
                         agent_name=agent_name or "auto-selected",
@@ -308,7 +308,7 @@ class LineageService:
             # Save error to database if requested
             if save_to_db:
                 try:
-                    await self.repository.save_operation_result(
+                    self.repository.save_operation_result(
                         operation_name=operation_name,
                         query=query,
                         agent_name=agent_name or "auto-selected",
@@ -324,7 +324,7 @@ class LineageService:
     async def get_query_history(self, limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
         """Get query analysis history"""
         try:
-            return await self.repository.get_all_query_analyses(limit=limit, offset=offset)
+            return self.repository.get_all_query_analyses(limit=limit, offset=offset)
         except Exception as e:
             logger.error(f"Error retrieving query history: {e}")
             raise Exception(f"Error retrieving query history: {str(e)}")
@@ -332,7 +332,7 @@ class LineageService:
     async def get_query_result(self, query_id: int) -> Optional[Dict[str, Any]]:
         """Get specific query analysis result"""
         try:
-            return await self.repository.get_query_analysis(query_id)
+            return self.repository.get_query_analysis(query_id)
         except Exception as e:
             logger.error(f"Error retrieving query result: {e}")
             raise Exception(f"Error retrieving query result: {str(e)}")
@@ -340,7 +340,7 @@ class LineageService:
     async def get_operation_result(self, operation_id: int) -> Optional[Dict[str, Any]]:
         """Get specific operation result"""
         try:
-            return await self.repository.get_operation_result(operation_id)
+            return self.repository.get_operation_result(operation_id)
         except Exception as e:
             logger.error(f"Error retrieving operation result: {e}")
             raise Exception(f"Error retrieving operation result: {str(e)}")
