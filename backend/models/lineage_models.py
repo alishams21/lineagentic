@@ -42,7 +42,7 @@ class Event(BaseModel):
     def get_create_table_sql(cls) -> str:
         return """
         CREATE TABLE IF NOT EXISTS events (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             event_type VARCHAR(50),
             event_time DATETIME,
             run_id CHAR(36)
@@ -53,12 +53,12 @@ class Event(BaseModel):
     def get_insert_sql(cls) -> str:
         return """
         INSERT INTO events (event_type, event_time, run_id)
-        VALUES (%s, %s, %s)
+        VALUES (?, ?, ?)
         """
     
     @classmethod
     def get_select_sql(cls) -> str:
-        return "SELECT * FROM events WHERE id = %s"
+        return "SELECT * FROM events WHERE id = ?"
 
 
 class Run(BaseModel):
@@ -88,11 +88,11 @@ class Run(BaseModel):
     
     @classmethod
     def get_insert_sql(cls) -> str:
-        return "INSERT IGNORE INTO runs (run_id) VALUES (%s)"
+        return "INSERT OR IGNORE INTO runs (run_id) VALUES (?)"
     
     @classmethod
     def get_select_sql(cls) -> str:
-        return "SELECT * FROM runs WHERE run_id = %s"
+        return "SELECT * FROM runs WHERE run_id = ?"
 
 
 class ParentFacet(BaseModel):
@@ -134,7 +134,7 @@ class ParentFacet(BaseModel):
     def get_create_table_sql(cls) -> str:
         return """
         CREATE TABLE IF NOT EXISTS parent_facets (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             run_id CHAR(36),
             parent_run_id CHAR(36),
             parent_job_name VARCHAR(255),
@@ -147,12 +147,12 @@ class ParentFacet(BaseModel):
     def get_insert_sql(cls) -> str:
         return """
         INSERT INTO parent_facets (run_id, parent_run_id, parent_job_name, parent_namespace)
-        VALUES (%s, %s, %s, %s)
+        VALUES (?, ?, ?, ?)
         """
     
     @classmethod
     def get_select_sql(cls) -> str:
-        return "SELECT * FROM parent_facets WHERE id = %s"
+        return "SELECT * FROM parent_facets WHERE id = ?"
 
 
 class Job(BaseModel):
@@ -176,7 +176,7 @@ class Job(BaseModel):
     def get_create_table_sql(cls) -> str:
         return """
         CREATE TABLE IF NOT EXISTS jobs (
-            id INT AUTO_INCREMENT PRIMARY KEY
+            id INTEGER PRIMARY KEY AUTOINCREMENT
         )
         """
     
@@ -186,7 +186,7 @@ class Job(BaseModel):
     
     @classmethod
     def get_select_sql(cls) -> str:
-        return "SELECT * FROM jobs WHERE id = %s"
+        return "SELECT * FROM jobs WHERE id = ?"
 
 
 class JobFacet(BaseModel):
@@ -278,12 +278,12 @@ class JobFacet(BaseModel):
             job_id, sql_query, sql_producer, sql_schema_url,
             job_type, processing_type, integration, job_type_producer, job_type_schema_url,
             source_language, source_code, source_producer, source_schema_url
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
     
     @classmethod
     def get_select_sql(cls) -> str:
-        return "SELECT * FROM job_facets WHERE job_id = %s"
+        return "SELECT * FROM job_facets WHERE job_id = ?"
 
 
 class Input(BaseModel):
@@ -351,7 +351,7 @@ class Input(BaseModel):
     def get_create_table_sql(cls) -> str:
         return """
         CREATE TABLE IF NOT EXISTS inputs (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             event_id INT,
             namespace VARCHAR(255),
             name VARCHAR(255),
@@ -375,12 +375,12 @@ class Input(BaseModel):
             event_id, namespace, name, schema_producer, schema_schema_url,
             storage_layer, file_format, dataset_type, sub_type,
             lifecycle_state_change, lifecycle_producer, lifecycle_schema_url
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
     
     @classmethod
     def get_select_sql(cls) -> str:
-        return "SELECT * FROM inputs WHERE id = %s"
+        return "SELECT * FROM inputs WHERE id = ?"
 
 
 class InputSchemaField(BaseModel):
@@ -421,7 +421,7 @@ class InputSchemaField(BaseModel):
     def get_create_table_sql(cls) -> str:
         return """
         CREATE TABLE IF NOT EXISTS input_schema_fields (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             input_id INT,
             name VARCHAR(255),
             type VARCHAR(100),
@@ -434,12 +434,12 @@ class InputSchemaField(BaseModel):
     def get_insert_sql(cls) -> str:
         return """
         INSERT INTO input_schema_fields (input_id, name, type, description)
-        VALUES (%s, %s, %s, %s)
+        VALUES (?, ?, ?, ?)
         """
     
     @classmethod
     def get_select_sql(cls) -> str:
-        return "SELECT * FROM input_schema_fields WHERE id = %s"
+        return "SELECT * FROM input_schema_fields WHERE id = ?"
 
 
 class InputOwner(BaseModel):
@@ -477,7 +477,7 @@ class InputOwner(BaseModel):
     def get_create_table_sql(cls) -> str:
         return """
         CREATE TABLE IF NOT EXISTS input_owners (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             input_id INT,
             owner_name VARCHAR(255),
             owner_type VARCHAR(100),
@@ -489,12 +489,12 @@ class InputOwner(BaseModel):
     def get_insert_sql(cls) -> str:
         return """
         INSERT INTO input_owners (input_id, owner_name, owner_type)
-        VALUES (%s, %s, %s)
+        VALUES (?, ?, ?)
         """
     
     @classmethod
     def get_select_sql(cls) -> str:
-        return "SELECT * FROM input_owners WHERE id = %s"
+        return "SELECT * FROM input_owners WHERE id = ?"
 
 
 class Output(BaseModel):
@@ -532,7 +532,7 @@ class Output(BaseModel):
     def get_create_table_sql(cls) -> str:
         return """
         CREATE TABLE IF NOT EXISTS outputs (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             event_id INT,
             namespace VARCHAR(255),
             name VARCHAR(255),
@@ -544,12 +544,12 @@ class Output(BaseModel):
     def get_insert_sql(cls) -> str:
         return """
         INSERT INTO outputs (event_id, namespace, name)
-        VALUES (%s, %s, %s)
+        VALUES (?, ?, ?)
         """
     
     @classmethod
     def get_select_sql(cls) -> str:
-        return "SELECT * FROM outputs WHERE id = %s"
+        return "SELECT * FROM outputs WHERE id = ?"
 
 
 class ColumnLineageField(BaseModel):
@@ -583,7 +583,7 @@ class ColumnLineageField(BaseModel):
     def get_create_table_sql(cls) -> str:
         return """
         CREATE TABLE IF NOT EXISTS column_lineage_fields (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             output_id INT,
             output_field_name VARCHAR(255),
             FOREIGN KEY (output_id) REFERENCES outputs(id)
@@ -594,12 +594,12 @@ class ColumnLineageField(BaseModel):
     def get_insert_sql(cls) -> str:
         return """
         INSERT INTO column_lineage_fields (output_id, output_field_name)
-        VALUES (%s, %s)
+        VALUES (?, ?)
         """
     
     @classmethod
     def get_select_sql(cls) -> str:
-        return "SELECT * FROM column_lineage_fields WHERE id = %s"
+        return "SELECT * FROM column_lineage_fields WHERE id = ?"
 
 
 class InputLineageField(BaseModel):
@@ -640,7 +640,7 @@ class InputLineageField(BaseModel):
     def get_create_table_sql(cls) -> str:
         return """
         CREATE TABLE IF NOT EXISTS input_lineage_fields (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             lineage_field_id INT,
             namespace VARCHAR(255),
             name VARCHAR(255),
@@ -653,12 +653,12 @@ class InputLineageField(BaseModel):
     def get_insert_sql(cls) -> str:
         return """
         INSERT INTO input_lineage_fields (lineage_field_id, namespace, name, field)
-        VALUES (%s, %s, %s, %s)
+        VALUES (?, ?, ?, ?)
         """
     
     @classmethod
     def get_select_sql(cls) -> str:
-        return "SELECT * FROM input_lineage_fields WHERE id = %s"
+        return "SELECT * FROM input_lineage_fields WHERE id = ?"
 
 
 class Transformation(BaseModel):
@@ -702,7 +702,7 @@ class Transformation(BaseModel):
     def get_create_table_sql(cls) -> str:
         return """
         CREATE TABLE IF NOT EXISTS transformations (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             lineage_input_field_id INT,
             type VARCHAR(100),
             subtype VARCHAR(100),
@@ -717,9 +717,9 @@ class Transformation(BaseModel):
         return """
         INSERT INTO transformations (
             lineage_input_field_id, type, subtype, description, masking
-        ) VALUES (%s, %s, %s, %s, %s)
+        ) VALUES (?, ?, ?, ?, ?)
         """
     
     @classmethod
     def get_select_sql(cls) -> str:
-        return "SELECT * FROM transformations WHERE id = %s" 
+        return "SELECT * FROM transformations WHERE id = ?" 

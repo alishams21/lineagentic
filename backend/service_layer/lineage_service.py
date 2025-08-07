@@ -394,4 +394,39 @@ class LineageService:
             
         except Exception as e:
             logger.error(f"Error getting lineage for {namespace}.{table_name}: {e}")
-            raise Exception(f"Error getting lineage for {namespace}.{table_name}: {str(e)}") 
+            raise Exception(f"Error getting lineage for {namespace}.{table_name}: {str(e)}")
+
+    async def get_end_to_end_lineage(self, namespace: str, table_name: str) -> Dict[str, Any]:
+        """
+        Get complete end-to-end lineage data for a specific namespace and table.
+        This includes both upstream and downstream lineage information.
+        
+        Args:
+            namespace: The namespace to search for
+            table_name: The table name to search for
+            
+        Returns:
+            Dict containing complete end-to-end lineage data
+        """
+        try:
+            # Validate input
+            if not namespace or not namespace.strip():
+                raise ValueError("Namespace cannot be empty")
+            
+            if not table_name or not table_name.strip():
+                raise ValueError("Table name cannot be empty")
+            
+            # Call repository method
+            lineage_data = self.repository.get_end_to_end_lineage(namespace, table_name)
+            
+            # Ensure result is serializable
+            serializable_result = self._ensure_serializable(lineage_data)
+            
+            return serializable_result
+            
+        except ValueError:
+            # Re-raise ValueError as-is
+            raise
+        except Exception as e:
+            logger.error(f"Error getting end-to-end lineage for {namespace}.{table_name}: {e}")
+            raise Exception(f"Error getting end-to-end lineage for {namespace}.{table_name}: {str(e)}") 

@@ -328,13 +328,17 @@ class LineageRepository:
             self.db_connector.connect()
             
             # First, get the event_id for this table to find all related inputs/outputs
+            # Check both inputs and outputs tables
             event_query = """
             SELECT event_id FROM inputs 
+            WHERE namespace = ? AND name = ?
+            UNION
+            SELECT event_id FROM outputs 
             WHERE namespace = ? AND name = ?
             LIMIT 1
             """
             
-            event_cursor = self.db_connector.execute_query(event_query, (namespace, table_name))
+            event_cursor = self.db_connector.execute_query(event_query, (namespace, table_name, namespace, table_name))
             event_record = event_cursor.fetchone()
             
             if not event_record:
@@ -472,7 +476,7 @@ class LineageRepository:
                 
                 # Get column lineage fields for this output
                 column_lineage_query = """
-                SELECT rowid, output_field_name
+                SELECT id, output_id, output_field_name
                 FROM column_lineage_fields
                 WHERE output_id = ?
                 ORDER BY output_field_name
@@ -483,7 +487,8 @@ class LineageRepository:
                 # Get input lineage fields for each column lineage field
                 lineage_details = []
                 for column_field in column_lineage_fields:
-                    lineage_field_id = column_field['rowid']
+                    # Use the id field which is now properly populated
+                    lineage_field_id = column_field['id']
                     
                     # Get input lineage fields
                     input_lineage_query = """
@@ -702,62 +707,282 @@ class LineageRepository:
     def get_lineage_summary_by_namespace_and_table(self, namespace: str, table_name: str) -> Dict[str, Any]:
         """
         Get a summary of lineage data for a specific namespace and table.
-        This is a lighter version that doesn't include all the detailed joins.
         
         Args:
             namespace: The namespace to search for
             table_name: The table name to search for
             
         Returns:
-            Dictionary containing summary of lineage data
+            Dictionary containing lineage summary
         """
         try:
             self.db_connector.connect()
             
+            # Get basic lineage info
+            lineage_data = self.get_lineage_by_namespace_and_table(namespace, table_name)
+            
             # Count inputs and outputs
-            input_count_query = """
-            SELECT COUNT(*) as count
-            FROM inputs
-            WHERE namespace = %s AND name = %s
-            """
-            
-            output_count_query = """
-            SELECT COUNT(*) as count
-            FROM outputs
-            WHERE namespace = %s AND name = %s
-            """
-            
-            input_cursor = self.db_connector.execute_query(input_count_query, (namespace, table_name))
-            output_cursor = self.db_connector.execute_query(output_count_query, (namespace, table_name))
-            
-            input_count = input_cursor.fetchone()['count']
-            output_count = output_cursor.fetchone()['count']
-            
-            # Get recent events
-            recent_events_query = """
-            SELECT DISTINCT e.event_type, e.event_time, e.run_id
-            FROM events e
-            INNER JOIN inputs i ON e.id = i.event_id
-            WHERE i.namespace = %s AND i.name = %s
-            UNION
-            SELECT DISTINCT e.event_type, e.event_time, e.run_id
-            FROM events e
-            INNER JOIN outputs o ON e.id = o.event_id
-            WHERE o.namespace = %s AND o.name = %s
-            ORDER BY e.event_time DESC
-            LIMIT 10
-            """
-            
-            events_cursor = self.db_connector.execute_query(recent_events_query, (namespace, table_name, namespace, table_name))
-            recent_events = events_cursor.fetchall()
+            input_count = len(lineage_data.get('inputs', []))
+            output_count = len(lineage_data.get('outputs', []))
             
             return {
                 'namespace': namespace,
                 'table_name': table_name,
                 'input_count': input_count,
                 'output_count': output_count,
-                'recent_events': [dict(event) for event in recent_events]
+                'has_lineage': input_count > 0 or output_count > 0
             }
             
         except Exception as e:
-            raise Exception(f"Error getting lineage summary: {e}") 
+            print(f"Error getting lineage summary for {namespace}.{table_name}: {e}")
+            return {
+                'namespace': namespace,
+                'table_name': table_name,
+                'input_count': 0,
+                'output_count': 0,
+                'has_lineage': False,
+                'error': str(e)
+            }
+
+    def get_upstream_lineage(self, namespace: str, table_name: str) -> List[Dict[str, Any]]:
+        """
+        Get upstream lineage data for a specific namespace and table.
+        Traverses backwards through the lineage chain to find all upstream dependencies.
+        
+        Args:
+            namespace: The namespace to search for
+            table_name: The table name to search for
+            
+        Returns:
+            List of dictionaries containing upstream lineage data
+        """
+        try:
+            self.db_connector.connect()
+            
+            visited_datasets = set()
+            visited_runs = set()
+            lineage = []
+            
+            def recurse_upstream(current_namespace: str, current_table: str):
+                dataset_key = (current_namespace, current_table)
+                if dataset_key in visited_datasets:
+                    return
+                visited_datasets.add(dataset_key)
+                
+                # Find events where this table is an output
+                cursor = self.db_connector.execute_query("""
+                    SELECT DISTINCT e.rowid as event_id, e.event_type, e.event_time, e.run_id
+                    FROM events e
+                    JOIN outputs o ON e.rowid = o.event_id
+                    WHERE o.namespace = ? AND o.name = ?
+                """, (current_namespace, current_table))
+                
+                events = cursor.fetchall()
+                
+                for event in events:
+                    event_id = event['event_id']
+                    run_id = event['run_id']
+                    
+                    if run_id in visited_runs:
+                        continue
+                    visited_runs.add(run_id)
+                    
+                    # Get job information
+                    job_cursor = self.db_connector.execute_query("""
+                        SELECT jf.sql_query, jf.job_type, jf.processing_type, 
+                               jf.source_language, jf.source_code
+                        FROM job_facets jf
+                        LIMIT 1
+                    """)
+                    job_info = job_cursor.fetchone()
+                    
+                    # Get all inputs for this event
+                    inputs_cursor = self.db_connector.execute_query("""
+                        SELECT namespace, name, storage_layer, file_format, dataset_type
+                        FROM inputs
+                        WHERE event_id = ?
+                    """, (event_id,))
+                    inputs = inputs_cursor.fetchall()
+                    
+                    # Create lineage record
+                    lineage_record = {
+                        'run_id': run_id,
+                        'event_id': event_id,
+                        'event_type': event['event_type'],
+                        'event_time': event['event_time'].isoformat() if event['event_time'] else None,
+                        'job_info': dict(job_info) if job_info else {},
+                        'outputs': [{'namespace': current_namespace, 'name': current_table}],
+                        'inputs': [dict(input_row) for input_row in inputs]
+                    }
+                    
+                    lineage.append(lineage_record)
+                    
+                    # Recurse into each input
+                    for input_row in inputs:
+                        recurse_upstream(input_row['namespace'], input_row['name'])
+            
+            # Start recursion
+            recurse_upstream(namespace, table_name)
+            
+            return lineage
+            
+        except Exception as e:
+            print(f"Error getting upstream lineage for {namespace}.{table_name}: {e}")
+            return []
+
+    def get_downstream_lineage(self, namespace: str, table_name: str) -> List[Dict[str, Any]]:
+        """
+        Get downstream lineage data for a specific namespace and table.
+        Traverses forwards through the lineage chain to find all downstream dependencies.
+        
+        Args:
+            namespace: The namespace to search for
+            table_name: The table name to search for
+            
+        Returns:
+            List of dictionaries containing downstream lineage data
+        """
+        try:
+            self.db_connector.connect()
+            
+            visited_datasets = set()
+            visited_runs = set()
+            lineage = []
+            
+            def recurse_downstream(current_namespace: str, current_table: str):
+                dataset_key = (current_namespace, current_table)
+                if dataset_key in visited_datasets:
+                    return
+                visited_datasets.add(dataset_key)
+                
+                # Find events where this table is an input
+                cursor = self.db_connector.execute_query("""
+                    SELECT DISTINCT e.rowid as event_id, e.event_type, e.event_time, e.run_id
+                    FROM events e
+                    JOIN inputs i ON e.rowid = i.event_id
+                    WHERE i.namespace = ? AND i.name = ?
+                """, (current_namespace, current_table))
+                
+                events = cursor.fetchall()
+                
+                for event in events:
+                    event_id = event['event_id']
+                    run_id = event['run_id']
+                    
+                    if run_id in visited_runs:
+                        continue
+                    visited_runs.add(run_id)
+                    
+                    # Get job information
+                    job_cursor = self.db_connector.execute_query("""
+                        SELECT jf.sql_query, jf.job_type, jf.processing_type, 
+                               jf.source_language, jf.source_code
+                        FROM job_facets jf
+                        LIMIT 1
+                    """)
+                    job_info = job_cursor.fetchone()
+                    
+                    # Get all outputs for this event
+                    outputs_cursor = self.db_connector.execute_query("""
+                        SELECT namespace, name
+                        FROM outputs
+                        WHERE event_id = ?
+                    """, (event_id,))
+                    outputs = outputs_cursor.fetchall()
+                    
+                    # Create lineage record
+                    lineage_record = {
+                        'run_id': run_id,
+                        'event_id': event_id,
+                        'event_type': event['event_type'],
+                        'event_time': event['event_time'].isoformat() if event['event_time'] else None,
+                        'job_info': dict(job_info) if job_info else {},
+                        'inputs': [{'namespace': current_namespace, 'name': current_table}],
+                        'outputs': [dict(output_row) for output_row in outputs]
+                    }
+                    
+                    lineage.append(lineage_record)
+                    
+                    # Recurse into each output
+                    for output_row in outputs:
+                        recurse_downstream(output_row['namespace'], output_row['name'])
+            
+            # Start recursion
+            recurse_downstream(namespace, table_name)
+            
+            return lineage
+            
+        except Exception as e:
+            print(f"Error getting downstream lineage for {namespace}.{table_name}: {e}")
+            return []
+
+    def get_end_to_end_lineage(self, namespace: str, table_name: str) -> Dict[str, Any]:
+        """
+        Get complete end-to-end lineage data for a specific namespace and table.
+        Combines upstream and downstream lineage to provide a complete picture.
+        
+        Args:
+            namespace: The namespace to search for
+            table_name: The table name to search for
+            
+        Returns:
+            Dictionary containing complete end-to-end lineage data
+        """
+        try:
+            # Get upstream lineage
+            upstream_lineage = self.get_upstream_lineage(namespace, table_name)
+            
+            # Get downstream lineage
+            downstream_lineage = self.get_downstream_lineage(namespace, table_name)
+            
+            # Get current table info
+            current_table_info = self.get_lineage_by_namespace_and_table(namespace, table_name)
+            
+            return {
+                'target_table': {
+                    'namespace': namespace,
+                    'table_name': table_name,
+                    'current_info': current_table_info
+                },
+                'upstream_lineage': {
+                    'count': len(upstream_lineage),
+                    'runs': upstream_lineage
+                },
+                'downstream_lineage': {
+                    'count': len(downstream_lineage),
+                    'runs': downstream_lineage
+                },
+                'summary': {
+                    'total_upstream_runs': len(upstream_lineage),
+                    'total_downstream_runs': len(downstream_lineage),
+                    'total_runs': len(upstream_lineage) + len(downstream_lineage),
+                    'has_upstream': len(upstream_lineage) > 0,
+                    'has_downstream': len(downstream_lineage) > 0
+                }
+            }
+            
+        except Exception as e:
+            print(f"Error getting end-to-end lineage for {namespace}.{table_name}: {e}")
+            return {
+                'target_table': {
+                    'namespace': namespace,
+                    'table_name': table_name,
+                    'current_info': {}
+                },
+                'upstream_lineage': {
+                    'count': 0,
+                    'runs': []
+                },
+                'downstream_lineage': {
+                    'count': 0,
+                    'runs': []
+                },
+                'summary': {
+                    'total_upstream_runs': 0,
+                    'total_downstream_runs': 0,
+                    'total_runs': 0,
+                    'has_upstream': False,
+                    'has_downstream': False
+                },
+                'error': str(e)
+            } 

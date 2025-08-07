@@ -353,5 +353,41 @@ async def get_lineage_by_namespace_and_table(request: LineageRequest):
         )
 
 
+@app.post("/lineage/end-to-end", response_model=QueryResponse)
+async def get_end_to_end_lineage(request: LineageRequest):
+    """
+    Get complete end-to-end lineage data for a specific namespace and table.
+    This includes both upstream and downstream lineage information.
+    
+    Args:
+        request: LineageRequest containing namespace and table_name
+        
+    Returns:
+        QueryResponse with complete end-to-end lineage data
+    """
+    try:
+        result = await lineage_service.get_end_to_end_lineage(
+            namespace=request.namespace,
+            table_name=request.table_name
+        )
+        
+        return QueryResponse(
+            success=True,
+            data=result
+        )
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Validation error: {str(e)}"
+        )
+    except Exception as e:
+        logger.error(f"Error getting end-to-end lineage for {request.namespace}.{request.table_name}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error getting end-to-end lineage: {str(e)}"
+        )
+
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000) 
