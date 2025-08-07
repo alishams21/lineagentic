@@ -167,9 +167,7 @@ class LineageRepository:
     def update_query_status(self, query_id: int, status: str) -> bool:
         """Update query status"""
         update_query = """
-        UPDATE lineage_queries 
-        SET status = ?, updated_at = CURRENT_TIMESTAMP 
-        WHERE id = ?
+        UPDATE lineage_queries SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
         """
         
         try:

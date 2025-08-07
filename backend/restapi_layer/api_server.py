@@ -182,7 +182,7 @@ async def get_query_history(
         HistoryResponse with query history
     """
     try:
-        results = lineage_service.get_query_history(limit=limit, offset=offset)
+        results = await lineage_service.get_query_history(limit=limit, offset=offset)
         
         return HistoryResponse(
             success=True,
@@ -212,7 +212,7 @@ async def get_query_result(query_id: int):
         QueryResponse with query result
     """
     try:
-        result = lineage_service.get_query_result(query_id)
+        result = await lineage_service.get_query_result(query_id)
         
         if result is None:
             raise HTTPException(
@@ -247,7 +247,7 @@ async def get_operation_result(operation_id: int):
         QueryResponse with operation result
     """
     try:
-        result = lineage_service.get_operation_result(operation_id)
+        result = await lineage_service.get_operation_result(operation_id)
         
         if result is None:
             raise HTTPException(
@@ -279,7 +279,7 @@ async def list_available_agents():
         AgentsResponse with available agents information
     """
     try:
-        agents = lineage_service.list_available_agents()
+        agents = await lineage_service.list_available_agents()
         
         return AgentsResponse(
             success=True,
@@ -303,7 +303,7 @@ async def get_supported_operations():
         OperationsResponse with supported operations information
     """
     try:
-        operations = lineage_service.get_supported_operations()
+        operations = await lineage_service.get_supported_operations()
         
         return OperationsResponse(
             success=True,

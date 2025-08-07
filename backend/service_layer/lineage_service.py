@@ -1,4 +1,5 @@
-from typing import Dict, Any, List, Optional
+import json
+from typing import Dict, Any, List, Optional, Union
 from ..repository_layer.lineage_repository import LineageRepository
 from algorithm.framework_agent import AgentFramework
 import asyncio
@@ -40,6 +41,39 @@ class LineageService:
         if not model_name:
             raise ValueError("Model name is required")
     
+    def _ensure_serializable(self, data: Any) -> Dict[str, Any]:
+        """Ensure data is JSON serializable with comprehensive handling"""
+        try:
+            # If it's already a dict, try to serialize it
+            if isinstance(data, dict):
+                # Test serialization
+                json.dumps(data)
+                return data
+            elif isinstance(data, list):
+                # Test serialization
+                json.dumps(data)
+                return {"results": data}
+            elif isinstance(data, str):
+                # Try to parse as JSON, if it fails, return as string
+                try:
+                    parsed = json.loads(data)
+                    return parsed
+                except json.JSONDecodeError:
+                    return {"content": data}
+            elif data is None:
+                return {"message": "No data returned"}
+            else:
+                # Convert to string representation
+                return {"content": str(data)}
+        except (TypeError, ValueError, RecursionError) as e:
+            logger.warning(f"Data not serializable, converting to string: {e}")
+            # Return a safe fallback
+            return {
+                "error": "Data not serializable",
+                "message": "The response contained non-serializable data",
+                "content": str(data) if data is not None else "None"
+            }
+    
     async def analyze_query(self, query: str, agent_name: str = "sql", 
                           model_name: str = "gpt-4o-mini", save_to_db: bool = True) -> Dict[str, Any]:
         """
@@ -67,6 +101,9 @@ class LineageService:
             # Run analysis
             result = await framework.run_agent_plugin(agent_name, query)
             
+            # Ensure result is serializable
+            serializable_result = self._ensure_serializable(result)
+            
             # Save to database if requested
             if save_to_db:
                 try:
@@ -74,19 +111,27 @@ class LineageService:
                         query=query,
                         agent_name=agent_name,
                         model_name=model_name,
-                        result=result,
+                        result=serializable_result,
                         status="completed"
                     )
-                    result["query_id"] = query_id
+                    serializable_result["query_id"] = query_id
                     logger.info(f"Saved query analysis with ID: {query_id}")
                 except Exception as e:
                     logger.error(f"Failed to save query analysis: {e}")
                     # Don't fail the entire request if DB save fails
             
-            return result
+            return serializable_result
             
         except Exception as e:
             logger.error(f"Error analyzing query with agent {agent_name}: {e}")
+            
+            # Create error response
+            error_response = {
+                "error": str(e),
+                "message": f"Error analyzing query: {str(e)}",
+                "query": query,
+                "agent_name": agent_name
+            }
             
             # Save error to database if requested
             if save_to_db:
@@ -95,13 +140,13 @@ class LineageService:
                         query=query,
                         agent_name=agent_name,
                         model_name=model_name,
-                        result={"error": str(e)},
+                        result=error_response,
                         status="failed"
                     )
                 except Exception as db_e:
                     logger.error(f"Failed to save error to database: {db_e}")
             
-            raise Exception(f"Error analyzing query: {str(e)}")
+            return error_response
     
     async def analyze_queries_batch(self, queries: List[str], agent_name: str = "sql",
                                   model_name: str = "gpt-4o-mini", save_to_db: bool = True) -> List[Dict[str, Any]]:
@@ -136,6 +181,9 @@ class LineageService:
                 # Run analysis
                 result = await framework.run_agent_plugin(agent_name, query)
                 
+                # Ensure result is serializable
+                serializable_result = self._ensure_serializable(result)
+                
                 # Save to database if requested
                 if save_to_db:
                     try:
@@ -143,16 +191,16 @@ class LineageService:
                             query=query,
                             agent_name=agent_name,
                             model_name=model_name,
-                            result=result,
+                            result=serializable_result,
                             status="completed"
                         )
-                        result["query_id"] = query_id
+                        serializable_result["query_id"] = query_id
                     except Exception as e:
                         logger.error(f"Failed to save batch query analysis: {e}")
                 
                 results.append({
                     "query": query,
-                    "result": result,
+                    "result": serializable_result,
                     "status": "success"
                 })
                 
@@ -209,6 +257,9 @@ class LineageService:
             # Run operation
             result = await framework.run_operation(operation_name, query, agent_name)
             
+            # Ensure result is serializable
+            serializable_result = self._ensure_serializable(result)
+            
             # Save to database if requested
             if save_to_db:
                 try:
@@ -217,18 +268,26 @@ class LineageService:
                         query=query,
                         agent_name=agent_name or "auto-selected",
                         model_name=model_name,
-                        result=result,
+                        result=serializable_result,
                         status="completed"
                     )
-                    result["operation_id"] = operation_id
+                    serializable_result["operation_id"] = operation_id
                     logger.info(f"Saved operation result with ID: {operation_id}")
                 except Exception as e:
                     logger.error(f"Failed to save operation result: {e}")
             
-            return result
+            return serializable_result
             
         except Exception as e:
             logger.error(f"Error running operation {operation_name}: {e}")
+            
+            error_response = {
+                "error": str(e),
+                "message": f"Error running operation '{operation_name}': {str(e)}",
+                "query": query,
+                "agent_name": agent_name or "auto-selected",
+                "operation_name": operation_name
+            }
             
             # Save error to database if requested
             if save_to_db:
@@ -238,15 +297,15 @@ class LineageService:
                         query=query,
                         agent_name=agent_name or "auto-selected",
                         model_name=model_name,
-                        result={"error": str(e)},
+                        result=error_response,
                         status="failed"
                     )
                 except Exception as db_e:
                     logger.error(f"Failed to save operation error to database: {db_e}")
             
-            raise Exception(f"Error running operation '{operation_name}': {str(e)}")
+            return error_response
     
-    def get_query_history(self, limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
+    async def get_query_history(self, limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
         """Get query analysis history"""
         try:
             return self.repository.get_all_query_analyses(limit=limit, offset=offset)
@@ -254,7 +313,7 @@ class LineageService:
             logger.error(f"Error retrieving query history: {e}")
             raise Exception(f"Error retrieving query history: {str(e)}")
     
-    def get_query_result(self, query_id: int) -> Optional[Dict[str, Any]]:
+    async def get_query_result(self, query_id: int) -> Optional[Dict[str, Any]]:
         """Get specific query analysis result"""
         try:
             return self.repository.get_query_analysis(query_id)
@@ -262,7 +321,7 @@ class LineageService:
             logger.error(f"Error retrieving query result: {e}")
             raise Exception(f"Error retrieving query result: {str(e)}")
     
-    def get_operation_result(self, operation_id: int) -> Optional[Dict[str, Any]]:
+    async def get_operation_result(self, operation_id: int) -> Optional[Dict[str, Any]]:
         """Get specific operation result"""
         try:
             return self.repository.get_operation_result(operation_id)
@@ -270,7 +329,7 @@ class LineageService:
             logger.error(f"Error retrieving operation result: {e}")
             raise Exception(f"Error retrieving operation result: {str(e)}")
     
-    def list_available_agents(self) -> Dict[str, Dict[str, Any]]:
+    async def list_available_agents(self) -> Dict[str, Dict[str, Any]]:
         """List all available agents"""
         try:
             # Create a temporary framework instance to get agent info
@@ -280,7 +339,7 @@ class LineageService:
             logger.error(f"Error listing available agents: {e}")
             raise Exception(f"Error listing available agents: {str(e)}")
     
-    def get_supported_operations(self) -> Dict[str, list]:
+    async def get_supported_operations(self) -> Dict[str, list]:
         """Get all supported operations"""
         try:
             # Create a temporary framework instance to get operations info
