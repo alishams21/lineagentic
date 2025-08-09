@@ -1,0 +1,134 @@
+{
+  "eventType": "COMPLETE",
+  "eventTime": "2024-01-15T10:30:00.000Z",
+  "run": {
+    "runId": "sample-run-123",
+    "facets": {
+      "parent": {
+        "job": {
+          "namespace": "data-engineering",
+          "name": "sales_aggregation_job"
+        }
+      },
+      "environmentVariables": {
+        "environmentVariables": [
+          {"name": "ENV", "value": "production"},
+          {"name": "REGION", "value": "us-west-2"}
+        ]
+      }
+    }
+  },
+  "job": {
+    "namespace": "data-engineering",
+    "name": "sales_aggregation_job",
+    "facets": {
+      "sourceCodeLocation": {
+        "type": "git",
+        "url": "https://github.com/company/data-pipeline",
+        "repoUrl": "https://github.com/company/data-pipeline",
+        "path": "jobs/sales_aggregation.py",
+        "version": "main",
+        "branch": "main"
+      },
+      "sourceCode": {
+        "language": "python",
+        "sourceCode": "def aggregate_sales():\n    pass"
+      },
+      "jobType": {
+        "processingType": "BATCH",
+        "integration": "AIRFLOW",
+        "jobType": "PYTHON"
+      },
+      "documentation": {
+        "description": "Aggregates sales data by region",
+        "contentType": "text/markdown"
+      },
+      "ownership": {
+        "owners": [
+          {"name": "data-team", "type": "TEAM"},
+          {"name": "john.doe", "type": "INDIVIDUAL"}
+        ]
+      }
+    }
+  },
+  "inputs": [
+    {
+      "namespace": "data-lake",
+      "name": "analytics.sales_summary",
+      "facets": {
+        "schema": {
+          "fields": [
+            {"name": "region", "type": "string", "description": "Sales region"},
+            {"name": "amount", "type": "decimal", "description": "Sales amount"},
+            {"name": "date", "type": "date", "description": "Sale date"}
+          ]
+        },
+        "tags": [
+          {"key": "domain", "value": "sales", "source": "manual"},
+          {"key": "sensitivity", "value": "public", "source": "auto"}
+        ],
+        "ownership": {
+          "owners": [
+            {"name": "sales-team", "type": "TEAM"}
+          ]
+        },
+        "inputStatistics": {
+          "rowCount": 10000,
+          "fileCount": 5,
+          "size": 1048576
+        }
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "namespace": "data-lake",
+      "name": "analytics.sales_by_region",
+      "facets": {
+        "columnLineage": {
+          "fields": {
+            "region": {
+              "inputFields": [
+                {
+                  "namespace": "data-lake",
+                  "name": "analytics.sales_summary",
+                  "field": "region",
+                  "transformations": [
+                    {
+                      "type": "IDENTITY",
+                      "subtype": "DIRECT_COPY",
+                      "description": "Direct field copy",
+                      "masking": false
+                    }
+                  ]
+                }
+              ]
+            },
+            "total_sales": {
+              "inputFields": [
+                {
+                  "namespace": "data-lake",
+                  "name": "analytics.sales_summary",
+                  "field": "amount",
+                  "transformations": [
+                    {
+                      "type": "AGGREGATE",
+                      "subtype": "SUM",
+                      "description": "Sum of sales amounts by region",
+                      "masking": false
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        "outputStatistics": {
+          "rowCount": 50,
+          "fileCount": 1,
+          "size": 51200
+        }
+      }
+    }
+  ]
+} 
