@@ -16,13 +16,6 @@ class BatchQueryRequest(BaseModel):
     save_to_db: Optional[bool] = Field(default=True, description="Whether to save results to database")
 
 
-class OperationRequest(BaseModel):
-    query: str = Field(..., description="The query to analyze")
-    model_name: Optional[str] = Field(default="gpt-4o-mini", description="The model to use for analysis")
-    agent_name: Optional[str] = Field(default=None, description="Specific agent to use (optional)")
-    save_to_db: Optional[bool] = Field(default=True, description="Whether to save results to database")
-
-
 class LineageRequest(BaseModel):
     namespace: str = Field(..., description="The namespace to search for")
     table_name: str = Field(..., description="The table name to search for")
@@ -62,10 +55,4 @@ class HistoryResponse(BaseModel):
 class AgentsResponse(BaseModel):
     success: bool
     data: Dict[str, Dict[str, Any]]
-    error: Optional[str] = None
-
-
-class OperationsResponse(BaseModel):
-    success: bool
-    data: Dict[str, list]
     error: Optional[str] = None 

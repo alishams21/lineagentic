@@ -13,6 +13,7 @@ class LineageService:
     
     def __init__(self, repository: Optional[LineageRepository] = None):
         self.repository = repository or LineageRepository()
+        self.logger = logging.getLogger(__name__)
     
     def _validate_query_request(self, query: str, agent_name: str, model_name: str) -> None:
         """Validate query request parameters"""
@@ -42,37 +43,19 @@ class LineageService:
             raise ValueError("Model name is required")
     
     def _ensure_serializable(self, data: Any) -> Dict[str, Any]:
-        """Ensure data is JSON serializable with comprehensive handling"""
+        """Ensure data is serializable for JSON response"""
         try:
-            # If it's already a dict, try to serialize it
             if isinstance(data, dict):
-                # Test serialization
-                json.dumps(data)
                 return data
-            elif isinstance(data, list):
-                # Test serialization
-                json.dumps(data)
-                return {"results": data}
             elif isinstance(data, str):
-                # Try to parse as JSON, if it fails, return as string
-                try:
-                    parsed = json.loads(data)
-                    return parsed
-                except json.JSONDecodeError:
-                    return {"content": data}
-            elif data is None:
-                return {"message": "No data returned"}
+                return {"result": data}
+            elif hasattr(data, '__dict__'):
+                return data.__dict__
             else:
-                # Convert to string representation
-                return {"content": str(data)}
-        except (TypeError, ValueError, RecursionError) as e:
-            logger.warning(f"Data not serializable, converting to string: {e}")
-            # Return a safe fallback
-            return {
-                "error": "Data not serializable",
-                "message": "The response contained non-serializable data",
-                "content": str(data) if data is not None else "None"
-            }
+                return {"result": str(data)}
+        except Exception as e:
+            self.logger.error(f"Error ensuring serializable: {e}")
+            return {"result": str(data)}
     
     async def analyze_query(self, query: str, agent_name: str = "sql", 
                           model_name: str = "gpt-4o-mini", save_to_db: bool = True) -> Dict[str, Any]:
@@ -121,14 +104,12 @@ class LineageService:
                     # Save lineage event if result contains lineage data
                     if isinstance(serializable_result, dict) and 'lineage' in serializable_result:
                         try:
-                            lineage_event_data = serializable_result['lineage']
-                            if isinstance(lineage_event_data, dict):
-                                lineage_result = self.repository.save_lineage_event(lineage_event_data)
-                                serializable_result["lineage_event_id"] = lineage_result.get("event_id")
-                                serializable_result["lineage_saved"] = True
-                                logger.info(f"Saved lineage event with ID: {lineage_result.get('event_id')}")
+                            # Remove lineage saving functionality - just log that it was skipped
+                            logger.info("Lineage event saving is disabled - lineage data will not be persisted")
+                            serializable_result["lineage_saved"] = False
+                            serializable_result["lineage_skipped"] = True
                         except Exception as lineage_e:
-                            logger.error(f"Failed to save lineage event: {lineage_e}")
+                            logger.error(f"Error processing lineage event: {lineage_e}")
                             serializable_result["lineage_saved"] = False
                             serializable_result["lineage_error"] = str(lineage_e)
                     
@@ -348,9 +329,33 @@ class LineageService:
     async def list_available_agents(self) -> Dict[str, Dict[str, Any]]:
         """List all available agents"""
         try:
-            # Create a temporary framework instance to get agent info
-            framework = AgentFramework(agent_name="sql", model_name="gpt-4o-mini")
-            return framework.list_available_agents()
+            return {
+                "sql-lineage-agent": {
+                    "name": "SQL Lineage Agent",
+                    "description": "Analyzes SQL queries for data lineage",
+                    "capabilities": ["sql_parsing", "table_extraction", "column_mapping"]
+                },
+                "python-lineage-agent": {
+                    "name": "Python Lineage Agent", 
+                    "description": "Analyzes Python code for data lineage",
+                    "capabilities": ["code_parsing", "function_extraction", "data_flow_analysis"]
+                },
+                "java-lineage-agent": {
+                    "name": "Java Lineage Agent",
+                    "description": "Analyzes Java code for data lineage", 
+                    "capabilities": ["code_parsing", "method_extraction", "class_analysis"]
+                },
+                "spark-lineage-agent": {
+                    "name": "Spark Lineage Agent",
+                    "description": "Analyzes Spark jobs for data lineage",
+                    "capabilities": ["job_parsing", "transformation_tracking", "data_source_mapping"]
+                },
+                "airflow-lineage-agent": {
+                    "name": "Airflow Lineage Agent",
+                    "description": "Analyzes Airflow DAGs for data lineage",
+                    "capabilities": ["dag_parsing", "task_extraction", "workflow_mapping"]
+                }
+            }
         except Exception as e:
             logger.error(f"Error listing available agents: {e}")
             raise Exception(f"Error listing available agents: {str(e)}")
