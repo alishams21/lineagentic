@@ -5,9 +5,9 @@ import uvicorn
 import logging
 
 from .models import (
-    QueryRequest, BatchQueryRequest, OperationRequest, LineageRequest,
+    QueryRequest, BatchQueryRequest, LineageRequest,
     QueryResponse, BatchQueryResponse, HealthResponse,
-    HistoryRequest, HistoryResponse, AgentsResponse, OperationsResponse
+    HistoryRequest, HistoryResponse, AgentsResponse
 )
 from ..service_layer.lineage_service import LineageService
 
@@ -127,45 +127,6 @@ async def analyze_queries_batch(request: BatchQueryRequest):
         )
 
 
-@app.post("/operation/{operation_name}", response_model=QueryResponse)
-async def run_operation(operation_name: str, request: OperationRequest):
-    """
-    Run a specific operation using the appropriate plugin.
-    
-    Args:
-        operation_name: The operation to perform (e.g., "sql_lineage_analysis")
-        request: OperationRequest containing the query and optional parameters
-        
-    Returns:
-        QueryResponse with operation results
-    """
-    try:
-        result = await lineage_service.run_operation(
-            operation_name=operation_name,
-            query=request.query,
-            agent_name=request.agent_name,
-            model_name=request.model_name,
-            save_to_db=request.save_to_db
-        )
-        
-        return QueryResponse(
-            success=True,
-            data=result
-        )
-        
-    except ValueError as e:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Validation error: {str(e)}"
-        )
-    except Exception as e:
-        logger.error(f"Error running operation '{operation_name}': {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error running operation '{operation_name}': {str(e)}"
-        )
-
-
 @app.get("/history", response_model=HistoryResponse)
 async def get_query_history(
     limit: Optional[int] = Query(default=100, description="Number of records to return"),
@@ -235,41 +196,6 @@ async def get_query_result(query_id: int):
         )
 
 
-@app.get("/operation/{operation_id}", response_model=QueryResponse)
-async def get_operation_result(operation_id: int):
-    """
-    Get specific operation result by ID.
-    
-    Args:
-        operation_id: The ID of the operation to retrieve
-        
-    Returns:
-        QueryResponse with operation result
-    """
-    try:
-        result = await lineage_service.get_operation_result(operation_id)
-        
-        if result is None:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Operation with ID {operation_id} not found"
-            )
-        
-        return QueryResponse(
-            success=True,
-            data=result
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error retrieving operation result: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error retrieving operation result: {str(e)}"
-        )
-
-
 @app.get("/agents", response_model=AgentsResponse)
 async def list_available_agents():
     """
@@ -291,30 +217,6 @@ async def list_available_agents():
         raise HTTPException(
             status_code=500,
             detail=f"Error listing available agents: {str(e)}"
-        )
-
-
-@app.get("/operations", response_model=OperationsResponse)
-async def get_supported_operations():
-    """
-    Get all supported operations.
-    
-    Returns:
-        OperationsResponse with supported operations information
-    """
-    try:
-        operations = await lineage_service.get_supported_operations()
-        
-        return OperationsResponse(
-            success=True,
-            data=operations
-        )
-        
-    except Exception as e:
-        logger.error(f"Error getting supported operations: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error getting supported operations: {str(e)}"
         )
 
 

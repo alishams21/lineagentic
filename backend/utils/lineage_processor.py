@@ -10,18 +10,16 @@ class LineageProcessor:
         self.repository = repository or LineageRepository()
     
     def process_lineage_event(self, event_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Process and save a lineage event"""
+        """Process a lineage event (now just validates without saving)"""
         try:
             # Validate the event data structure
             self._validate_event_data(event_data)
             
-            # Save the event to database
-            result = self.repository.save_lineage_event(event_data)
-            
+            # Return success without saving to database
             return {
                 "success": True,
-                "message": "Lineage event processed successfully",
-                "data": result
+                "message": "Lineage event processed successfully (not saved to database)",
+                "data": None
             }
             
         except Exception as e:

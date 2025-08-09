@@ -1,7 +1,7 @@
 import requests
 import json
 import asyncio
-from typing import Dict, Any
+from typing import Dict, Any, Optional, List
 
 class SQLLineageAPIClient:
     def __init__(self, base_url: str = "http://localhost:8000"):
