@@ -1,0 +1,63 @@
+graph TD
+  %% ========= Jobs & Runs =========
+  subgraph JobsAndRuns
+    Job["Job<br/>{namespace, name}"]
+    JobVersion["JobVersion<br/>{versionId, gitRef, codeHash, createdAt}"]
+    Run["Run<br/>{runId, eventType, eventTime}"]
+    SourceCode["SourceCode<br/>{sourceCode…}"]
+    SCM["SCM<br/>{type, url, repoUrl, path, version, tag, branch}"]
+    JobFacets["JobFacets<br/>{jobType, doc}"]
+    JobOwner["Owner<br/>{name, email?}"]
+  end
+
+  Job -->|HAS_VERSION| JobVersion
+  Run -->|OF_JOB| Job
+  Run -->|USES_VERSION| JobVersion
+  JobVersion -->|HAS_SOURCE_CODE| SourceCode
+  JobVersion -->|HAS_SCM| SCM
+  Job -->|HAS_FACETS| JobFacets
+  Job -->|OWNED_BY| JobOwner
+
+  %% ========= Datasets =========
+  subgraph Datasets
+    Dataset["Dataset<br/>{namespace, name}"]
+    DatasetVersion["DatasetVersion<br/>{versionId, schemaHash, createdAt}"]
+    PrevDatasetVersion["DatasetVersion<br/>{versionId, schemaHash, createdAt}"]
+    Field["Field<br/>{name, type?, description?}"]
+    Tag["Tag<br/>{key, value, source}"]
+    Owner["Owner<br/>{name, email?}"]
+    Stats["Stats<br/>{rowCount, fileCount, size}"]
+    Lifecycle["Lifecycle<br/>{state, previousIdentifier?}"]
+  end
+
+  Dataset -->|HAS_VERSION| DatasetVersion
+  Dataset -->|HAS_VERSION| PrevDatasetVersion
+  DatasetVersion -->|HAS_FIELD| Field
+  DatasetVersion -->|HAS_STATS| Stats
+  DatasetVersion -->|HAS_LIFECYCLE| Lifecycle
+  Dataset -->|OWNED_BY| Owner
+  Dataset -->|HAS_TAG| Tag
+  DatasetVersion -->|HAS_TAG| Tag
+  Field -->|HAS_TAG| Tag
+  Lifecycle -->|PREVIOUS_VERSION| PrevDatasetVersion
+
+  %% ========= Run I/O =========
+  Run -->|READS_FROM| DatasetVersion
+  Run -->|WRITES_TO| PrevDatasetVersion
+
+  %% ========= Run facets =========
+  subgraph RunFacets
+    EnvVar["EnvVar<br/>{name, value}"]
+    Error["Error<br/>{message, programmingLanguage, stackTrace}"]
+    ExternalQuery["ExternalQuery<br/>{externalQueryId, source}"]
+  end
+  Run -->|HAS_ENV_VAR| EnvVar
+  Run -->|HAS_ERROR| Error
+  Run -->|HAS_EXTERNAL_QUERY| ExternalQuery
+
+  %% ========= Field-level lineage =========
+  OutField["Field<br/>{name}"]
+  InField["Field<br/>{name}"]
+  DatasetVersion -->|HAS_FIELD| OutField
+  PrevDatasetVersion -->|HAS_FIELD| InField
+  OutField -- "DERIVES_FROM (txHash, type, subtype, description, masking, createdAt)" --> InField

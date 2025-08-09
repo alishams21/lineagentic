@@ -118,17 +118,18 @@ For more CLI options, see the [CLI documentation](cli/README.md).
 - HF_TOKEN   (HUGGINGFACE_TOKEN)
 - OPENAI_API_KEY
 
-
-### Mathematic behind algorithm 
-
-
 ### Architecture
 
 The following figure illustrates the architecture behind the Lineagentic, which is essentially a multi-layer architecture front-end, backend and agentic AI algorithm that leverages a chain-of-thought process to construct lineage across various script types.
 
 ![Architecture Diagram](images/architecture.png)
 
-## Mathematic of the algorithm
+## Graph data model
+Lineagentic uses a graph data model to store lineage data. using graph data model  will help a lot for visulization and querying. Also can be simply extended to support new data models requirements.
+
+![Graph data model](images/model.png)
+
+### Mathematic behind algorithm 
 
 Following shows mathematic behind each layer of algorithm.
 

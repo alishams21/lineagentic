@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  neo4j:
+    image: neo4j:5.20.0-community
+    container_name: neo4j-lineage
+    restart: unless-stopped
+    ports:
+      - "7474:7474"   # HTTP
+      - "7687:7687"   # Bolt
+    environment:
+      NEO4J_AUTH: ${NEO4J_AUTH}
+      NEO4J_dbms_security_auth__enabled: "true"
+      NEO4J_server_memory_heap_initial__size: 1G
+      NEO4J_server_memory_heap_max__size: 1G
+      NEO4J_server_memory_pagecache_size: 1G
+      NEO4J_server_default__listen__address: 0.0.0.0
+      NEO4J_server_default__advertised__address: localhost
+    volumes:
+      - ./data:/data
+      - ./logs:/logs
+      - ./import:/import
+      - ./plugins:/plugins 
