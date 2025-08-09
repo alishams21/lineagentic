@@ -121,9 +121,7 @@ For more CLI options, see the [CLI documentation](cli/README.md).
 ## Graph data model
 Lineagentic uses a graph data model to store lineage data. using graph data model  will help a lot for visulization and querying. Also can be simply extended to support new data models requirements.
 
-<div align="center">
-  <img src="images/model.svg" alt="Lineagentic Logo" width="880" height="300">
-</div>
+![Graph data model](images/model.png)
 
 ### Mathematic behind algorithm 
 
