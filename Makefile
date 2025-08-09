@@ -1,7 +1,7 @@
 # LineAgent Project Makefile
 # Centralized build and development commands
 
-.PHONY: help create-venv activate-venv run-start-api-server-with-venv run-start-demo-server-with-venv install-lineage-visualizer-dependencies start-lineage-visualizer stop-lineage-visualizer start-watchdog stop-watchdog clean gradio-deploy query-logs clean-pycache stop-api-server stop-demo-server test test-tracers test-database test-api-server test-verbose test-module build-eoe-lineage
+.PHONY: help create-venv activate-venv run-start-api-server-with-venv run-start-demo-server-with-venv install-lineage-visualizer-dependencies start-lineage-visualizer stop-lineage-visualizer start-watchdog stop-watchdog clean gradio-deploy query-logs clean-pycache stop-api-server stop-demo-server test test-tracers test-database test-api-server test-verbose test-module build-eoe-lineage start-mysql stop-mysql restart-mysql mysql-status mysql-logs
 
 help:
 	@echo "🚀 LineAgent Project"
@@ -11,6 +11,13 @@ help:
 	@echo "  make start-cli-api-server-with-lineage-visualizer-and-watchdog - Start API server with visualizer and watchdog"
 	@echo "  make start-cli-demo-server-with-lineage-visualizer-and-watchdog - Start demo server with visualizer and watchdog"
 	@echo "  make start-cli-api-server - Start only API server"
+	@echo ""
+	@echo "Database commands:"
+	@echo "  make start-mysql    - Start MySQL database in Docker"
+	@echo "  make stop-mysql     - Stop MySQL database"
+	@echo "  make restart-mysql  - Restart MySQL database"
+	@echo "  make mysql-status   - Check MySQL status"
+	@echo "  make mysql-logs     - View MySQL logs"
 	@echo ""
 	@echo "Individual commands:"
 	@echo "  make create-venv    - Create virtual environment"
@@ -38,6 +45,87 @@ help:
 	@echo "  make test-api-server - Run API server tests only"
 	@echo "  make test-verbose - Run tests with verbose output"
 	@echo ""
+
+# Load environment variables from .env file
+ifneq (,$(wildcard .env))
+    include .env
+    export
+endif
+
+# Change MySQL passwords
+change-mysql-passwords:
+	@echo "🔐 Changing MySQL passwords..."
+	@if [ ! -f .env ]; then \
+		echo "❌ .env file not found. Please create it first."; \
+		exit 1; \
+	fi
+	@echo "Please enter the new root password:"
+	@read -s new_root_pass; \
+	echo "Please enter the new user password:"; \
+	read -s new_user_pass; \
+	docker exec -i lineagentic-mysql mysql -u root -p$(MYSQL_ROOT_PASSWORD) -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '$${new_root_pass}'; ALTER USER 'root'@'%' IDENTIFIED BY '$${new_root_pass}'; ALTER USER '$(MYSQL_USER)@'%' IDENTIFIED BY '$${new_user_pass}'; FLUSH PRIVILEGES;"
+	@echo "✅ Passwords changed successfully!"
+	@echo "📝 Don't forget to update your .env file with the new passwords!"
+
+# Reset MySQL passwords to defaults (for development)
+reset-mysql-passwords:
+	@echo "🔄 Resetting MySQL passwords to defaults..."
+	@if [ ! -f .env ]; then \
+		echo "❌ .env file not found. Please create it first."; \
+		exit 1; \
+	fi
+	@docker exec -i lineagentic-mysql mysql -u root -p$(MYSQL_ROOT_PASSWORD) -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '$(MYSQL_ROOT_PASSWORD)'; ALTER USER 'root'@'%' IDENTIFIED BY '$(MYSQL_ROOT_PASSWORD)'; ALTER USER '$(MYSQL_USER)@'%' IDENTIFIED BY '$(MYSQL_PASSWORD)'; FLUSH PRIVILEGES;"
+	@echo "✅ Passwords reset to defaults!"
+
+# Start MySQL database (updated to use .env variables)
+start-mysql:
+	@echo "🐬 Starting MySQL database..."
+	@if docker ps -q -f name=lineagentic-mysql | grep -q .; then \
+		echo "⚠️  MySQL is already running!"; \
+		echo "   Use 'make mysql-status' to check status"; \
+	else \
+		docker-compose up -d mysql; \
+		echo "✅ MySQL started successfully!"; \
+		echo " MySQL available at localhost:$(MYSQL_PORT)"; \
+		echo "📊 Database: $(MYSQL_DB)"; \
+		echo " User: $(MYSQL_USER)"; \
+		echo "🔑 Password: $(MYSQL_PASSWORD)"; \
+		echo "🛑 Use 'make stop-mysql' to stop MySQL"; \
+	fi
+
+# Stop MySQL database
+stop-mysql:
+	@echo "🛑 Stopping MySQL database..."
+	@docker-compose stop mysql
+	@echo "✅ MySQL stopped"
+
+# Restart MySQL database
+restart-mysql:
+	@echo "🔄 Restarting MySQL database..."
+	@docker-compose restart mysql
+	@echo "✅ MySQL restarted"
+
+# Check MySQL status
+mysql-status:
+	@echo "📊 MySQL Status:"
+	@docker-compose ps mysql
+	@echo ""
+	@echo "🔍 Health check:"
+	@docker-compose exec mysql mysqladmin ping -h localhost -u root -plineagentic_root_password 2>/dev/null || echo "❌ MySQL not responding"
+
+# View MySQL logs
+mysql-logs:
+	@echo "📝 MySQL logs:"
+	@docker-compose logs mysql
+
+# Test MySQL connection using .env credentials
+test-mysql-connection:
+	@echo "🔍 Testing MySQL connection..."
+	@if [ ! -f .env ]; then \
+		echo "❌ .env file not found. Please create it first."; \
+		exit 1; \
+	fi
+	@docker exec -i lineagentic-mysql mysql -u $(MYSQL_USER) -p$(MYSQL_PASSWORD) -h localhost -e "SELECT 'Connection successful!' as status;" 2>/dev/null || echo "❌ Connection failed. Check your credentials in .env file."
 
 # =============================================================================
 # TESTING COMMANDS
@@ -89,9 +177,11 @@ test-module:
 # SERVICE COMMANDS
 # =============================================================================
 
-# Start all services in background
+# Start all services in background (updated to include MySQL)
 start-cli-api-server-with-lineage-visualizer-and-watchdog-and-demo-server:
 	@echo "🚀 Starting all services in background..."
+	@$(MAKE) start-mysql
+	@sleep 5
 	@$(MAKE) create-venv
 	@sleep 2
 	@$(MAKE) activate-venv
@@ -111,15 +201,18 @@ start-cli-api-server-with-lineage-visualizer-and-watchdog-and-demo-server:
 	@$(MAKE) start-watchdog
 	@echo ""
 	@echo "✅ All services started in background!"
-	@echo "🌐 Services available at:"
+	@echo " Services available at:"
 	@echo "  - API Server: http://localhost:8000"
 	@echo "  - Demo Server: http://localhost:7860"
 	@echo "  - Lineage Visualizer: http://localhost:3000/editor"
+	@echo "  - MySQL Database: localhost:3306"
 	@echo "🛑 To stop all services, run: make clean"
 
-# Start API server with lineage visualizer and watchdog
+# Start API server with lineage visualizer and watchdog (updated to include MySQL)
 start-cli-api-server-with-lineage-visualizer-and-watchdog:
 	@echo "🚀 Starting API server with lineage visualizer and watchdog..."
+	@$(MAKE) start-mysql
+	@sleep 5
 	@$(MAKE) create-venv
 	@sleep 2
 	@$(MAKE) activate-venv
@@ -136,11 +229,14 @@ start-cli-api-server-with-lineage-visualizer-and-watchdog:
 	@$(MAKE) start-watchdog
 	@echo "  - API Server: http://localhost:8000"
 	@echo "  - Lineage Visualizer: http://localhost:3000/editor"
+	@echo "  - MySQL Database: localhost:3306"
 	@echo "✅ Services started!"
 
-# Start demo server with lineage visualizer and watchdog
+# Start demo server with lineage visualizer and watchdog (updated to include MySQL)
 start-cli-demo-server-with-lineage-visualizer-and-watchdog:
 	@echo "🚀 Starting demo server with lineage visualizer and watchdog..."
+	@$(MAKE) start-mysql
+	@sleep 5
 	@$(MAKE) create-venv
 	@sleep 2
 	@$(MAKE) activate-venv
@@ -157,11 +253,14 @@ start-cli-demo-server-with-lineage-visualizer-and-watchdog:
 	@$(MAKE) start-watchdog
 	@echo "  - Demo Server: http://localhost:7860"
 	@echo "  - Lineage Visualizer: http://localhost:3000/editor"
+	@echo "  - MySQL Database: localhost:3306"
 	@echo "✅ Services started!"
 
-# Start only API server
+# Start only API server (updated to include MySQL)
 start-cli-api-server:
 	@echo "🚀 Starting only API server..."
+	@$(MAKE) start-mysql
+	@sleep 5
 	@$(MAKE) create-venv
 	@sleep 2
 	@$(MAKE) activate-venv
@@ -193,7 +292,7 @@ gradio-deploy:
 	@cd demo-deploy && gradio deploy
 	@echo "✅ Gradio deployment completed!"
 
-clean: stop-watchdog stop-lineage-visualizer clean-all-services
+clean: stop-watchdog stop-lineage-visualizer stop-mysql clean-all-services
 
 
 
