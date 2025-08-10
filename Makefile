@@ -1,7 +1,7 @@
 # LineAgent Project Makefile
 # Centralized build and development commands
 
-.PHONY: help create-venv activate-venv run-start-api-server-with-venv run-start-demo-server-with-venv install-lineage-visualizer-dependencies start-lineage-visualizer stop-lineage-visualizer start-watchdog stop-watchdog clean gradio-deploy query-logs clean-pycache stop-api-server stop-demo-server test test-tracers test-database test-api-server test-verbose test-module build-eoe-lineage start-mysql stop-mysql restart-mysql mysql-status mysql-logs
+.PHONY: help create-venv activate-venv run-start-api-server-with-venv run-start-demo-server-with-venv install-lineage-visualizer-dependencies start-lineage-visualizer stop-lineage-visualizer start-watchdog stop-watchdog clean gradio-deploy query-logs clean-pycache stop-api-server stop-demo-server test test-tracers test-database test-api-server test-verbose test-module build-eoe-lineage start-mysql stop-mysql restart-mysql mysql-status mysql-logs up down up-logs restart status logs logs-service
 
 help:
 	@echo "🚀 LineAgent Project"
@@ -18,6 +18,16 @@ help:
 	@echo "  make restart-mysql  - Restart MySQL database"
 	@echo "  make mysql-status   - Check MySQL status"
 	@echo "  make mysql-logs     - View MySQL logs"
+	@echo ""
+	@echo "Docker Compose commands:"
+	@echo "  make up            - Start all services (MySQL, Neo4j)"
+	@echo "  make down          - Stop all services (preserves data)"
+	@echo "  make down-clean    - Stop all services and remove data"
+	@echo "  make up-logs       - Start all services with logs"
+	@echo "  make restart       - Restart all services"
+	@echo "  make status        - Show service status"
+	@echo "  make logs          - Show all service logs"
+	@echo "  make logs-service  - Show logs for specific service"
 	@echo ""
 	@echo "Individual commands:"
 	@echo "  make create-venv    - Create virtual environment"
@@ -126,6 +136,62 @@ test-mysql-connection:
 		exit 1; \
 	fi
 	@docker exec -i lineagentic-mysql mysql -u $(MYSQL_USER) -p$(MYSQL_PASSWORD) -h localhost -e "SELECT 'Connection successful!' as status;" 2>/dev/null || echo "❌ Connection failed. Check your credentials in .env file."
+
+# =============================================================================
+# DOCKER COMPOSE COMMANDS
+# =============================================================================
+
+# Start all services with docker-compose
+up:
+	@echo "🚀 Starting all services with docker-compose..."
+	@docker-compose up -d
+	@echo "✅ All services started!"
+	@echo " Services available at:"
+	@echo "  - MySQL Database: localhost:3306"
+	@echo "  - Neo4j Database: localhost:7474 (HTTP) / localhost:7687 (Bolt)"
+	@echo " Use 'make down' to stop all services"
+
+# Stop all services with docker-compose
+down:
+	@echo "🛑 Stopping all services with docker-compose..."
+	@docker-compose down
+	@echo "✅ All services stopped!"
+
+# Stop all services with docker-compose and remove volumes (CLEANS DATA)
+down-clean:
+	@echo "🛑 Stopping all services and removing volumes (WILL DELETE ALL DATA)..."
+	@docker-compose down -v
+	@echo "✅ All services stopped and data cleaned!"
+
+# Start all services with docker-compose and show logs
+up-logs:
+	@echo "🚀 Starting all services with docker-compose and showing logs..."
+	@docker-compose up
+
+# Restart all services with docker-compose
+restart:
+	@echo "🔄 Restarting all services with docker-compose..."
+	@docker-compose restart
+	@echo "✅ All services restarted!"
+
+# Show status of all services
+status:
+	@echo "📊 Docker Compose Services Status:"
+	@docker-compose ps
+
+# Show logs for all services
+logs:
+	@echo "📝 Docker Compose logs:"
+	@docker-compose logs
+
+# Show logs for specific service
+logs-service:
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "❌ Please specify a service: make logs-service SERVICE=mysql"; \
+	else \
+		echo " Logs for $(SERVICE):"; \
+		docker-compose logs $(SERVICE); \
+	fi
 
 # =============================================================================
 # TESTING COMMANDS
