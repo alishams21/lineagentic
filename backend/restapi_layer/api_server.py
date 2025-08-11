@@ -9,7 +9,8 @@ from .models import (
     QueryRequest, BatchQueryRequest, LineageRequest,
     QueryResponse, BatchQueryResponse, HealthResponse,
     HistoryRequest, HistoryResponse, AgentsResponse,
-    FieldLineageRequest, FieldLineageResponse, FieldLineageCypherResponse
+    FieldLineageRequest, FieldLineageResponse, FieldLineageCypherResponse,
+    TableLineageRequest, TableLineageResponse, TableLineageCypherResponse, TableLineageCypherRequest
 )
 from ..service_layer.lineage_service import LineageService
 
@@ -435,6 +436,159 @@ async def execute_field_lineage_cypher(request: FieldLineageRequest):
         raise HTTPException(
             status_code=500,
             detail=f"Error executing field lineage query: {str(e)}"
+        )
+
+
+@app.post("/table-lineage", response_model=TableLineageResponse)
+async def get_table_lineage(request: TableLineageRequest):
+    """
+    Get table-level lineage data for a specific table.
+    
+    Args:
+        request: TableLineageRequest containing table_name and optional parameters
+        
+    Returns:
+        TableLineageResponse with table lineage data
+    """
+    try:
+        result = await lineage_service.get_table_lineage(
+            table_name=request.table_name,
+            namespace=request.namespace,
+            include_jobs=request.include_jobs,
+            include_fields=request.include_fields
+        )
+        
+        return TableLineageResponse(
+            success=True,
+            data=result
+        )
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Validation error: {str(e)}"
+        )
+    except Exception as e:
+        logger.error(f"Error getting table lineage for {request.table_name}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error getting table lineage: {str(e)}"
+        )
+
+
+@app.post("/table-lineage/cypher", response_model=TableLineageCypherResponse)
+async def generate_table_lineage_cypher(request: TableLineageCypherRequest):
+    """
+    Generate Cypher query for table lineage tracing.
+    
+    Args:
+        request: TableLineageCypherRequest containing table_name and optional parameters
+        
+    Returns:
+        TableLineageCypherResponse with generated Cypher query
+    """
+    try:
+        cypher_query = await lineage_service.generate_table_lineage_cypher(
+            table_name=request.table_name,
+            namespace=request.namespace,
+            include_jobs=request.include_jobs,
+            include_fields=request.include_fields
+        )
+        
+        return TableLineageCypherResponse(
+            success=True,
+            cypher_query=cypher_query
+        )
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Validation error: {str(e)}"
+        )
+    except Exception as e:
+        logger.error(f"Error generating table lineage Cypher: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating table lineage Cypher: {str(e)}"
+        )
+
+
+@app.post("/table-lineage/execute", response_model=QueryResponse)
+async def execute_table_lineage_cypher(request: TableLineageRequest):
+    """
+    Execute table lineage Cypher query and return raw results.
+    
+    Args:
+        request: TableLineageRequest containing table_name and optional parameters
+        
+    Returns:
+        QueryResponse with raw Neo4j query results
+    """
+    try:
+        records = await lineage_service.execute_table_lineage_cypher(
+            table_name=request.table_name,
+            namespace=request.namespace,
+            include_jobs=request.include_jobs,
+            include_fields=request.include_fields
+        )
+        
+        # Convert Neo4j records to JSON-serializable format
+        from neo4j.time import DateTime
+        from neo4j.graph import Node
+        
+        def convert_value(value):
+            """Convert Neo4j values to JSON-serializable Python values."""
+            if isinstance(value, DateTime):
+                return str(value)
+            elif isinstance(value, (list, tuple)):
+                return [convert_value(v) for v in value]
+            elif isinstance(value, dict):
+                return {k: convert_value(v) for k, v in value.items()}
+            elif isinstance(value, Node):
+                return {
+                    "identity": getattr(value, "id", None),
+                    "labels": list(getattr(value, "labels", [])),
+                    "properties": {k: convert_value(v) for k, v in value.items()},
+                    "elementId": getattr(value, "element_id", None)
+                }
+            else:
+                try:
+                    import json
+                    json.dumps(value)
+                    return value
+                except TypeError:
+                    return str(value)
+        
+        # Convert records to JSON format
+        json_records = []
+        for record in records:
+            record_data = {}
+            for key, value in record.items():
+                record_data[key] = convert_value(value)
+            json_records.append(record_data)
+        
+        return QueryResponse(
+            success=True,
+            data={
+                "table_name": request.table_name,
+                "namespace": request.namespace,
+                "include_jobs": request.include_jobs,
+                "include_fields": request.include_fields,
+                "records": json_records,
+                "record_count": len(json_records)
+            }
+        )
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Validation error: {str(e)}"
+        )
+    except Exception as e:
+        logger.error(f"Error executing table lineage query: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error executing table lineage query: {str(e)}"
         )
 
 

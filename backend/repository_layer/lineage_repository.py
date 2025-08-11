@@ -531,3 +531,249 @@ RETURN
             raise Exception(f"Error executing field lineage query: {str(e)}")
         finally:
             neo4j_connector.disconnect() 
+
+    # Table Lineage Methods
+    def get_table_lineage(self, table_name: str, namespace: Optional[str] = None,
+                         include_jobs: bool = True, include_fields: bool = True) -> Dict[str, Any]:
+        """
+        Get table-level lineage data from Neo4j.
+        
+        Args:
+            table_name: Name of the table to trace lineage for
+            namespace: Optional namespace filter
+            include_jobs: Whether to include job information
+            include_fields: Whether to include field information
+            
+        Returns:
+            Dictionary containing table lineage information
+        """
+        # Get Neo4j connector
+        neo4j_connector = DatabaseFactory.get_connector("neo4j")
+        
+        try:
+            neo4j_connector.connect()
+            
+            # Generate Cypher query using the table lineage tool logic
+            cypher_query = self._generate_table_lineage_cypher(
+                table_name, namespace, include_jobs, include_fields
+            )
+            
+            if cypher_query.startswith("// Error:"):
+                return {
+                    "table_name": table_name,
+                    "namespace": namespace,
+                    "message": cypher_query,
+                    "lineage": []
+                }
+            
+            # Execute the query
+            records = neo4j_connector.execute_query(cypher_query, {})
+            
+            if not records:
+                return {
+                    "table_name": table_name,
+                    "namespace": namespace,
+                    "message": "No lineage found for this table",
+                    "lineage": []
+                }
+            
+            # Convert records to JSON-serializable format
+            json_records = self._convert_neo4j_records_to_json(records)
+            
+            return {
+                "table_name": table_name,
+                "namespace": namespace,
+                "include_jobs": include_jobs,
+                "include_fields": include_fields,
+                "lineage_count": len(json_records),
+                "lineage": json_records
+            }
+            
+        except Exception as e:
+            return {"error": f"Query execution failed: {str(e)}"}
+        finally:
+            neo4j_connector.disconnect()
+
+    def generate_table_lineage_cypher(self, table_name: str, namespace: Optional[str] = None,
+                                    include_jobs: bool = True, include_fields: bool = True) -> str:
+        """
+        Generate a Cypher query for table-level lineage tracing.
+        
+        Args:
+            table_name: Name of the table to trace lineage for
+            namespace: Optional namespace filter
+            include_jobs: Whether to include job information
+            include_fields: Whether to include field information
+            
+        Returns:
+            Cypher query string for table lineage
+        """
+        try:
+            return self._generate_table_lineage_cypher(table_name, namespace, include_jobs, include_fields)
+        except Exception as e:
+            return f"// Error generating Cypher query: {str(e)}"
+
+    def execute_table_lineage_cypher(self, table_name: str, namespace: Optional[str] = None,
+                                   include_jobs: bool = True, include_fields: bool = True) -> List[Dict[str, Any]]:
+        """
+        Execute table lineage Cypher query and return raw results.
+        
+        Args:
+            table_name: Name of the table to trace lineage for
+            namespace: Optional namespace filter
+            include_jobs: Whether to include job information
+            include_fields: Whether to include field information
+            
+        Returns:
+            List of raw Neo4j records
+        """
+        # Get Neo4j connector
+        neo4j_connector = DatabaseFactory.get_connector("neo4j")
+        
+        try:
+            neo4j_connector.connect()
+            
+            # Generate Cypher query
+            cypher_query = self._generate_table_lineage_cypher(table_name, namespace, include_jobs, include_fields)
+            
+            if cypher_query.startswith("// Error:"):
+                raise Exception(cypher_query)
+            
+            # Execute the query
+            records = neo4j_connector.execute_query(cypher_query, {})
+            
+            return records
+            
+        except Exception as e:
+            raise Exception(f"Error executing table lineage query: {str(e)}")
+        finally:
+            neo4j_connector.disconnect()
+
+    def _generate_table_lineage_cypher(self, table_name: str, namespace: Optional[str] = None,
+                                     include_jobs: bool = True, include_fields: bool = True) -> str:
+        """
+        Internal method to generate Cypher query for table-level lineage tracing.
+        
+        Args:
+            table_name: Name of the table to trace lineage for
+            namespace: Optional namespace filter
+            include_jobs: Whether to include job information
+            include_fields: Whether to include field information
+            
+        Returns:
+            Cypher query string for table lineage
+        """
+        try:
+            # Build the Cypher query - fixed to match actual data structure
+            cypher_query = f"// Table-level lineage visualization for {table_name} table\n"
+            cypher_query += "// Returns the actual nodes and relationships for graph visualization\n\n"
+            
+            # First, find the output dataset we're looking for
+            if namespace:
+                full_name = f"{namespace}.{table_name}"
+                cypher_query += f"// Find the output dataset: {full_name}\n"
+                cypher_query += f"MATCH (output_ds:Dataset {{name: '{full_name}'}})\n"
+            else:
+                # Try to find by partial name match
+                cypher_query += f"// Find the output dataset containing: {table_name}\n"
+                cypher_query += f"MATCH (output_ds:Dataset)\n"
+                cypher_query += f"WHERE output_ds.name CONTAINS '{table_name}' OR output_ds.name ENDS WITH '{table_name}'\n"
+            
+            cypher_query += "MATCH (output_ds)-[:HAS_VERSION]->(output_dv:DatasetVersion)\n"
+            cypher_query += "MATCH (run:Run)-[:WROTE_TO]->(output_dv)\n"
+            cypher_query += "MATCH (run)-[:READ_FROM]->(input_dv:DatasetVersion)\n"
+            cypher_query += "MATCH (input_ds:Dataset)-[:HAS_VERSION]->(input_dv)\n\n"
+            
+            # Job information
+            if include_jobs:
+                cypher_query += "// Get job information through the TRIGGERED relationship\n"
+                cypher_query += "OPTIONAL MATCH (job:Job)-[:TRIGGERED]->(run)\n"
+                cypher_query += "OPTIONAL MATCH (job)-[:HAS_VERSION]->(job_version:JobVersion)\n\n"
+            
+            # Field information
+            if include_fields:
+                cypher_query += "// Get field information\n"
+                cypher_query += "OPTIONAL MATCH (input_dv)-[:HAS_FIELD]->(input_field:FieldVersion)\n"
+                cypher_query += "OPTIONAL MATCH (output_dv)-[:HAS_FIELD]->(output_field:FieldVersion)\n\n"
+            
+            # Return statement
+            cypher_query += "// Return the actual nodes and relationships for visualization\n"
+            cypher_query += "RETURN \n"
+            
+            if include_jobs and include_fields:
+                cypher_query += "    input_ds, input_dv, input_field,\n"
+                cypher_query += "    output_field, output_dv, output_ds,\n"
+                cypher_query += "    run, job, job_version"
+            elif include_jobs:
+                cypher_query += "    input_ds, input_dv,\n"
+                cypher_query += "    output_dv, output_ds,\n"
+                cypher_query += "    run, job, job_version"
+            elif include_fields:
+                cypher_query += "    input_ds, input_dv, input_field,\n"
+                cypher_query += "    output_field, output_dv, output_ds,\n"
+                cypher_query += "    run"
+            else:
+                cypher_query += "    input_ds, input_dv,\n"
+                cypher_query += "    output_dv, output_ds,\n"
+                cypher_query += "    run"
+            
+            return cypher_query
+                
+        except Exception as e:
+            return f"// Error generating Cypher query: {str(e)}"
+
+    def _convert_neo4j_records_to_json(self, records: List) -> List[Dict[str, Any]]:
+        """
+        Convert Neo4j records into JSON-serializable format.
+        
+        Args:
+            records: List of Neo4j records
+            
+        Returns:
+            List of JSON-serializable dictionaries
+        """
+        from neo4j.time import DateTime
+        from neo4j.graph import Node
+        
+        def convert_value(value):
+            """Convert Neo4j values to JSON-serializable Python values."""
+            if value is None:
+                return None
+            
+            # Handle Neo4j DateTime
+            if isinstance(value, DateTime):
+                return str(value)
+            
+            # Handle lists and tuples
+            if isinstance(value, (list, tuple)):
+                return [convert_value(v) for v in value]
+            
+            # Handle dictionaries
+            if isinstance(value, dict):
+                return {k: convert_value(v) for k, v in value.items()}
+            
+            # Handle Neo4j Node objects
+            if isinstance(value, Node):
+                return {
+                    "identity": getattr(value, "id", None),
+                    "labels": list(getattr(value, "labels", [])),
+                    "properties": {k: convert_value(v) for k, v in value.items()},
+                    "elementId": getattr(value, "element_id", None)
+                }
+            
+            # Handle other Neo4j types
+            try:
+                import json
+                json.dumps(value)
+                return value
+            except (TypeError, OverflowError):
+                return str(value)
+        
+        json_records = []
+        for record in records:
+            record_data = {}
+            for key, value in record.items():
+                record_data[key] = convert_value(value)
+            json_records.append(record_data)
+        
+        return json_records 
