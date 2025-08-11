@@ -76,44 +76,7 @@ def event_composer_instructions(name: str):
     based on the data provided or leave it as default mentioned following:
     4. only produce exact following json format with filled in information above, do not add any text.
             {
-                "eventType": "START",
-                "eventTime": "<ISO_TIMESTAMP>",
-                "run": {
-                    "runId": "<UUID>",
-                    "facets": {
-                    "parent": {
-                        "job": {
-                        "name": "<PARENT_JOB_NAME>",
-                        "namespace": "<PARENT_NAMESPACE>"
-                        },
-                        "run": {
-                        "runId": "<PARENT_RUN_ID>"
-                        }
-                    }
-                    }
-                },
-                "job": {
-                    "facets": {
-                    "sql": {
-                        "_producer": "<PRODUCER_URL>",
-                        "_schemaURL": "<SCHEMA_URL>",
-                        "query": "<FULL_PIPELINE_AS_CODE_STRING>"
-                    },
-                    "jobType": {
-                        "processingType": "<BATCH_OR_STREAM>",
-                        "integration": "<ENGINE_NAME>",
-                        "jobType": "<QUERY_TYPE_OR_JOB_TYPE>",
-                        "_producer": "<PRODUCER_URL>",
-                        "_schemaURL": "<SCHEMA_URL>"
-                    },
-                    "sourceCode": {
-                        "_producer": "<PRODUCER_URL>",
-                        "_schemaURL": "<SCHEMA_URL>",
-                        "language": "<LANGUAGE>",
-                        "sourceCode": "<SOURCE_CODE>"
-                    }
-                    }
-                },
+ 
                 "inputs": [
                     {
                         "namespace": "<INPUT_NAMESPACE>",

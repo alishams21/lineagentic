@@ -643,38 +643,6 @@ def airflow_lineage_event_composer():
             ### Required Output Format (Example):
 
             {
-            "eventType": "START",
-            "eventTime": "<ISO_TIMESTAMP>",
-            "run": {
-                "runId": "<UUID>",
-                "facets": {
-                "parent": {
-                    "job": {
-                    "name": "<PARENT_JOB_NAME>",
-                    "namespace": "<PARENT_NAMESPACE>"
-                    },
-                    "run": {
-                    "runId": "<PARENT_RUN_ID>"
-                    }
-                }
-                }
-            },
-            "job": {
-                "facets": {
-                "sql": {
-                    "_producer": "<PRODUCER_URL>",
-                    "_schemaURL": "<SCHEMA_URL>",
-                    "query": "<DAG_TASK_LOGIC_AS_TEXT>"
-                },
-                "jobType": {
-                    "processingType": "<BATCH_OR_STREAM>",
-                    "integration": "Airflow",
-                    "jobType": "DAG",
-                    "_producer": "<PRODUCER_URL>",
-                    "_schemaURL": "<SCHEMA_URL>"
-                }
-                }
-            },
             "inputs": [
                 {
                 "namespace": "<INPUT_NAMESPACE>",

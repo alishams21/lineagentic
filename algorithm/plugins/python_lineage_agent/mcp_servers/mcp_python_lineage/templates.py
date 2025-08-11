@@ -436,44 +436,6 @@ def python_lineage_event_composer():
         Your output must follow **exactly** this JSON structure — do not output explanations, comments, or anything else.
 
         {
-        "eventType": "START",
-        "eventTime": "<ISO_TIMESTAMP>",
-        "run": {
-            "runId": "<UUID>",
-            "facets": {
-            "parent": {
-                "job": {
-                "name": "<PARENT_JOB_NAME>",
-                "namespace": "<PARENT_NAMESPACE>"
-                },
-                "run": {
-                "runId": "<PARENT_RUN_ID>"
-                }
-            }
-            }
-        },
-        "job": {
-            "facets": {
-            "sql": {
-                "_producer": "<PRODUCER_URL>",
-                "_schemaURL": "<SCHEMA_URL>",
-                "query": "<FULL_PIPELINE_AS_CODE_STRING>"
-            },
-            "jobType": {
-                "processingType": "<BATCH_OR_STREAM>",
-                "integration": "<ENGINE_NAME>",
-                "jobType": "<QUERY_TYPE_OR_JOB_TYPE>",
-                "_producer": "<PRODUCER_URL>",
-                "_schemaURL": "<SCHEMA_URL>"
-            },
-            "sourceCode": {
-                "_producer": "<PRODUCER_URL>",
-                "_schemaURL": "<SCHEMA_URL>",
-                "language": "<LANGUAGE>",
-                "sourceCode": "<SOURCE_CODE>"
-            }
-            }
-        },
         "inputs": [
             {
                 "namespace": "<INPUT_NAMESPACE>",
