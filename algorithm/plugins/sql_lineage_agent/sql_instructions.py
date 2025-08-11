@@ -43,9 +43,42 @@ def event_composer_instructions(name: str):
         **Field Mappings**
         **Logical Operators**
     and return only the JSON format.
-    3. you show have all the fields mentioned in following json schema, either filled in
-    based on the data provided or leave it as default mentioned following:
-    4. only produce exact following json format with filled in information above, do not add any text.
+    3. Match the structure and nesting exactly as in this format:
+    4. Based on following example generate <INPUT_NAMESPACE>, <INPUT_NAME>, <OUTPUT_NAMESPACE>, <OUTPUT_NAME>:
+            
+                    BigQuery
+                    SELECT name, age 
+                    FROM project123.dataset456.customers;
+
+                    Expected :
+                    <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: project123
+                    <INPUT_NAME> or <OUTPUT_NAME>: dataset456.customers
+
+                    Postgres
+                    SELECT id, total
+                    FROM sales_schema.orders;
+
+                    Expected :
+                    <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: default
+                    <INPUT_NAME> or <OUTPUT_NAME>: sales_schema.orders
+
+                    MySQL
+                    SELECT u.username, u.email
+                    FROM ecommerce_db.users AS u;
+
+                    Expected Output:
+                    <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: default
+                    <INPUT_NAME> or <OUTPUT_NAME>: ecommerce_db.users
+            
+            - wherever you cant find information for example for <STORAGE_LAYER>, <FILE_FORMAT>,
+            <DATASET_TYPE>, <SUB_TYPE>, <LIFECYCLE>, <OWNER_NAME>, 
+            <OWNER_TYPE>, <SUBTYPE>, <DESCRIPTION> then just write "NA".
+
+            - very very very important: Your output must follow **exactly** this JSON structure — do not output explanations, comments, or anything else.
+            ---
+
+            ### Required Output Format (Example):
+
             {
                 "inputs": [
                     {
@@ -53,8 +86,6 @@ def event_composer_instructions(name: str):
                         "name": "<INPUT_NAME>",
                         "facets": {
                             "schema": {
-                            "_producer": "<PRODUCER_URL>",
-                            "_schemaURL": "<SCHEMA_URL>",
                             "fields": [
                                 {
                                 "name": "<FIELD_NAME>",
@@ -64,25 +95,17 @@ def event_composer_instructions(name: str):
                             ]
                             },
                             "storage": {
-                                "_producer": "<PRODUCER_URL>",
-                                "_schemaURL": "<SCHEMA_URL>",
                                 "storageLayer": "<STORAGE_LAYER>",
                                 "fileFormat": "<FILE_FORMAT>"
                             },
                             "datasetType": {
-                                "_producer": "<PRODUCER_URL>",
-                                "_schemaURL": "<SCHEMA_URL>",
                                 "datasetType": "<DATASET_TYPE>",
                                 "subType": "<SUB_TYPE>"
                             },
-                            "lifecycleStateChange": {
-                                "_producer": "<PRODUCER_URL>",
-                                "_schemaURL": "<SCHEMA_URL>",
-                                "lifecycleStateChange": "<LIFECYCLE_STATE_CHANGE>"
+                            "lifecycle": {
+                                "lifecycle": "<LIFECYCLE>"
                             },
                             "ownership": {
-                                "_producer": "<PRODUCER_URL>",
-                                "_schemaURL": "<SCHEMA_URL>",
                                 "owners": [ 
                                     {
                                         "name": "<OWNER_NAME>",
@@ -99,27 +122,33 @@ def event_composer_instructions(name: str):
                     "name": "<OUTPUT_NAME>",
                     "facets": {
                         "columnLineage": {
-                        "_producer": "<PRODUCER_URL>",
-                        "_schemaURL": "<SCHEMA_URL>",
-                        "fields": {
-                            "<OUTPUT_FIELD_NAME>": {
-                            "inputFields": [
-                                {
-                                "namespace": "<INPUT_NAMESPACE>",
-                                "name": "<INPUT_NAME>",
-                                "field": "<INPUT_FIELD_NAME>",
-                                "transformations": [
+                            "fields": {
+                                "<OUTPUT_FIELD_NAME>": {
+                                "inputFields": [
                                     {
-                                    "type": "<TRANSFORMATION_TYPE>",
-                                    "subtype": "<SUBTYPE>",
-                                    "description": "<DESCRIPTION>",
-                                    "masking": false
+                                    "namespace": "<INPUT_NAMESPACE>",
+                                    "name": "<INPUT_NAME>",
+                                    "field": "<INPUT_FIELD_NAME>",
+                                    "transformations": [
+                                        {
+                                        "type": "<TRANSFORMATION_TYPE>",
+                                        "subtype": "<SUBTYPE>",
+                                        "description": "<DESCRIPTION>",
+                                        "masking": false
+                                        }
+                                    ]
                                     }
                                 ]
                                 }
-                            ]
                             }
-                        }
+                        },
+                        "ownership": {
+                                "owners": [ 
+                                    {
+                                        "name": "<OWNER_NAME>",
+                                        "type": "<OWNER_TYPE>"
+                                    }
+                                ]
                         }
                     }
                     }

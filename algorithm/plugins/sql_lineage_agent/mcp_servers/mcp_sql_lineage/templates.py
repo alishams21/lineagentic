@@ -395,27 +395,50 @@ def sql_lineage_event_composer():
             Strictly follow the structure below and do not change field names or nesting, it is very important to keep exact same format:
 
             - Include "columnLineage" as a facet under "outputs.facets" (not at the top level).
-            - Maintain the exact field names: "eventType", "eventTime", "run", "job", "inputs", "outputs", "facets", "query", "processingType", "integration", etc.
-            - inputs are the source tables. remember to have all the source tables as inputs. do not just have fields as inputs.
+            - Maintain the exact field names: "inputs", "outputs", "facets", "fields", "storage", "datasetType", "lifecycleStateChange", "ownership", ect.
             - Match the structure and nesting exactly as in this format:
+            - Based on following example generate <INPUT_NAMESPACE>, <INPUT_NAME>, <OUTPUT_NAMESPACE>, <OUTPUT_NAME>:
             
-            Your output must follow **exactly** following JSON structure and fill in the values considering: 
-            1. **Parsed SQL Blocks** 
-            2. **Field Mappings**
-            3. **Logical Operators**
-            
-            
-            very important: just generate the JSON following the format:
+                    BigQuery
+                    SELECT name, age 
+                    FROM project123.dataset456.customers;
 
-                {
+                    Expected :
+                    <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: project123
+                    <INPUT_NAME> or <OUTPUT_NAME>: dataset456.customers
+
+                    Postgres
+                    SELECT id, total
+                    FROM sales_schema.orders;
+
+                    Expected :
+                    <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: default
+                    <INPUT_NAME> or <OUTPUT_NAME>: sales_schema.orders
+
+                    MySQL
+                    SELECT u.username, u.email
+                    FROM ecommerce_db.users AS u;
+
+                    Expected Output:
+                    <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: default
+                    <INPUT_NAME> or <OUTPUT_NAME>: ecommerce_db.users
+            
+            - wherever you cant find information for example for <STORAGE_LAYER>, <FILE_FORMAT>,
+            <DATASET_TYPE>, <SUB_TYPE>, <LIFECYCLE>, <OWNER_NAME>, 
+            <OWNER_TYPE>, <SUBTYPE>, <DESCRIPTION> then just write "NA".
+
+            - very very very important: Your output must follow **exactly** this JSON structure — do not output explanations, comments, or anything else.
+            ---
+
+            ### Required Output Format (Example):
+
+            {
                 "inputs": [
                     {
                         "namespace": "<INPUT_NAMESPACE>",
                         "name": "<INPUT_NAME>",
                         "facets": {
                             "schema": {
-                            "_producer": "<PRODUCER_URL>",
-                            "_schemaURL": "<SCHEMA_URL>",
                             "fields": [
                                 {
                                 "name": "<FIELD_NAME>",
@@ -425,25 +448,17 @@ def sql_lineage_event_composer():
                             ]
                             },
                             "storage": {
-                                "_producer": "<PRODUCER_URL>",
-                                "_schemaURL": "<SCHEMA_URL>",
                                 "storageLayer": "<STORAGE_LAYER>",
                                 "fileFormat": "<FILE_FORMAT>"
                             },
                             "datasetType": {
-                                "_producer": "<PRODUCER_URL>",
-                                "_schemaURL": "<SCHEMA_URL>",
                                 "datasetType": "<DATASET_TYPE>",
                                 "subType": "<SUB_TYPE>"
                             },
-                            "lifecycleStateChange": {
-                                "_producer": "<PRODUCER_URL>",
-                                "_schemaURL": "<SCHEMA_URL>",
-                                "lifecycleStateChange": "<LIFECYCLE_STATE_CHANGE>"
+                            "lifecycle": {
+                                "lifecycle": "<LIFECYCLE>"
                             },
                             "ownership": {
-                                "_producer": "<PRODUCER_URL>",
-                                "_schemaURL": "<SCHEMA_URL>",
                                 "owners": [ 
                                     {
                                         "name": "<OWNER_NAME>",
@@ -460,34 +475,38 @@ def sql_lineage_event_composer():
                     "name": "<OUTPUT_NAME>",
                     "facets": {
                         "columnLineage": {
-                        "_producer": "<PRODUCER_URL>",
-                        "_schemaURL": "<SCHEMA_URL>",
-                        "fields": {
-                            "<OUTPUT_FIELD_NAME>": {
-                            "inputFields": [
-                                {
-                                "namespace": "<INPUT_NAMESPACE>",
-                                "name": "<INPUT_NAME>",
-                                "field": "<INPUT_FIELD_NAME>",
-                                "transformations": [
+                            "fields": {
+                                "<OUTPUT_FIELD_NAME>": {
+                                "inputFields": [
                                     {
-                                    "type": "<TRANSFORMATION_TYPE>",
-                                    "subtype": "<SUBTYPE>",
-                                    "description": "<DESCRIPTION>",
-                                    "masking": false
+                                    "namespace": "<INPUT_NAMESPACE>",
+                                    "name": "<INPUT_NAME>",
+                                    "field": "<INPUT_FIELD_NAME>",
+                                    "transformations": [
+                                        {
+                                        "type": "<TRANSFORMATION_TYPE>",
+                                        "subtype": "<SUBTYPE>",
+                                        "description": "<DESCRIPTION>",
+                                        "masking": false
+                                        }
+                                    ]
                                     }
                                 ]
                                 }
-                            ]
                             }
-                        }
+                        },
+                        "ownership": {
+                                "owners": [ 
+                                    {
+                                        "name": "<OWNER_NAME>",
+                                        "type": "<OWNER_TYPE>"
+                                    }
+                                ]
                         }
                     }
                     }
                 ]
-                }
-                
-    
+            }
 
             """
             

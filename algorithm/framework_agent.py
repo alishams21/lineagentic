@@ -30,12 +30,14 @@ class OpenLineageConfig:
                  job_type: str = "QUERY",
                  language: str = "SQL",
                  source_code: str = None,
-                 input_namespace: str = None,
-                 output_namespace: str = None,
                  storage_layer: str = "DATABASE",
                  file_format: str = "TABLE",
                  owner_name: str = None,
-                 owner_type: str = "TEAM"):
+                 owner_type: str = "TEAM",
+                 description: str = None,
+                 job_owner_name: str = None,
+                 job_owner_type: str = "TEAM",
+                 environment_variables: List[Dict[str, str]] = None):
         """
         Initialize OpenLineage configuration
         
@@ -55,12 +57,11 @@ class OpenLineageConfig:
             job_type: Type of job (QUERY, ETL, etc.)
             language: Programming language
             source_code: The actual source code/query
-            input_namespace: Namespace for input datasets
-            output_namespace: Namespace for output datasets
             storage_layer: Storage layer type
             file_format: File format
             owner_name: Dataset owner name
             owner_type: Owner type (TEAM, INDIVIDUAL, etc.)
+            environment_variables: List of environment variables as dicts with 'name' and 'value' keys
         """
         self.event_type = event_type
         self.event_time = event_time
@@ -77,12 +78,14 @@ class OpenLineageConfig:
         self.job_type = job_type
         self.language = language
         self.source_code = source_code
-        self.input_namespace = input_namespace
-        self.output_namespace = output_namespace
         self.storage_layer = storage_layer
         self.file_format = file_format
         self.owner_name = owner_name
         self.owner_type = owner_type
+        self.job_owner_name = job_owner_name
+        self.job_owner_type = job_owner_type
+        self.description = description
+        self.environment_variables = environment_variables or []
         
         # Validate required fields
         self._validate_required_fields()
@@ -168,28 +171,40 @@ class AgentFramework:
                 }
             }
         
-        # Add job facets
-        if config.source_code:
-            event["job"]["facets"]["script"] = {
-                "_producer": config.producer_url,
-                "_schemaURL": config.schema_url,
-                "query": config.source_code
+        # Add environment variables if provided
+        if config.environment_variables:
+            if "facets" not in event["run"]:
+                event["run"]["facets"] = {}
+            event["run"]["facets"]["environmentVariables"]={
+                "environmentVariables": config.environment_variables
             }
+        
+        # Add job facets
         
         event["job"]["facets"]["jobType"] = {
             "processingType": config.processing_type,
             "integration": config.integration,
             "jobType": config.job_type,
-            "_producer": config.producer_url,
-            "_schemaURL": config.schema_url
         }
         
         event["job"]["facets"]["sourceCode"] = {
-            "_producer": config.producer_url,
-            "_schemaURL": config.schema_url,
             "language": config.language,
             "sourceCode": config.source_code or ""
         }
+        
+        event["job"]["facets"]["documentation"] ={
+            "description": config.description
+        }
+        
+        event["job"]["facets"]["ownership"] ={
+            "owners": [
+                {
+                    "name": config.job_owner_name,
+                    "type": config.job_owner_type
+                }
+            ]
+        }
+        
         
         return event
     
@@ -254,10 +269,15 @@ async def main():
         integration="SQL",
         job_type="QUERY",
         language="SQL",
-        input_namespace="input-namespace",
-        output_namespace="output-namespace",
+        description="This is a test description",
         owner_name="data-team",
-        owner_type="TEAM"
+        owner_type="TEAM",
+        job_owner_name="data-team",
+        job_owner_type="TEAM",
+        environment_variables=[
+            {"name": "ENV", "value": "production"},
+            {"name": "REGION", "value": "us-west-2"}
+        ]
     )
     
     framework = AgentFramework(
