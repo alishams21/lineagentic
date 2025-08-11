@@ -21,6 +21,11 @@ class LineageRequest(BaseModel):
     table_name: str = Field(..., description="The table name to search for")
 
 
+class FieldLineageRequest(BaseModel):
+    field_name: str = Field(..., description="Name of the field to trace lineage for")
+    namespace: Optional[str] = Field(default=None, description="Optional namespace filter")
+
+
 class QueryResponse(BaseModel):
     success: bool
     data: Dict[str, Any]
@@ -55,4 +60,16 @@ class HistoryResponse(BaseModel):
 class AgentsResponse(BaseModel):
     success: bool
     data: Dict[str, Dict[str, Any]]
+    error: Optional[str] = None
+
+
+class FieldLineageResponse(BaseModel):
+    success: bool
+    data: Dict[str, Any]
+    error: Optional[str] = None
+
+
+class FieldLineageCypherResponse(BaseModel):
+    success: bool
+    cypher_query: str
     error: Optional[str] = None 

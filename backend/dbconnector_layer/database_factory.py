@@ -107,6 +107,49 @@ class MySQLConnector(DatabaseConnector):
         return cursor
 
 
+class Neo4jConnector(DatabaseConnector):
+    """Neo4j database connector for graph database operations"""
+    
+    def __init__(self, bolt_uri: str = "bolt://localhost:7687", 
+                 username: str = "neo4j", password: str = "password"):
+        self.bolt_uri = bolt_uri
+        self.username = username
+        self.password = password
+        self.driver = None
+    
+    def connect(self):
+        """Establish Neo4j connection"""
+        try:
+            from neo4j import GraphDatabase
+            self.driver = GraphDatabase.driver(self.bolt_uri, auth=(self.username, self.password))
+            # Test connection
+            with self.driver.session() as session:
+                session.run("RETURN 1")
+            return self.driver
+        except ImportError:
+            raise Exception("neo4j-driver is required for Neo4j support. Install with: pip install neo4j")
+        except Exception as e:
+            raise Exception(f"Failed to connect to Neo4j database: {e}")
+    
+    def disconnect(self):
+        """Close Neo4j connection"""
+        if self.driver:
+            self.driver.close()
+            self.driver = None
+    
+    def execute_query(self, query: str, params: Optional[Dict[str, Any]] = None):
+        """Execute Neo4j Cypher query"""
+        if not self.driver:
+            self.connect()
+        
+        with self.driver.session() as session:
+            if params:
+                result = session.run(query, **params)
+            else:
+                result = session.run(query)
+            return list(result)
+
+
 class PostgreSQLConnector(DatabaseConnector):
     """PostgreSQL database connector (placeholder for future implementation)"""
     
@@ -141,7 +184,7 @@ class DatabaseFactory:
         Get appropriate database connector based on type
         
         Args:
-            db_type: Type of database ('sqlite', 'mysql', 'postgresql', etc.)
+            db_type: Type of database ('sqlite', 'mysql', 'postgresql', 'neo4j', etc.)
             **kwargs: Database connection parameters
             
         Returns:
@@ -161,6 +204,13 @@ class DatabaseFactory:
                 database=kwargs.get("database", os.getenv("MYSQL_DB", "lineage")),
                 username=kwargs.get("username", os.getenv("MYSQL_USER", "root")),
                 password=kwargs.get("password", os.getenv("MYSQL_PASSWORD", ""))
+            )
+        
+        elif db_type.lower() == "neo4j":
+            return Neo4jConnector(
+                bolt_uri=kwargs.get("bolt_uri", os.getenv("NEO4J_BOLT_URI", "bolt://localhost:7687")),
+                username=kwargs.get("username", os.getenv("NEO4J_USERNAME", "neo4j")),
+                password=kwargs.get("password", os.getenv("NEO4J_PASSWORD", "password"))
             )
         
         elif db_type.lower() == "postgresql":
