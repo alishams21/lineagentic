@@ -42,6 +42,11 @@ class LineageService:
         if not model_name:
             raise ValueError("Model name is required")
     
+    def _validate_field_lineage_request(self, field_name: str) -> None:
+        """Validate field lineage request parameters"""
+        if not field_name or not field_name.strip():
+            raise ValueError("Field name cannot be empty")
+    
     def _ensure_serializable(self, data: Any) -> Dict[str, Any]:
         """Ensure data is serializable for JSON response"""
         try:
@@ -435,3 +440,191 @@ class LineageService:
         except Exception as e:
             logger.error(f"Error getting end-to-end lineage for {namespace}.{table_name}: {e}")
             raise Exception(f"Error getting end-to-end lineage for {namespace}.{table_name}: {str(e)}") 
+
+    # Field Lineage Methods
+    async def get_field_lineage(self, field_name: str, namespace: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Get complete lineage for a specific field.
+        
+        Args:
+            field_name: Name of the field to trace lineage for
+            namespace: Optional namespace filter
+            
+        Returns:
+            Dict containing field lineage information
+        """
+        try:
+            # Validate input
+            self._validate_field_lineage_request(field_name)
+            
+            # Call repository method
+            lineage_data = self.repository.get_field_lineage(field_name, namespace)
+            
+            # Ensure result is serializable
+            serializable_result = self._ensure_serializable(lineage_data)
+            
+            return serializable_result
+            
+        except ValueError:
+            # Re-raise ValueError as-is
+            raise
+        except Exception as e:
+            logger.error(f"Error getting field lineage for '{field_name}': {e}")
+            raise Exception(f"Error getting field lineage for '{field_name}': {str(e)}") 
+
+    async def generate_field_lineage_cypher(self, field_name: str, namespace: Optional[str] = None) -> str:
+        """
+        Generate a Cypher query for field lineage tracing.
+        
+        Args:
+            field_name: Name of the field to trace lineage for
+            namespace: Optional namespace filter
+            
+        Returns:
+            Cypher query string for field lineage
+        """
+        try:
+            # Validate input
+            self._validate_field_lineage_request(field_name)
+            
+            # Call repository method
+            cypher_query = self.repository.generate_field_lineage_cypher(field_name, namespace)
+            
+            return cypher_query
+            
+        except ValueError:
+            # Re-raise ValueError as-is
+            raise
+        except Exception as e:
+            logger.error(f"Error generating Cypher query for field '{field_name}': {e}")
+            raise Exception(f"Error generating Cypher query for field '{field_name}': {str(e)}")
+
+    async def execute_field_lineage_cypher(self, field_name: str, namespace: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Execute field lineage Cypher query and return raw results.
+        
+        Args:
+            field_name: Name of the field to trace lineage for
+            namespace: Optional namespace filter
+            
+        Returns:
+            List of raw Neo4j records
+        """
+        try:
+            # Validate input
+            self._validate_field_lineage_request(field_name)
+            
+            # Call repository method
+            records = self.repository.execute_field_lineage_cypher(field_name, namespace)
+            
+            return records
+            
+        except ValueError:
+            # Re-raise ValueError as-is
+            raise
+        except Exception as e:
+            logger.error(f"Error executing field lineage query for '{field_name}': {e}")
+            raise Exception(f"Error executing field lineage query for '{field_name}': {str(e)}") 
+
+    # Table Lineage Methods
+    async def get_table_lineage(self, table_name: str, namespace: Optional[str] = None,
+                               include_jobs: bool = True, include_fields: bool = True) -> Dict[str, Any]:
+        """
+        Get table-level lineage data.
+        
+        Args:
+            table_name: Name of the table to trace lineage for
+            namespace: Optional namespace filter
+            include_jobs: Whether to include job information
+            include_fields: Whether to include field information
+            
+        Returns:
+            Dict containing table lineage information
+        """
+        try:
+            # Validate input
+            if not table_name or not table_name.strip():
+                raise ValueError("Table name cannot be empty")
+            
+            # Call repository method
+            lineage_data = self.repository.get_table_lineage(
+                table_name, namespace, include_jobs, include_fields
+            )
+            
+            # Ensure result is serializable
+            serializable_result = self._ensure_serializable(lineage_data)
+            
+            return serializable_result
+            
+        except ValueError:
+            # Re-raise ValueError as-is
+            raise
+        except Exception as e:
+            logger.error(f"Error getting table lineage for '{table_name}': {e}")
+            raise Exception(f"Error getting table lineage for '{table_name}': {str(e)}")
+
+    async def generate_table_lineage_cypher(self, table_name: str, namespace: Optional[str] = None,
+                                          include_jobs: bool = True, include_fields: bool = True) -> str:
+        """
+        Generate a Cypher query for table lineage tracing.
+        
+        Args:
+            table_name: Name of the table to trace lineage for
+            namespace: Optional namespace filter
+            include_jobs: Whether to include job information
+            include_fields: Whether to include field information
+            
+        Returns:
+            Cypher query string for table lineage
+        """
+        try:
+            # Validate input
+            if not table_name or not table_name.strip():
+                raise ValueError("Table name cannot be empty")
+            
+            # Call repository method
+            cypher_query = self.repository.generate_table_lineage_cypher(
+                table_name, namespace, include_jobs, include_fields
+            )
+            
+            return cypher_query
+            
+        except ValueError:
+            # Re-raise ValueError as-is
+            raise
+        except Exception as e:
+            logger.error(f"Error generating Cypher query for table '{table_name}': {e}")
+            raise Exception(f"Error generating Cypher query for table '{table_name}': {str(e)}")
+
+    async def execute_table_lineage_cypher(self, table_name: str, namespace: Optional[str] = None,
+                                         include_jobs: bool = True, include_fields: bool = True) -> List[Dict[str, Any]]:
+        """
+        Execute table lineage Cypher query and return raw results.
+        
+        Args:
+            table_name: Name of the table to trace lineage for
+            namespace: Optional namespace filter
+            include_jobs: Whether to include job information
+            include_fields: Whether to include field information
+            
+        Returns:
+            List of raw Neo4j records
+        """
+        try:
+            # Validate input
+            if not table_name or not table_name.strip():
+                raise ValueError("Table name cannot be empty")
+            
+            # Call repository method
+            records = self.repository.execute_table_lineage_cypher(
+                table_name, namespace, include_jobs, include_fields
+            )
+            
+            return records
+            
+        except ValueError:
+            # Re-raise ValueError as-is
+            raise
+        except Exception as e:
+            logger.error(f"Error executing table lineage query for '{table_name}': {e}")
+            raise Exception(f"Error executing table lineage query for '{table_name}': {str(e)}") 
