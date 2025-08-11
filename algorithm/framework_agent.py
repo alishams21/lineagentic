@@ -38,6 +38,7 @@ class OpenLineageConfig:
                  job_owner_name: str = None,
                  job_owner_type: str = "TEAM",
                  environment_variables: List[Dict[str, str]] = None):
+
         """
         Initialize OpenLineage configuration
         
