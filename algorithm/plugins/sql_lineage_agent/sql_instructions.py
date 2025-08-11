@@ -86,13 +86,25 @@ def event_composer_instructions(name: str):
                         "name": "<INPUT_NAME>",
                         "facets": {
                             "schema": {
-                            "fields": [
+                                "fields": [
+                                    {
+                                    "name": "<FIELD_NAME>",
+                                    "type": "<FIELD_TYPE>",
+                                    "description": "<FIELD_DESCRIPTION>"
+                                    }
+                                ]
+                            },
+                            "tags": [
                                 {
-                                "name": "<FIELD_NAME>",
-                                "type": "<FIELD_TYPE>",
-                                "description": "<FIELD_DESCRIPTION>"
+                                    "name": "<TAG_NAME>",
+                                    "value": "<TAG_VALUE>"
+                                    "source": "<SOURCE>"
                                 }
-                            ]
+                            ],
+                            "inputStatistics": {
+                                "rowCount": "<ROW_COUNT>",
+                                "fileCount": "<FILE_COUNT>",
+                                "size": "<SIZE>"
                             },
                             "storage": {
                                 "storageLayer": "<STORAGE_LAYER>",
@@ -141,6 +153,11 @@ def event_composer_instructions(name: str):
                                 ]
                                 }
                             }
+                        },
+                        "outputStatistics": {
+                            "rowCount": "<ROW_COUNT>",
+                            "fileCount": "<FILE_COUNT>",
+                            "size": "<SIZE>"
                         },
                         "ownership": {
                                 "owners": [ 

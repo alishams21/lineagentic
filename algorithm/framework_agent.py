@@ -24,7 +24,6 @@ class OpenLineageConfig:
                  parent_job_name: str = None,
                  parent_namespace: str = None,
                  producer_url: str = "https://github.com/give-your-url",
-                 schema_url: str = "https://your-schema-uel/spec/1-0-5/definitions/RunEvent",
                  processing_type: str = "BATCH",
                  integration: str = "SQL",
                  job_type: str = "QUERY",
@@ -52,7 +51,6 @@ class OpenLineageConfig:
             parent_job_name: Parent job name
             parent_namespace: Parent namespace
             producer_url: URL identifying the producer
-            schema_url: URL to the OpenLineage schema
             processing_type: BATCH or STREAM
             integration: Engine name (SQL, SPARK, etc.)
             job_type: Type of job (QUERY, ETL, etc.)
@@ -73,7 +71,6 @@ class OpenLineageConfig:
         self.parent_job_name = parent_job_name
         self.parent_namespace = parent_namespace
         self.producer_url = producer_url
-        self.schema_url = schema_url
         self.processing_type = processing_type
         self.integration = integration
         self.job_type = job_type
@@ -190,8 +187,12 @@ class AgentFramework:
         
         event["job"]["facets"]["sourceCode"] = {
             "language": config.language,
-            "sourceCode": config.source_code or ""
+            "sourceCode": config.source_code or "",
+            "uri": config.producer_url
         }
+        
+
+            
         
         event["job"]["facets"]["documentation"] ={
             "description": config.description

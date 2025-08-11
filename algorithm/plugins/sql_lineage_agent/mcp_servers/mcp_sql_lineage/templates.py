@@ -432,20 +432,32 @@ def sql_lineage_event_composer():
 
             ### Required Output Format (Example):
 
-            {
+           {
                 "inputs": [
                     {
                         "namespace": "<INPUT_NAMESPACE>",
                         "name": "<INPUT_NAME>",
                         "facets": {
                             "schema": {
-                            "fields": [
+                                "fields": [
+                                    {
+                                    "name": "<FIELD_NAME>",
+                                    "type": "<FIELD_TYPE>",
+                                    "description": "<FIELD_DESCRIPTION>"
+                                    }
+                                ]
+                            },
+                            "tags": [
                                 {
-                                "name": "<FIELD_NAME>",
-                                "type": "<FIELD_TYPE>",
-                                "description": "<FIELD_DESCRIPTION>"
+                                    "name": "<TAG_NAME>",
+                                    "value": "<TAG_VALUE>"
+                                    "source": "<SOURCE>"
                                 }
-                            ]
+                            ],
+                            "inputStatistics": {
+                                "rowCount": "<ROW_COUNT>",
+                                "fileCount": "<FILE_COUNT>",
+                                "size": "<SIZE>"
                             },
                             "storage": {
                                 "storageLayer": "<STORAGE_LAYER>",
@@ -495,6 +507,11 @@ def sql_lineage_event_composer():
                                 }
                             }
                         },
+                        "outputStatistics": {
+                            "rowCount": "<ROW_COUNT>",
+                            "fileCount": "<FILE_COUNT>",
+                            "size": "<SIZE>"
+                        },
                         "ownership": {
                                 "owners": [ 
                                     {
@@ -507,7 +524,6 @@ def sql_lineage_event_composer():
                     }
                 ]
             }
-
             """
             
 
