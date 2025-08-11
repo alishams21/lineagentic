@@ -48,47 +48,144 @@ def event_composer_instructions(name: str):
         **Field Mappings**
         **Logical Operators**
     and return only the JSON format.
-    3. you show have all the fields mentioned in following json schema, either filled in
-    based on the data provided or leave it as default mentioned following:
-    4. only produce exact following json format with filled in information above, do not add any text.
+    3. you show have all the fields mentioned in following json schema.
+    4. Based on following examples generate <INPUT_NAMESPACE>, <INPUT_NAME>, <OUTPUT_NAMESPACE>, <OUTPUT_NAME> for Python code patterns (pure Python, pandas, NumPy, SQLAlchemy):
+
+            Pure Python (files via built-ins)
+            with open("/data/raw/customers.json") as f: data = json.load(f)
+            Expected:
+            <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: default
+            <INPUT_NAME> or <OUTPUT_NAME>: file./data/raw/customers.json
+
+            Pure Python (in-memory objects)
+            customers = [{"id": 1, "name": "A"}]
+            Expected:
+            <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: temp
+            <INPUT_NAME> or <OUTPUT_NAME>: customers
+
+            pandas: read_csv from local path
+            df = pd.read_csv("/data/raw/sales.csv")
+            Expected:
+            <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: default
+            <INPUT_NAME> or <OUTPUT_NAME>: file./data/raw/sales.csv
+
+            pandas: read_parquet from cloud (S3)
+            df = pd.read_parquet("s3://datalake/bronze/events/2025-08-01.parquet")
+            Expected:
+            <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: default
+            <INPUT_NAME> or <OUTPUT_NAME>: s3./datalake/bronze/events/2025-08-01.parquet
+
+            pandas: in-memory DataFrame (from dict/list)
+            df = pd.DataFrame([{"id":1,"total":9.5}])
+            Expected:
+            <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: temp
+            <INPUT_NAME> or <OUTPUT_NAME>: df
+
+            pandas: read_sql via SQLAlchemy/Postgres
+            df = pd.read_sql("SELECT * FROM analytics.orders", con)
+            Expected:
+            <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: default
+            <INPUT_NAME> or <OUTPUT_NAME>: analytics.orders
+
+            NumPy: load from .npy
+            arr = np.load("/models/embeddings.npy")
+            Expected:
+            <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: default
+            <INPUT_NAME> or <OUTPUT_NAME>: file./models/embeddings.npy
+
+            NumPy: in-memory array
+            arr = np.arange(10)
+            Expected:
+            <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: temp
+            <INPUT_NAME> or <OUTPUT_NAME>: arr
+
+            SQLAlchemy Core: Postgres table reference
+            stmt = sa.select(sa.text("id"), sa.text("total")).select_from(sa.text("sales.orders"))
+            Expected:
+            <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: default
+            <INPUT_NAME> or <OUTPUT_NAME>: sales.orders
+
+            SQLAlchemy Core: SQLite file database
+            engine = sa.create_engine("sqlite:////tmp/app.db")
+            df = pd.read_sql("SELECT * FROM customers", engine)
+            Expected:
+            <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: default
+            <INPUT_NAME> or <OUTPUT_NAME>: customers
+
+            pandas: write to CSV (output)
+            df.to_csv("/data/curated/sales_curated.csv", index=False)
+            Expected:
+            <OUTPUT_NAMESPACE>: default
+            <OUTPUT_NAME>: file./data/curated/sales_curated.csv
+
+            pandas: write to Parquet on S3 (output)
+            df.to_parquet("s3://warehouse/gold/orders/2025-08-01.parquet")
+            Expected:
+            <OUTPUT_NAMESPACE>: default
+            <OUTPUT_NAME>: s3./warehouse/gold/orders/2025-08-01.parquet
+
+            pandas: to_sql into schema.table (output)
+            df.to_sql("daily_metrics", con, schema="analytics", if_exists="replace", index=False)
+            Expected:
+            <OUTPUT_NAMESPACE>: default
+            <OUTPUT_NAME>: analytics.daily_metrics
+
+            Notes:
+            - Use scheme prefixes for path-like sources/targets:
+                file./absolute/or/relative/path
+                s3./bucket/key
+                gs./bucket/key
+                abfs./container/path
+            - For in-memory variables (pure Python, pandas, NumPy), use:
+                <NAMESPACE> = temp
+                <NAME> = <variable_name>
+        - When reading/writing via SQL (pandas.read_sql / to_sql / SQLAlchemy), prefer <NAME> = <schema.table> if schema is present; otherwise <NAME> = <table>.
+        - Wherever you can't find information for <STORAGE_LAYER>, <FILE_FORMAT>, <DATASET_TYPE>, <SUB_TYPE>, <LIFECYCLE>, <OWNER_NAME>, <OWNER_TYPE>, <SUBTYPE>, <DESCRIPTION> then write "NA".
+        - Very important: Your output must follow exactly the specified JSON structure — do not output explanations, comments, or anything else.
+        - very very very important: Your output must follow **exactly** this JSON structure — do not output explanations, comments, or anything else.
+            ---
+
+            ### Required Output Format (Example):
+
             {
-        
                 "inputs": [
                     {
                         "namespace": "<INPUT_NAMESPACE>",
                         "name": "<INPUT_NAME>",
                         "facets": {
                             "schema": {
-                            "_producer": "<PRODUCER_URL>",
-                            "_schemaURL": "<SCHEMA_URL>",
-                            "fields": [
+                                "fields": [
+                                    {
+                                    "name": "<FIELD_NAME>",
+                                    "type": "<FIELD_TYPE>",
+                                    "description": "<FIELD_DESCRIPTION>"
+                                    }
+                                ]
+                            },
+                            "tags": [
                                 {
-                                "name": "<FIELD_NAME>",
-                                "type": "<FIELD_TYPE>",
-                                "description": "<FIELD_DESCRIPTION>"
+                                    "name": "<TAG_NAME>",
+                                    "value": "<TAG_VALUE>"
+                                    "source": "<SOURCE>"
                                 }
-                            ]
+                            ],
+                            "inputStatistics": {
+                                "rowCount": "<ROW_COUNT>",
+                                "fileCount": "<FILE_COUNT>",
+                                "size": "<SIZE>"
                             },
                             "storage": {
-                                "_producer": "<PRODUCER_URL>",
-                                "_schemaURL": "<SCHEMA_URL>",
                                 "storageLayer": "<STORAGE_LAYER>",
                                 "fileFormat": "<FILE_FORMAT>"
                             },
                             "datasetType": {
-                                "_producer": "<PRODUCER_URL>",
-                                "_schemaURL": "<SCHEMA_URL>",
                                 "datasetType": "<DATASET_TYPE>",
                                 "subType": "<SUB_TYPE>"
                             },
-                            "lifecycleStateChange": {
-                                "_producer": "<PRODUCER_URL>",
-                                "_schemaURL": "<SCHEMA_URL>",
-                                "lifecycleStateChange": "<LIFECYCLE_STATE_CHANGE>"
+                            "lifecycle": {
+                                "lifecycle": "<LIFECYCLE>"
                             },
                             "ownership": {
-                                "_producer": "<PRODUCER_URL>",
-                                "_schemaURL": "<SCHEMA_URL>",
                                 "owners": [ 
                                     {
                                         "name": "<OWNER_NAME>",
@@ -105,34 +202,45 @@ def event_composer_instructions(name: str):
                     "name": "<OUTPUT_NAME>",
                     "facets": {
                         "columnLineage": {
-                        "_producer": "<PRODUCER_URL>",
-                        "_schemaURL": "<SCHEMA_URL>",
-                        "fields": {
-                            "<OUTPUT_FIELD_NAME>": {
-                            "inputFields": [
-                                {
-                                "namespace": "<INPUT_NAMESPACE>",
-                                "name": "<INPUT_NAME>",
-                                "field": "<INPUT_FIELD_NAME>",
-                                "transformations": [
+                            "fields": {
+                                "<OUTPUT_FIELD_NAME>": {
+                                "inputFields": [
                                     {
-                                    "type": "<TRANSFORMATION_TYPE>",
-                                    "subtype": "<SUBTYPE>",
-                                    "description": "<DESCRIPTION>",
-                                    "masking": false
+                                    "namespace": "<INPUT_NAMESPACE>",
+                                    "name": "<INPUT_NAME>",
+                                    "field": "<INPUT_FIELD_NAME>",
+                                    "transformations": [
+                                        {
+                                        "type": "<TRANSFORMATION_TYPE>",
+                                        "subtype": "<SUBTYPE>",
+                                        "description": "<DESCRIPTION>",
+                                        "masking": false
+                                        }
+                                    ]
                                     }
                                 ]
                                 }
-                            ]
                             }
-                        }
+                        },
+                        "outputStatistics": {
+                            "rowCount": "<ROW_COUNT>",
+                            "fileCount": "<FILE_COUNT>",
+                            "size": "<SIZE>"
+                        },
+                        "ownership": {
+                                "owners": [ 
+                                    {
+                                        "name": "<OWNER_NAME>",
+                                        "type": "<OWNER_TYPE>"
+                                    }
+                                ]
                         }
                     }
                     }
                 ]
             }
             
-    4. Return only results in above mentioned json schema format. do not add any text.
+    6. Return only results in above mentioned json schema format. do not add any text.
     """
 
        

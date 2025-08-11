@@ -283,7 +283,7 @@ async def main():
     )
     
     framework = AgentFramework(
-        agent_name="sql-lineage-agent", 
+        agent_name="airflow-lineage-agent", 
         model_name="gpt-4o-mini",
         lineage_config=lineage_config
     )
@@ -303,56 +303,82 @@ async def main():
    
     # Run a specific operation (data validation)
     test_query = """
-    -- Read from customer_4 and orders tables, then write to customer_5
-    INSERT INTO customer_5 (
-        customer_id,
-        customer_name,
-        email,
-        region,
-        status,
-        total_orders,
-        total_revenue,
-        avg_order_value,
-        last_order_date,
-        processed_date
-    )
-    SELECT 
-        c.customer_id,
-        c.customer_name,
-        c.email,
-        c.region,
-        c.status,
-        COUNT(DISTINCT o.order_id) AS total_orders,
-        SUM(oi.item_total) AS total_revenue,
-        AVG(oi.item_total) AS avg_order_value,
-        MAX(o.order_date) AS last_order_date,
-        CURRENT_DATE AS processed_date
-    FROM 
-        customer_4 c
-    JOIN 
-        orders o ON c.customer_id = o.customer_id
-    JOIN 
-        order_items oi ON o.order_id = oi.order_id
-    WHERE 
-        c.status = 'active'
-        AND o.order_date BETWEEN '2025-01-01' AND '2025-06-30'
-    GROUP BY 
-        c.customer_id,
-        c.customer_name,
-        c.email,
-        c.region,
-        c.status
-    HAVING 
-        SUM(oi.item_total) > 5000
-    ORDER BY 
-        total_revenue DESC;
+        from airflow import DAG
+        from airflow.operators.python import PythonOperator
+        from datetime import datetime
+        import pandas as pd
+        import numpy as np
+        import shutil
+
+        def fetch_raw_data():
+            # Simulate a data pull or raw copy
+            shutil.copy('/data/source/raw_customers.csv', '/data/input/customers.csv')
+
+        def transform_customer_data():
+            df = pd.read_csv('/data/input/customers.csv')
+
+            df['first_name'] = df['first_name'].str.strip().str.title()
+            df['last_name'] = df['last_name'].str.strip().str.title()
+            df['full_name'] = df['first_name'] + ' ' + df['last_name']
+
+            df['birthdate'] = pd.to_datetime(df['birthdate'])
+            df['age'] = (pd.Timestamp('today') - df['birthdate']).dt.days // 365
+
+            df['age_group'] = np.where(df['age'] >= 60, 'Senior',
+                                np.where(df['age'] >= 30, 'Adult', 'Young'))
+
+            df = df[df['email'].notnull()]
+
+            df.to_csv('/data/output/cleaned_customers.csv', index=False)
+
+        def load_to_warehouse():
+            # Load cleaned data to customers_1 table in database
+            df = pd.read_csv('/data/output/cleaned_customers.csv')
+            
+            # Get database connection
+            pg_hook = PostgresHook(postgres_conn_id='warehouse_connection')
+            engine = pg_hook.get_sqlalchemy_engine()
+            
+            # Write to customers_1 table
+            df.to_sql('customers_1', engine, if_exists='replace', index=False)
+            
+            print(f"Successfully loaded {len(df)} records to customers_1 table")
+
+        default_args = {
+            'start_date': datetime(2025, 8, 1),
+        }
+
+        with DAG(
+            dag_id='customer_etl_pipeline_extended',
+            default_args=default_args,
+            schedule_interval='@daily',
+            catchup=False,
+            tags=['etl', 'example']
+        ) as dag:
+
+            ff = PythonOperator(
+                task_id='fetch_data',
+                python_callable=fetch_raw_data
+            )
+
+            tt = PythonOperator(
+                task_id='transform_and_clean',
+                python_callable=transform_customer_data
+            )
+
+            ll = PythonOperator(
+                task_id='load_to_warehouse',
+                python_callable=load_to_warehouse
+            )
+
+            ff >> tt >> ll
     """
 
     # Update the source code in the config
     lineage_config.source_code = test_query
 
     lineage_result = await framework.run_agent_plugin(
-        "sql-lineage-agent", 
+        "airflow-lineage-agent", 
         test_query
     )
     print("✅ Lineage analysis completed successfully!")
