@@ -319,7 +319,7 @@ RETURN
                 
                 # Run information
                 if path["run"] and path["run"]["run_id"]:
-                    print(f"    🏃 Run ID: {path['run']['run_id']}")
+                    print(f"     Run ID: {path['run']['run_id']}")
                     if path["run"]["event_time"]:
                         print(f"        Event Time: {path['run']['event_time']}")
         
