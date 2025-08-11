@@ -479,8 +479,17 @@ clean-all-services:
 # Remove all __pycache__ directories
 clean-pycache:
 	@echo "🗑️  Removing all __pycache__ directories..."
-	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || echo "No __pycache__ directories found"
-	@echo "✅ All __pycache__ directories removed!"
+	@echo " Searching for __pycache__ directories..."
+	@find . -type d -name "__pycache__" -print
+	@echo "🗑️  Removing found directories..."
+	@find . -type d -name "__pycache__" -exec rm -rf {} + || echo "Error removing some directories"
+	@echo "🔍 Verifying removal..."
+	@if find . -type d -name "__pycache__" 2>/dev/null | grep -q .; then \
+		echo "⚠️  Some __pycache__ directories still exist:"; \
+		find . -type d -name "__pycache__" 2>/dev/null; \
+	else \
+		echo "✅ All __pycache__ directories removed successfully!"; \
+	fi
 
 # Query recent logs from agents_logs.db
 query-logs:

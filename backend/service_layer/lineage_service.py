@@ -1,6 +1,7 @@
 import json
 from typing import Dict, Any, List, Optional, Union
 from ..repository_layer.lineage_repository import LineageRepository
+from ..utils.neo4j_ingestion import Neo4jIngestion
 from algorithm.framework_agent import AgentFramework
 import asyncio
 import logging
@@ -14,6 +15,8 @@ class LineageService:
     def __init__(self, repository: Optional[LineageRepository] = None):
         self.repository = repository or LineageRepository()
         self.logger = logging.getLogger(__name__)
+        # Initialize Neo4j ingestion
+        self.neo4j_ingestion = Neo4jIngestion()
     
     def _validate_query_request(self, query: str, agent_name: str, model_name: str) -> None:
         """Validate query request parameters"""
@@ -63,7 +66,8 @@ class LineageService:
             return {"result": str(data)}
     
     async def analyze_query(self, query: str, agent_name: str = "sql", 
-                          model_name: str = "gpt-4o-mini", save_to_db: bool = True) -> Dict[str, Any]:
+                          model_name: str = "gpt-4o-mini", save_to_db: bool = True,
+                          save_to_neo4j: bool = True) -> Dict[str, Any]:
         """
         Analyze a single query for lineage information
         
@@ -72,6 +76,7 @@ class LineageService:
             agent_name: The agent to use for analysis
             model_name: The model to use
             save_to_db: Whether to save results to database
+            save_to_neo4j: Whether to save lineage data to Neo4j
             
         Returns:
             Dict containing analysis results
@@ -106,21 +111,38 @@ class LineageService:
                     serializable_result["query_id"] = query_id
                     logger.info(f"Saved query analysis with ID: {query_id}")
                     
-                    # Save lineage event if result contains lineage data
-                    if isinstance(serializable_result, dict) and 'lineage' in serializable_result:
-                        try:
-                            # Remove lineage saving functionality - just log that it was skipped
-                            logger.info("Lineage event saving is disabled - lineage data will not be persisted")
-                            serializable_result["lineage_saved"] = False
-                            serializable_result["lineage_skipped"] = True
-                        except Exception as lineage_e:
-                            logger.error(f"Error processing lineage event: {lineage_e}")
-                            serializable_result["lineage_saved"] = False
-                            serializable_result["lineage_error"] = str(lineage_e)
-                    
                 except Exception as e:
                     logger.error(f"Failed to save query analysis: {e}")
                     # Don't fail the entire request if DB save fails
+            
+            # Save lineage data to Neo4j if requested
+            if save_to_neo4j and isinstance(serializable_result, dict) and 'lineage' in serializable_result:
+                try:
+                    # Apply Neo4j constraints first (if not already applied)
+                    self.neo4j_ingestion.apply_constraints()
+                    
+                    # Convert analysis result to OpenLineage event format
+                    event = self.neo4j_ingestion.convert_analysis_result_to_event(
+                        serializable_result, query, agent_name, model_name
+                    )
+                    
+                    # Ingest the event into Neo4j
+                    neo4j_result = self.neo4j_ingestion.ingest_lineage_event(event)
+                    
+                    if neo4j_result["success"]:
+                        serializable_result["neo4j_saved"] = True
+                        serializable_result["neo4j_run_id"] = neo4j_result.get("run_id")
+                        serializable_result["neo4j_job"] = neo4j_result.get("job")
+                        logger.info(f"Successfully saved lineage to Neo4j: {neo4j_result.get('run_id')}")
+                    else:
+                        serializable_result["neo4j_saved"] = False
+                        serializable_result["neo4j_error"] = neo4j_result.get("message")
+                        logger.error(f"Failed to save lineage to Neo4j: {neo4j_result.get('message')}")
+                        
+                except Exception as neo4j_e:
+                    logger.error(f"Error processing lineage for Neo4j: {neo4j_e}")
+                    serializable_result["neo4j_saved"] = False
+                    serializable_result["neo4j_error"] = str(neo4j_e)
             
             return serializable_result
             
@@ -151,7 +173,8 @@ class LineageService:
             return error_response
     
     async def analyze_queries_batch(self, queries: List[str], agent_name: str = "sql",
-                                  model_name: str = "gpt-4o-mini", save_to_db: bool = True) -> List[Dict[str, Any]]:
+                                  model_name: str = "gpt-4o-mini", save_to_db: bool = True,
+                                  save_to_neo4j: bool = True) -> List[Dict[str, Any]]:
         """
         Analyze multiple queries in batch
         
@@ -160,6 +183,7 @@ class LineageService:
             agent_name: The agent to use for analysis
             model_name: The model to use
             save_to_db: Whether to save results to database
+            save_to_neo4j: Whether to save lineage data to Neo4j
             
         Returns:
             List of analysis results
@@ -199,6 +223,29 @@ class LineageService:
                         serializable_result["query_id"] = query_id
                     except Exception as e:
                         logger.error(f"Failed to save batch query analysis: {e}")
+                
+                # Save lineage data to Neo4j if requested
+                if save_to_neo4j and isinstance(serializable_result, dict) and 'lineage' in serializable_result:
+                    try:
+                        # Convert analysis result to OpenLineage event format
+                        event = self.neo4j_ingestion.convert_analysis_result_to_event(
+                            serializable_result, query, agent_name, model_name
+                        )
+                        
+                        # Ingest the event into Neo4j
+                        neo4j_result = self.neo4j_ingestion.ingest_lineage_event(event)
+                        
+                        if neo4j_result["success"]:
+                            serializable_result["neo4j_saved"] = True
+                            serializable_result["neo4j_run_id"] = neo4j_result.get("run_id")
+                        else:
+                            serializable_result["neo4j_saved"] = False
+                            serializable_result["neo4j_error"] = neo4j_result.get("message")
+                            
+                    except Exception as neo4j_e:
+                        logger.error(f"Error processing lineage for Neo4j in batch: {neo4j_e}")
+                        serializable_result["neo4j_saved"] = False
+                        serializable_result["neo4j_error"] = str(neo4j_e)
                 
                 results.append({
                     "query": query,
