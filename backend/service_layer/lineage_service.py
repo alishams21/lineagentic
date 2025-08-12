@@ -587,14 +587,15 @@ class LineageService:
             raise Exception(f"Error getting end-to-end lineage for {namespace}.{table_name}: {str(e)}") 
 
     # Field Lineage Methods
-    async def get_field_lineage(self, field_name: str, namespace: Optional[str] = None) -> Dict[str, Any]:
+    async def get_field_lineage(self, field_name: str, dataset_name: str, namespace: Optional[str] = None, max_hops: int = 10) -> Dict[str, Any]:
         """
         Get complete lineage for a specific field.
         
         Args:
             field_name: Name of the field to trace lineage for
+            dataset_name: Name of the dataset to trace lineage for
             namespace: Optional namespace filter
-            
+            max_hops: Maximum number of hops to trace lineage for
         Returns:
             Dict containing field lineage information
         """
@@ -603,7 +604,7 @@ class LineageService:
             self._validate_field_lineage_request(field_name)
             
             # Call repository method
-            lineage_data = self.repository.get_field_lineage(field_name, namespace)
+            lineage_data = self.repository.get_field_lineage(field_name, dataset_name, namespace, max_hops)
             
             # Ensure result is serializable
             serializable_result = self._ensure_serializable(lineage_data)
