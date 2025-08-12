@@ -21,13 +21,15 @@ def field_derivation_instructions(name: str):
         {
         "output_fields": [
             {
-            "name": "<output_variable_or_column>",
-            "source": "<input_column(s) or variable(s)>",
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "<INPUT_NAME>",
+            "field": "<INPUT_FIELD_NAME>",
             "transformation": "<description of logic>"
             },
             ...
         ]
-    }
+        }
+
     3. Return only results in above mentioned json schema format. do not add any text.
     """
 
@@ -36,7 +38,11 @@ def operation_tracing_instructions(name: str):
     1.Call the java_lineage_operation_tracing function to get detailed instructions.
     2.Your job is to analyze the Java script and return the operation tracing in the format:
     [
-        { "output_fields": [ { "source": "<source_table_or_cte.column>", "transformation": "<transformation logic>" } ] },
+        { "output_fields": [ { 
+        "namespace": "<INPUT_NAMESPACE>",
+        "name": "<INPUT_NAME>",
+        "field": "<INPUT_FIELD_NAME>",
+        "transformation": "<description of logic>" } ] },
         ...
     ]
     3. Return only results in above mentioned json schema format. do not add any text.
