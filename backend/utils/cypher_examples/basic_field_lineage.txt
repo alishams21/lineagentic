@@ -1,0 +1,16 @@
+// Params needed: $namespace, $datasetName, $fieldName, $maxHops (e.g. 10)
+MATCH (targetDs:Dataset {namespace:$namespace, name:$datasetName})
+MATCH (targetDs)-[:LATEST_DATASET_VERSION]->(targetDv:DatasetVersion)
+MATCH (targetDv)-[:HAS_FIELD]->(targetField:FieldVersion {name:$fieldName})
+
+// Upstream paths
+OPTIONAL MATCH upPath = (targetField)-[:DERIVED_FROM*]->(:FieldVersion)
+WHERE length(upPath) <= $maxHops
+WITH targetDs, targetDv, targetField, collect(upPath) AS upstreamPaths
+
+// Downstream paths
+OPTIONAL MATCH downPath = (:FieldVersion)-[:DERIVED_FROM*]->(targetField)
+WHERE length(downPath) <= $maxHops
+WITH targetDs, targetDv, targetField, upstreamPaths, collect(downPath) AS downstreamPaths
+
+RETURN targetDs, targetDv, targetField, upstreamPaths, downstreamPaths;

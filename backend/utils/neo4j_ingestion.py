@@ -521,20 +521,49 @@ class Neo4jIngestion:
         derivations = []
         for out in event.get("outputs", []) or []:
             cl = (out.get("facets", {}).get("columnLineage", {}) or {}).get("fields", {}) or {}
-            outDvId = dv_index[(out["namespace"], out["name"])]
+            out_ns = out["namespace"]
+            out_name = out["name"]
+            outDvId = dv_index[(out_ns, out_name)]  # already built above from inputs/outputs
+
             for out_field, mapping in cl.items():
                 for inref in mapping.get("inputFields", []) or []:
-                    inDvId = dv_index.get((inref["namespace"], inref["name"])) \
-                             or self._sha256_str(f"{inref['namespace']}::{inref['name']}::unknown")
+                    in_ns = inref["namespace"]
+                    in_name = inref["name"]
+
+                    # Try resolve DV id from inputs/outputs
+                    inDvId = dv_index.get((in_ns, in_name))
+                    if not inDvId:
+                        # Deterministic placeholder DV id so repeated refs converge
+                        # (use your helper to keep same format)
+                        placeholder_schema_hash = self._sha256_str("unknown_schema")
+                        inDvId = self._calculate_dataset_version_id(in_ns, in_name, placeholder_schema_hash)
+
                     trs = inref.get("transformations", []) or [{"type":"unknown","subtype":None,"description":None,"masking":False}]
                     for tr in trs:
                         tx_hash = self._calculate_transformation_hash(tr)
                         derivations.append({
-                            "out": {"versionId": outDvId, "field": out_field},
-                            "in": {"versionId": inDvId, "field": inref.get("field")},
-                            "tr": {"type": tr.get("type"), "subtype": tr.get("subtype"), "description": tr.get("description"), "masking": tr.get("masking", False), "txHash": tx_hash},
+                            "out": {
+                                "namespace": out_ns,
+                                "name": out_name,
+                                "versionId": outDvId,
+                                "field": out_field
+                            },
+                            "in": {
+                                "namespace": in_ns,
+                                "name": in_name,
+                                "versionId": inDvId,
+                                "field": inref.get("field")
+                            },
+                            "tr": {
+                                "type": tr.get("type"),
+                                "subtype": tr.get("subtype"),
+                                "description": tr.get("description"),
+                                "masking": tr.get("masking", False),
+                                "txHash": tx_hash
+                            },
                             "createdAt": self._now_iso(),
                         })
+
 
         # Run facets
         env_vars = (event.get("run", {}).get("facets", {}).get("environmentVariables", {}) or {}).get("environmentVariables", []) or []

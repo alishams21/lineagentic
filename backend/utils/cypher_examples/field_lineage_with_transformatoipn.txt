@@ -1,0 +1,51 @@
+// Params expected: $namespace, $datasetName, $fieldName, $maxHops
+
+// ---------- UPSTREAM ----------
+MATCH (targetDs:Dataset {namespace:$namespace, name:$datasetName})
+MATCH (targetDs)-[:LATEST_DATASET_VERSION]->(targetDv:DatasetVersion)
+MATCH (targetDv)-[:HAS_FIELD]->(targetField:FieldVersion {name:$fieldName})
+OPTIONAL MATCH p = (targetField)-[e:DERIVED_FROM*]->(:FieldVersion)
+WHERE length(p) <= $maxHops
+UNWIND relationships(p) AS edge
+WITH 'UPSTREAM' AS direction, edge
+WITH direction, edge, startNode(edge) AS ofv, endNode(edge) AS ifv
+OPTIONAL MATCH (ofv)-[:APPLIES]->(tr:Transformation {txHash: edge.txHash})-[:ON_INPUT]->(ifv)
+WITH direction, edge, tr, ofv, ifv
+OPTIONAL MATCH (fromDv:DatasetVersion)-[:HAS_FIELD]->(ofv)
+OPTIONAL MATCH (fromDs:Dataset)-[:HAS_VERSION]->(fromDv)
+OPTIONAL MATCH (toDv:DatasetVersion)-[:HAS_FIELD]->(ifv)
+OPTIONAL MATCH (toDs:Dataset)-[:HAS_VERSION]->(toDv)
+OPTIONAL MATCH (run:Run {runId: edge.runId})
+RETURN
+  direction,
+  fromDs, fromDv, ofv AS fromField,
+  tr, edge,                   // edge has type/subtype/description/masking/runId/txHash/createdAt
+  ifv AS toField, toDv, toDs,
+  run
+
+UNION ALL
+
+// ---------- DOWNSTREAM ----------
+MATCH (targetDs:Dataset {namespace:$namespace, name:$datasetName})
+MATCH (targetDs)-[:LATEST_DATASET_VERSION]->(targetDv:DatasetVersion)
+MATCH (targetDv)-[:HAS_FIELD]->(targetField:FieldVersion {name:$fieldName})
+OPTIONAL MATCH p = (:FieldVersion)-[e:DERIVED_FROM*]->(targetField)
+WHERE length(p) <= $maxHops
+UNWIND relationships(p) AS edge
+WITH 'DOWNSTREAM' AS direction, edge
+WITH direction, edge, startNode(edge) AS ofv, endNode(edge) AS ifv
+OPTIONAL MATCH (ofv)-[:APPLIES]->(tr:Transformation {txHash: edge.txHash})-[:ON_INPUT]->(ifv)
+WITH direction, edge, tr, ofv, ifv
+OPTIONAL MATCH (fromDv:DatasetVersion)-[:HAS_FIELD]->(ofv)
+OPTIONAL MATCH (fromDs:Dataset)-[:HAS_VERSION]->(fromDv)
+OPTIONAL MATCH (toDv:DatasetVersion)-[:HAS_FIELD]->(ifv)
+OPTIONAL MATCH (toDs:Dataset)-[:HAS_VERSION]->(toDv)
+OPTIONAL MATCH (run:Run {runId: edge.runId})
+RETURN
+  direction,
+  fromDs, fromDv, ofv AS fromField,
+  tr, edge,
+  ifv AS toField, toDv, toDs,
+  run
+
+ORDER BY direction, edge.createdAt ASC;

@@ -151,9 +151,31 @@ FOREACH (_ IN CASE WHEN outp.stats IS NULL THEN [] ELSE [1] END |
 // ==============================
 WITH r
 UNWIND $derivations AS d
-MERGE (ofv:FieldVersion {datasetVersionId:d.out.versionId, name:d.out.field})
-MERGE (ifv:FieldVersion {datasetVersionId:d.in.versionId,  name:d.in.field})
 
+// If your $derivations carry namespace/name (preferred):
+FOREACH (_ IN CASE WHEN d.out.namespace IS NULL THEN [] ELSE [1] END |
+  MERGE (outDs:Dataset {namespace:d.out.namespace, name:d.out.name})
+  MERGE (outDv:DatasetVersion {versionId:d.out.versionId})
+  MERGE (outDs)-[:HAS_VERSION]->(outDv)
+)
+FOREACH (_ IN CASE WHEN d.in.namespace IS NULL THEN [] ELSE [1] END |
+  MERGE (inDs:Dataset {namespace:d.in.namespace, name:d.in.name})
+  MERGE (inDv:DatasetVersion {versionId:d.in.versionId})
+  MERGE (inDs)-[:HAS_VERSION]->(inDv)
+)
+
+// Always ensure DVs exist (works even if namespace/name weren’t provided)
+MERGE (outDv2:DatasetVersion {versionId:d.out.versionId})
+MERGE (inDv2:  DatasetVersion {versionId:d.in.versionId})
+
+// Create/attach FieldVersions to their DVs
+MERGE (ofv:FieldVersion {datasetVersionId:d.out.versionId, name:d.out.field})
+MERGE (outDv2)-[:HAS_FIELD]->(ofv)
+
+MERGE (ifv:FieldVersion {datasetVersionId:d.in.versionId,  name:d.in.field})
+MERGE (inDv2)-[:HAS_FIELD]->(ifv)
+
+// Transformation + lineage edge
 MERGE (t:Transformation {txHash:d.tr.txHash})
 SET t.type        = d.tr.type,
     t.subtype     = d.tr.subtype,
