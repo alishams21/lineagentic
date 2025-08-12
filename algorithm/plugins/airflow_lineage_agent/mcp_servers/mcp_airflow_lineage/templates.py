@@ -317,18 +317,17 @@ def airflow_lineage_field_derivation():
             - if the operator is a GCSOperator, look into the GCS code and infer the inputs, outputs, and transformations.
             - if the operator is a FTPOperator, look into the FTP code and infer the inputs, outputs, and transformations.
             - if the operator is a SFTPOperator, look into the SFTP code and infer the inputs, outputs, and transformations.
+            
             Output Format:
-            {
-            "task_field_mappings": [
-                {
-                "task_id": "<task_id>",
-                "inputs": ["<input_dataset_or_field>"],
-                "outputs": ["<output_dataset_or_field>"],
-                "transformations": ["<description of logic>"]
-                },
-                ...
+            [
+            { "output_fields": [ { 
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "<INPUT_NAME>",
+            "field": "<INPUT_FIELD_NAME>",
+            "transformation": "<description of logic>"
+            } ] },
+            ...
             ]
-            }
 
   
 
@@ -407,44 +406,51 @@ def airflow_lineage_field_derivation():
 
             Expected Output:
             {
-            "task_field_mappings": [
-                {
-                "task_id": "fetch_data",
-                "operator": "PythonOperator",
-                "inputs": ["raw_customers.csv"],
-                "outputs": ["customers.csv"],
-                "transformations": ["Copy raw data to input directory"],    
-                "params": {
-                    "python_callable": "fetch_raw_data" 
-                },
-                "upstream": [],
-                "downstream": ["transform_and_clean"]
+            "output_fields": [
+                 {
+                "namespace": "default",
+                "name": "customers.csv",
+                "field": "first_name",
+                "transformation": "Strip and title case"
                 },
                 {
-                "task_id": "transform_and_clean",
-                "operator": "PythonOperator",
-                "inputs": ["customers.csv"],
-                "outputs": ["cleaned_customers.csv"],
-                "transformations": ["Transform and clean data"],
-                "params": {
-                    "python_callable": "transform_customer_data"
-                },
-                "upstream": ["fetch_data"],
-                "downstream": ["load_to_warehouse"]
+                "namespace": "default",
+                "name": "customers.csv",
+                "field": "last_name",
+                "transformation": "Strip and title case"
                 },
                 {
-                "task_id": "load_to_warehouse",
-                "operator": "PythonOperator",
-                "inputs": ["cleaned_customers.csv"],
-                "outputs": ["customers_1"],
-                "transformations": ["Load cleaned data to customers_1 table in database"],
-                "params": {
-                    "python_callable": "load_to_warehouse"
+                "namespace": "default",
+                "name": "customers.csv",
+                "field": "full_name",
+                "transformation": "Concatenation with space"
                 },
-                "upstream": ["transform_and_clean"],
-                "downstream": []
+                {
+                "namespace": "default",
+                "name": "customers.csv",
+                "field": "birthdate",
+                "transformation": "Convert to datetime"
+                },
+                {
+                "namespace": "default",
+                "name": "customers.csv",
+                "field": "age",
+                "transformation": "Calculate age"
+                },
+                {
+                "namespace": "default",
+                "name": "customers.csv",
+                "field": "age_group",
+                "transformation": "Group by age"
+                },
+                {
+                "namespace": "default",
+                "name": "customers.csv",
+                "field": "email",
+                "transformation": "Remove nulls"
                 }
-            ]
+        
+                ],
             }
   
 

@@ -115,8 +115,9 @@ def python_lineage_field_derivation():
             {
             "output_fields": [
                 {
-                "name": "<output_variable_or_column>",
-                "source": "<input_column(s) or variable(s)>",
+                "namespace": "<INPUT_NAMESPACE>",
+                "name": "<INPUT_NAME>",
+                "field": "<INPUT_FIELD_NAME>",
                 "transformation": "<description of logic>"
                 },
                 ...
@@ -128,42 +129,29 @@ def python_lineage_field_derivation():
             Positive Example 1:
 
             Input Python:
-            df['annual_salary'] = df['monthly_salary'] * 12
+            df = pd.read_csv("monthly_salary.csv", header=True)
+            df['annual_salary'] = df['monthly_salary'] * 12 
 
             Expected Output:
             {
             "output_fields": [
                 {
-                "name": "annual_salary",
-                "source": "df['monthly_salary']",
+                "namespace": "default",
+                "name": "monthly_salary.csv",
+                "field": "monthly_salary",
                 "transformation": "Multiplied by 12"
                 }
             ]
             }
 
-            ---
-
-            Positive Example 2:
-
-            Input Python:
-            df['full_name'] = df['first_name'].str.upper() + ' ' + df['last_name']
-
-            Expected Output:
-            {
-            "output_fields": [
-                {
-                "name": "full_name",
-                "source": "df['first_name'], df['last_name']",
-                "transformation": "Concatenation with space; UPPER applied to first_name"
-                }
-            ]
-            }
+            
 
             ---
 
             Positive Example 3:
 
             Input Python:
+            df = pd.read_csv("sales.csv", header=True)
             df['total'] = df['price'] * df['quantity']
             df['discounted'] = df['total'] * 0.9
 
@@ -171,14 +159,22 @@ def python_lineage_field_derivation():
             {
             "output_fields": [
                 {
-                "name": "total",
-                "source": "df['price'], df['quantity']",
+                "namespace": "default",
+                "name": "sales.csv",
+                "field": "price",
                 "transformation": "Multiplied price by quantity"
                 },
                 {
-                "name": "discounted",
-                "source": "df['total']",
+                "namespace": "default",
+                "name": "sales.csv",
+                "field": "quantity",
                 "transformation": "Multiplied by 0.9"
+                },
+                {
+                "namespace": "default",
+                "name": "monthly_salary.csv",
+                "field": "total",
+                "transformation": "Multiplied total by 0.9"
                 }
             ]
             }

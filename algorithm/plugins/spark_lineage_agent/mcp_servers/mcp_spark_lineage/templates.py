@@ -130,12 +130,12 @@ def spark_lineage_field_derivation():
                 1. The **source column(s)** it depends on  
                 2. The **transformation logic** applied (e.g., arithmetic operation, aggregation, string manipulation, function call, etc.)
 
-            Output Format:
             {
             "output_fields": [
                 {
-                "name": "<output_column>",
-                "source": "<input_column(s)>",
+                "namespace": "<INPUT_NAMESPACE>",
+                "name": "<INPUT_NAME>",
+                "field": "<INPUT_FIELD_NAME>",
                 "transformation": "<description of logic>"
                 },
                 ...
@@ -147,57 +147,17 @@ def spark_lineage_field_derivation():
             Positive Example 1:
 
             Input PySpark:
+            df = spark.read.csv("monthly_salary.csv", header=True)
             df = df.withColumn("annual_salary", col("monthly_salary") * 12)
 
             Expected Output:
             {
             "output_fields": [
                 {
-                "name": "annual_salary",
-                "source": "monthly_salary",
+                "namespace": "default",
+                "name": "monthly_salary.csv",
+                "field": "monthly_salary",
                 "transformation": "Multiplied by 12"
-                }
-            ]
-            }
-
-            ---
-
-            Positive Example 2:
-
-            Input PySpark:
-            df = df.withColumn("full_name", upper(col("first_name")) + lit(" ") + col("last_name"))
-
-            Expected Output:
-            {
-            "output_fields": [
-                {
-                "name": "full_name",
-                "source": "first_name, last_name",
-                "transformation": "Concatenation with space; UPPER applied to first_name"
-                }
-            ]
-            }
-
-            ---
-
-            Positive Example 3:
-
-            Input PySpark:
-            df = df.withColumn("total", col("price") * col("quantity"))
-            df = df.withColumn("discounted", col("total") * 0.9)
-
-            Expected Output:
-            {
-            "output_fields": [
-                {
-                "name": "total",
-                "source": "price, quantity",
-                "transformation": "Multiplied price by quantity"
-                },
-                {
-                "name": "discounted",
-                "source": "total",
-                "transformation": "Multiplied by 0.9"
                 }
             ]
             }
@@ -217,14 +177,16 @@ def spark_lineage_field_derivation():
             Negative Example 2 (Incorrect: Missing logic):
 
             Input PySpark:
+            df = spark.read.csv("income.csv", header=True)
             df = df.withColumn("tax", col("income") * 0.3)
 
             Incorrect Output:
             {
             "output_fields": [
                 {
-                "name": "tax",
-                "source": "income",
+                "namespace": "default",
+                "name": "income.csv",
+                "field": "income",
                 "transformation": "Direct"
                 }
             ]

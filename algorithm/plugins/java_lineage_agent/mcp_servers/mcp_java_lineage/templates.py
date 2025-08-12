@@ -129,8 +129,9 @@ def java_lineage_field_derivation():
             {
             "output_fields": [
                 {
-                "name": "<output_variable_or_field>",
-                "source": "<input_field(s) or variable(s)>",
+                "namespace": "<INPUT_NAMESPACE>",
+                "name": "<INPUT_NAME>",
+                "field": "<INPUT_FIELD_NAME>",
                 "transformation": "<description of logic>"
                 },
                 ...
@@ -142,14 +143,17 @@ def java_lineage_field_derivation():
             Positive Example 1:
 
             Input Java:
+            read from table employee
+            Employee employee = new Employee();
             employee.setAnnualSalary(employee.getMonthlySalary() * 12);
 
             Expected Output:
-            {
+            {   
             "output_fields": [
                 {
-                "name": "annualSalary",
-                "source": "employee.getMonthlySalary()",
+                "namespace": "default",
+                "name": "employee",
+                "field": "monthlySalary",
                 "transformation": "Multiplied by 12"
                 }
             ]
@@ -166,36 +170,21 @@ def java_lineage_field_derivation():
             {
             "output_fields": [
                 {
-                "name": "fullName",
-                "source": "user.getFirstName(), user.getLastName()",
+                "namespace": "default",
+                "name": "user",
+                "field": "firstName",
                 "transformation": "Concatenation with space; UPPER applied to first name"
-                }
-            ]
-            }
-
-            ---
-
-            Positive Example 3:
-
-            Input Java:
-            order.setTotal(order.getPrice() * order.getQuantity());
-            order.setDiscounted(order.getTotal() * 0.9);
-
-            Expected Output:
-            {
-            "output_fields": [
-                {
-                "name": "total",
-                "source": "order.getPrice(), order.getQuantity()",
-                "transformation": "Multiplied price by quantity"
                 },
                 {
-                "name": "discounted",
-                "source": "order.getTotal()",
-                "transformation": "Multiplied by 0.9"
+                "namespace": "default",
+                "name": "user",
+                "field": "lastName",
+                "transformation": "Concatenation with space; UPPER applied to last name"
                 }
             ]
             }
+
+
 
             ---
 

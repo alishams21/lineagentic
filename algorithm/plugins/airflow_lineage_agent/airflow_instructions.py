@@ -25,18 +25,15 @@ def field_derivation_instructions(name: str):
     return """
     1.Call the airflow_lineage_field_derivation function to get detailed instructions.
     2.Your job is to analyze the Airflow DAG and return the field mappings in the format:
-        Output Format:
-            {
-            "task_field_mappings": [
-                {
-                "task_id": "<task_id>",
-                "inputs": ["<input_dataset_or_field>"],
-                "outputs": ["<output_dataset_or_field>"],
-                "transformations": ["<description of logic>"]
-                },
-                ...
-            ]
-            }
+    [
+        { "output_fields": [ { 
+        "namespace": "<INPUT_NAMESPACE>",
+        "name": "<INPUT_NAME>",
+        "field": "<INPUT_FIELD_NAME>",
+        "transformation": "<description of logic>"
+        } ] },
+        ...
+    ]
     3. Return only results in above mentioned json schema format. do not add any text.
     """
 
