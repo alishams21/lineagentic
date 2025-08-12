@@ -201,9 +201,7 @@ class LineageService:
                     
                     # Ingest the event into Neo4j
                     neo4j_result = self.neo4j_ingestion.ingest_lineage_event(lineage_data)
-                    print("++++++++++++++++++++++++++++++++++++++++++++")
-                    print(neo4j_result)
-                    print("++++++++++++++++++++++++++++++++++++++++++++")
+
                     
                     if neo4j_result["success"]:
                         serializable_result["neo4j_saved"] = True

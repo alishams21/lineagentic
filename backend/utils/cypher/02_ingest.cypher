@@ -1,4 +1,6 @@
+// ==============================
 // JOB / RUN / JOB VERSION
+// ==============================
 MERGE (job:Job {namespace:$job.namespace, name:$job.name})
 WITH job, $jobVersion AS jvParam, $run AS runParam, $jobFacets AS jf
 MERGE (jv:JobVersion {versionId:jvParam.versionId})
@@ -6,68 +8,73 @@ ON CREATE SET jv.gitRef   = jvParam.gitRef,
               jv.codeHash = jvParam.codeHash,
               jv.createdAt = datetime(jvParam.createdAt)
 MERGE (job)-[:HAS_VERSION]->(jv)
-MERGE (job)-[jl:LATEST]->(jv)
-ON MATCH SET jl.updatedAt = datetime()
-WITH job, jv, runParam, jf
 
+// Ensure exactly one LATEST_JOB_VERSION per Job
+WITH job, jv, runParam, jf
+OPTIONAL MATCH (job)-[oldLatest:LATEST_JOB_VERSION]->(:JobVersion)
+DELETE oldLatest
+MERGE (job)-[jl:LATEST_JOB_VERSION]->(jv)
+SET jl.updatedAt = datetime()
+
+WITH job, jv, runParam, jf
 MERGE (r:Run {runId:runParam.runId})
 SET   r.eventType = runParam.eventType,
       r.eventTime = datetime(runParam.eventTime)
 MERGE (job)-[:TRIGGERED]->(r)
 MERGE (r)-[:USING_JOB_VERSION]->(jv)
 
-// JOB FACETS
+// ==============================
+// JOB FACETS (FOREACH guards)
+// ==============================
 WITH job, r, jv, jf
-CALL {
-  WITH job, jf
-  WITH job, jf.sourceCode AS sc
-  WHERE sc IS NOT NULL
+FOREACH (sc IN CASE WHEN jf.sourceCode IS NULL THEN [] ELSE [jf.sourceCode] END |
   MERGE (src:SourceCode {language:sc.language, code:sc.sourceCode})
   MERGE (job)-[:HAS_SOURCE_CODE]->(src)
-  RETURN 0 AS dummy
-}
-CALL {
-  WITH job, jf
-  WITH job, jf.scm AS s
-  WHERE s IS NOT NULL
+)
+
+WITH job, r, jv, jf
+FOREACH (s IN CASE WHEN jf.scm IS NULL THEN [] ELSE [jf.scm] END |
   MERGE (scm:SCM {url:s.url, repoUrl:s.repoUrl, path:s.path, version:s.version, type:s.type})
   ON CREATE SET scm.tag = s.tag, scm.branch = s.branch
   MERGE (job)-[:HAS_SCM]->(scm)
-  RETURN 0 AS dummy2
-}
-CALL {
-  WITH job, jf
-  WITH job, jf.jobType AS jt
-  WHERE jt IS NOT NULL
+)
+
+WITH job, r, jv, jf
+FOREACH (jt IN CASE WHEN jf.jobType IS NULL THEN [] ELSE [jf.jobType] END |
   MERGE (t:JobType {processingType:jt.processingType, integration:jt.integration, jobType:jt.jobType})
   MERGE (job)-[:HAS_TYPE]->(t)
-  RETURN 0 AS dummy3
-}
-CALL {
-  WITH job, jf
-  WITH job, jf.doc AS d
-  WHERE d IS NOT NULL
+)
+
+WITH job, r, jv, jf
+FOREACH (d IN CASE WHEN jf.doc IS NULL THEN [] ELSE [jf.doc] END |
   MERGE (doc:Doc {description:d.description, contentType:d.contentType})
   MERGE (job)-[:HAS_DOC]->(doc)
-  RETURN 0 AS dummy4
-}
-CALL {
-  WITH job, jf
-  UNWIND coalesce(jf.owners, []) AS ow
+)
+
+WITH job, r, jv, jf
+FOREACH (ow IN coalesce(jf.owners, []) |
   MERGE (o:Owner {name:ow.name, type:ow.type})
   MERGE (job)-[:OWNED_BY]->(o)
-  RETURN 0 AS dummy5
-}
+)
 
+// ==============================
 // INPUTS
+// ==============================
+WITH r
 UNWIND $inputs AS inp
 MERGE (ds:Dataset {namespace:inp.dataset.namespace, name:inp.dataset.name})
 MERGE (dv:DatasetVersion {versionId:inp.version.versionId})
 ON CREATE SET dv.schemaHash = inp.version.schemaHash,
               dv.createdAt  = datetime(inp.version.createdAt)
 MERGE (ds)-[:HAS_VERSION]->(dv)
-MERGE (ds)-[dl:LATEST]->(dv)
-ON MATCH SET dl.updatedAt = datetime()
+
+// Ensure exactly one LATEST_DATASET_VERSION per Dataset (inputs)
+WITH r, inp, ds, dv
+OPTIONAL MATCH (ds)-[oldLatest:LATEST_DATASET_VERSION]->(:DatasetVersion)
+DELETE oldLatest
+MERGE (ds)-[dl:LATEST_DATASET_VERSION]->(dv)
+SET dl.updatedAt = datetime()
+
 MERGE (r)-[:READ_FROM]->(dv)
 
 FOREACH (t IN coalesce(inp.tags,[]) |
@@ -96,7 +103,9 @@ FOREACH (_ IN CASE WHEN inp.stats IS NULL THEN [] ELSE [1] END |
   MERGE (is)-[:FOR]->(dv)
 )
 
+// ==============================
 // OUTPUTS
+// ==============================
 WITH r
 UNWIND $outputs AS outp
 MERGE (ods:Dataset {namespace:outp.dataset.namespace, name:outp.dataset.name})
@@ -105,8 +114,14 @@ ON CREATE SET odv.schemaHash = outp.version.schemaHash,
               odv.createdAt  = datetime(outp.version.createdAt),
               odv.lifecycleState = outp.version.lifecycle.state
 MERGE (ods)-[:HAS_VERSION]->(odv)
-MERGE (ods)-[odl:LATEST]->(odv)
-ON MATCH SET odl.updatedAt = datetime()
+
+// Ensure exactly one LATEST_DATASET_VERSION per Dataset (outputs)
+WITH r, outp, ods, odv
+OPTIONAL MATCH (ods)-[oldLatest:LATEST_DATASET_VERSION]->(:DatasetVersion)
+DELETE oldLatest
+MERGE (ods)-[odl:LATEST_DATASET_VERSION]->(odv)
+SET odl.updatedAt = datetime()
+
 MERGE (r)-[:WROTE_TO {mode:'WRITE'}]->(odv)
 
 FOREACH (f IN coalesce(outp.fields,[]) |
@@ -131,7 +146,9 @@ FOREACH (_ IN CASE WHEN outp.stats IS NULL THEN [] ELSE [1] END |
   MERGE (os)-[:FOR]->(odv)
 )
 
+// ==============================
 // COLUMN LINEAGE with reusable :Transformation
+// ==============================
 WITH r
 UNWIND $derivations AS d
 MERGE (ofv:FieldVersion {datasetVersionId:d.out.versionId, name:d.out.field})
@@ -154,7 +171,9 @@ SET df.type        = d.tr.type,
 MERGE (ofv)-[:APPLIES]->(t)
 MERGE (t)-[:ON_INPUT]->(ifv)
 
+// ==============================
 // RUN FACETS
+// ==============================
 FOREACH (v IN coalesce($envVars,[]) |
   MERGE (ev:EnvVar {name:v.name, value:v.value})
   MERGE (r)-[:HAS_ENV_VAR]->(ev)

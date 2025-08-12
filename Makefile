@@ -149,6 +149,11 @@ up:
 	@echo " Services available at:"
 	@echo "  - MySQL Database: localhost:3306"
 	@echo "  - Neo4j Database: localhost:7474 (HTTP) / localhost:7687 (Bolt)"
+	@echo ""
+	@echo "🔧 Setting up Neo4j constraints..."
+	@sleep 30
+	@python backend/utils/constraints_startup.py
+	@echo ""
 	@echo " Use 'make down' to stop all services"
 
 # Stop all services with docker-compose
@@ -166,7 +171,14 @@ down-clean:
 # Start all services with docker-compose and show logs
 up-logs:
 	@echo "🚀 Starting all services with docker-compose and showing logs..."
-	@docker-compose up
+	@docker-compose up -d
+	@echo "✅ All services started!"
+	@echo "🔧 Setting up Neo4j constraints..."
+	@sleep 10
+	@python backend/utils/constraints_startup.py
+	@echo ""
+	@echo " Showing logs..."
+	@docker-compose logs -f
 
 # Restart all services with docker-compose
 restart:
