@@ -47,6 +47,7 @@ help:
 	@echo ""
 	@echo "Lineage commands:"
 	@echo "  make build-eoe-lineage - Build EOE lineage from extraction dumps"
+	@echo "  make generate-mermaid-diagram - Generate PNG diagram from mermaid_model.mmd"
 	@echo ""
 	@echo "Testing commands:"
 	@echo "  make test       - Run all tests"
@@ -523,4 +524,22 @@ build-eoe-lineage:
 	else \
 		echo "❌ Directory not found: lineage_extraction_dumps"; \
 		echo "   Make sure the lineage_extraction_dumps directory exists with JSON files."; \
+	fi
+
+# Generate Mermaid diagram
+generate-mermaid-diagram:
+	@echo "🚀 Generating Mermaid diagram..."
+	@if command -v mmdc >/dev/null 2>&1; then \
+		if [ -f "images/mermaid_model.mmd" ]; then \
+			mmdc -i images/mermaid_model.mmd -o images/diagram.png -w 8000 -H 6000 --scale 2; \
+			echo "✅ Mermaid diagram generated successfully!"; \
+			echo "📁 Output saved to: images/diagram.png"; \
+		else \
+			echo "❌ Mermaid file not found: images/mermaid_model.mmd"; \
+			echo "   Make sure the mermaid_model.mmd file exists in the images directory."; \
+		fi; \
+	else \
+		echo "❌ mmdc command not found!"; \
+		echo "   Please install @mermaid-js/mermaid-cli:"; \
+		echo "   npm install -g @mermaid-js/mermaid-cli"; \
 	fi 
