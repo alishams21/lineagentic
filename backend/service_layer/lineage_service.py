@@ -1,8 +1,10 @@
 import json
 from typing import Dict, Any, List, Optional, Union
+from datetime import datetime
+import uuid
 from ..repository_layer.lineage_repository import LineageRepository
 from ..utils.neo4j_ingestion import Neo4jIngestion
-from algorithm.framework_agent import AgentFramework
+from algorithm.framework_agent import AgentFramework, LineageConfig
 import asyncio
 import logging
 
@@ -17,6 +19,65 @@ class LineageService:
         self.logger = logging.getLogger(__name__)
         # Initialize Neo4j ingestion
         self.neo4j_ingestion = Neo4jIngestion()
+    
+    def _create_lineage_config(self, query: str, agent_name: str, config_request=None) -> LineageConfig:
+        """
+        Create a LineageConfig from either a config request or default values.
+        
+        Args:
+            query: The source code/query to analyze
+            agent_name: The name of the agent
+            config_request: Optional LineageConfigRequest from API
+            
+        Returns:
+            LineageConfig instance
+            
+        Raises:
+            ValueError: If required fields are missing
+        """
+
+        env_vars = None
+        if config_request.environment_variables:
+            env_vars = [{"name": ev.name, "value": ev.value} for ev in config_request.environment_variables]
+        
+        # Validate required fields from config request
+        required_fields = {
+            'event_type': config_request.event_type,
+            'event_time': config_request.event_time,
+            'run_id': config_request.run_id,
+            'job_namespace': config_request.job_namespace,
+            'job_name': config_request.job_name
+        }
+        
+        missing_fields = [field for field, value in required_fields.items() if not value]
+        if missing_fields:
+            raise ValueError(f"Missing required fields: {', '.join(missing_fields)}")
+        
+        return LineageConfig(
+            event_type=config_request.event_type,
+            event_time=config_request.event_time,
+            run_id=config_request.run_id,
+            job_namespace=config_request.job_namespace,
+            job_name=config_request.job_name,
+            parent_run_id=config_request.parent_run_id,
+            parent_job_name=config_request.parent_job_name,
+            parent_namespace=config_request.parent_namespace,
+            producer_url=config_request.producer_url,
+            processing_type=config_request.processing_type,
+            integration=config_request.integration,
+            job_type=config_request.job_type,
+            language=config_request.language,
+            source_code=config_request.source_code,
+            storage_layer=config_request.storage_layer,
+            file_format=config_request.file_format,
+            owner_name=config_request.owner_name,
+            owner_type=config_request.owner_type,
+            job_owner_name=config_request.job_owner_name,
+            job_owner_type=config_request.job_owner_type,
+            description=config_request.description,
+            environment_variables=env_vars
+        )
+
     
     def _validate_query_request(self, query: str, agent_name: str, model_name: str) -> None:
         """Validate query request parameters"""
@@ -67,7 +128,7 @@ class LineageService:
     
     async def analyze_query(self, query: str, agent_name: str = "sql", 
                           model_name: str = "gpt-4o-mini", save_to_db: bool = True,
-                          save_to_neo4j: bool = True) -> Dict[str, Any]:
+                          save_to_neo4j: bool = True, lineage_config_request = None) -> Dict[str, Any]:
         """
         Analyze a single query for lineage information
         
@@ -77,6 +138,7 @@ class LineageService:
             model_name: The model to use
             save_to_db: Whether to save results to database
             save_to_neo4j: Whether to save lineage data to Neo4j
+            lineage_config_request: Lineage configuration from API request
             
         Returns:
             Dict containing analysis results
@@ -85,10 +147,14 @@ class LineageService:
         self._validate_query_request(query, agent_name, model_name)
         
         try:
+            # Create lineage configuration
+            lineage_config = self._create_lineage_config(query, agent_name, lineage_config_request)
+            
             # Create framework instance
             framework = AgentFramework(
                 agent_name=agent_name,
-                model_name=model_name
+                model_name=model_name,
+                lineage_config=lineage_config
             )
             
             # Run analysis
@@ -116,18 +182,28 @@ class LineageService:
                     # Don't fail the entire request if DB save fails
             
             # Save lineage data to Neo4j if requested
-            if save_to_neo4j and isinstance(serializable_result, dict) and 'lineage' in serializable_result:
+            if save_to_neo4j and isinstance(serializable_result, dict):
                 try:
                     # Apply Neo4j constraints first (if not already applied)
-                    self.neo4j_ingestion.apply_constraints()
+                    #self.neo4j_ingestion.apply_constraints()
                     
-                    # Convert analysis result to OpenLineage event format
-                    event = self.neo4j_ingestion.convert_analysis_result_to_event(
-                        serializable_result, query, agent_name, model_name
-                    )
+                    # Extract lineage data from the correct location
+                    # Check if lineage data is in 'data' field (your API response structure)
+                    if 'data' in serializable_result and isinstance(serializable_result['data'], dict):
+                        # Your API response structure: {"success": true, "data": {"inputs": [...], "outputs": [...]}}
+                        lineage_data = serializable_result['data']
+                    elif 'lineage' in serializable_result:
+                        # Legacy structure: {"lineage": {...}}
+                        lineage_data = serializable_result['lineage']
+                    else:
+                        # Fallback: use the entire result
+                        lineage_data = serializable_result
                     
                     # Ingest the event into Neo4j
-                    neo4j_result = self.neo4j_ingestion.ingest_lineage_event(event)
+                    neo4j_result = self.neo4j_ingestion.ingest_lineage_event(lineage_data)
+                    print("++++++++++++++++++++++++++++++++++++++++++++")
+                    print(neo4j_result)
+                    print("++++++++++++++++++++++++++++++++++++++++++++")
                     
                     if neo4j_result["success"]:
                         serializable_result["neo4j_saved"] = True
@@ -143,7 +219,7 @@ class LineageService:
                     logger.error(f"Error processing lineage for Neo4j: {neo4j_e}")
                     serializable_result["neo4j_saved"] = False
                     serializable_result["neo4j_error"] = str(neo4j_e)
-            
+                    
             return serializable_result
             
         except Exception as e:
@@ -174,7 +250,7 @@ class LineageService:
     
     async def analyze_queries_batch(self, queries: List[str], agent_name: str = "sql",
                                   model_name: str = "gpt-4o-mini", save_to_db: bool = True,
-                                  save_to_neo4j: bool = True) -> List[Dict[str, Any]]:
+                                  save_to_neo4j: bool = True, lineage_config_request = None) -> List[Dict[str, Any]]:
         """
         Analyze multiple queries in batch
         
@@ -184,6 +260,7 @@ class LineageService:
             model_name: The model to use
             save_to_db: Whether to save results to database
             save_to_neo4j: Whether to save lineage data to Neo4j
+            lineage_config_request: Lineage configuration from API request
             
         Returns:
             List of analysis results
@@ -193,10 +270,14 @@ class LineageService:
         
         results = []
         
+        # Create lineage configuration
+        lineage_config = self._create_lineage_config(queries[0], agent_name, lineage_config_request)
+        
         # Create framework instance once for batch processing
         framework = AgentFramework(
             agent_name=agent_name,
-            model_name=model_name
+            model_name=model_name,
+            lineage_config=lineage_config
         )
         
         for query in queries:
@@ -224,12 +305,20 @@ class LineageService:
                     except Exception as e:
                         logger.error(f"Failed to save batch query analysis: {e}")
                 
-                # Save lineage data to Neo4j if requested
-                if save_to_neo4j and isinstance(serializable_result, dict) and 'lineage' in serializable_result:
+
+                if save_to_neo4j and isinstance(serializable_result, dict):
                     try:
+                        # Extract lineage data from the correct location
+                        if 'data' in serializable_result and isinstance(serializable_result['data'], dict):
+                            lineage_data = serializable_result['data']
+                        elif 'lineage' in serializable_result:
+                            lineage_data = serializable_result['lineage']
+                        else:
+                            lineage_data = serializable_result
+                        
                         # Convert analysis result to OpenLineage event format
                         event = self.neo4j_ingestion.convert_analysis_result_to_event(
-                            serializable_result, query, agent_name, model_name
+                            {'lineage': lineage_data}, query, agent_name, model_name
                         )
                         
                         # Ingest the event into Neo4j
@@ -279,7 +368,8 @@ class LineageService:
         return results
     
     async def run_operation(self, operation_name: str, query: str, agent_name: Optional[str] = None,
-                          model_name: str = "gpt-4o-mini", save_to_db: bool = True) -> Dict[str, Any]:
+                          model_name: str = "gpt-4o-mini", save_to_db: bool = True,
+                          lineage_config_request = None) -> Dict[str, Any]:
         """
         Run a specific operation using the appropriate agent
         
@@ -289,6 +379,7 @@ class LineageService:
             agent_name: Specific agent to use (optional)
             model_name: The model to use
             save_to_db: Whether to save results to database
+            lineage_config_request: Lineage configuration from API request
             
         Returns:
             Dict containing operation results
@@ -297,10 +388,14 @@ class LineageService:
         self._validate_operation_request(operation_name, query, model_name)
         
         try:
+            # Create lineage configuration
+            lineage_config = self._create_lineage_config(query, agent_name or "sql", lineage_config_request)
+            
             # Create framework instance
             framework = AgentFramework(
                 agent_name=agent_name or "sql",  # Default agent
-                model_name=model_name
+                model_name=model_name,
+                lineage_config=lineage_config
             )
             
             # Run operation
@@ -415,8 +510,13 @@ class LineageService:
     async def get_supported_operations(self) -> Dict[str, list]:
         """Get all supported operations"""
         try:
-            # Create a temporary framework instance to get operations info
-            framework = AgentFramework(agent_name="sql", model_name="gpt-4o-mini")
+            # Create a temporary framework instance with default lineage config
+            default_config = self._create_lineage_config("", "sql")
+            framework = AgentFramework(
+                agent_name="sql", 
+                model_name="gpt-4o-mini",
+                lineage_config=default_config
+            )
             return framework.get_supported_operations()
         except Exception as e:
             logger.error(f"Error getting supported operations: {e}")
@@ -675,3 +775,4 @@ class LineageService:
         except Exception as e:
             logger.error(f"Error executing table lineage query for '{table_name}': {e}")
             raise Exception(f"Error executing table lineage query for '{table_name}': {str(e)}") 
+

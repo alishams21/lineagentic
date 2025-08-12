@@ -16,7 +16,12 @@ def field_derivation_instructions(name: str):
     1.Call the sql_lineage_field_derivation function to get detailed instructions.
     2.Your job is to analyze the SQL query and return the field mappings in the format:
     [
-        { "output_fields": [ { "name": "<output_column>", "source": "<source_table_or_cte.column>", "transformation": "<transformation logic>" } ] },
+        { "output_fields": [ { 
+        "namespace": "<INPUT_NAMESPACE>",
+        "name": "<INPUT_NAME>",
+        "field": "<INPUT_FIELD_NAME>",
+        "transformation": "<description of logic>"
+        } ] },
         ...
     ]
     3. Return the analysis results, not the instructions themselves
@@ -28,7 +33,11 @@ def operation_tracing_instructions(name: str):
     1.Call the sql_lineage_operation_tracing function to get detailed instructions.
     2.Your job is to analyze the SQL query and return the operation tracing in the format:
     [
-        { "output_fields": [ { "source": "<source_table_or_cte.column>", "transformation": "<transformation logic>" } ] },
+        { "output_fields": [ { 
+        "namespace": "<INPUT_NAMESPACE>",
+        "name": "<INPUT_NAME>",
+        "field": "<INPUT_FIELD_NAME>",
+        "transformation": "<description of logic>" } ] },
         ...
     ]
     3. Return the analysis results, not the instructions themselves

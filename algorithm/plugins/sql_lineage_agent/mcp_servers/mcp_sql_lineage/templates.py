@@ -111,8 +111,9 @@ def sql_lineage_field_derivation():
         {
         "output_fields": [
             {
-            "name": "<output_column>",
-            "source": "<source_column or expression>",
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "<INPUT_NAME>",
+            "field": "<INPUT_FIELD_NAME>",
             "transformation": "<description of logic>"
             },
             ...
@@ -130,32 +131,16 @@ def sql_lineage_field_derivation():
         {
         "output_fields": [
             {
-            "name": "customer_id",
-            "source": "orders.customer_id",
+            "namespace": "default",
+            "name": "orders",
+            "field": "customer_id",
             "transformation": "Group key, direct"
             },
             {
-            "name": "total_spent",
-            "source": "orders.amount",
+            "namespace": "default",
+            "name": "orders",
+            "field": "amount",
             "transformation": "SUM(amount)"
-            }
-        ]
-        }
-
-        ---
-
-        Positive Example 2
-
-        Input SQL:
-        SELECT UPPER(first_name) || ' ' || last_name AS full_name FROM employees;
-
-        Expected Output:
-        {
-        "output_fields": [
-            {
-            "name": "full_name",
-            "source": "employees.first_name, employees.last_name",
-            "transformation": "Concatenation with UPPER()"
             }
         ]
         }
@@ -169,8 +154,6 @@ def sql_lineage_field_derivation():
         "total_spent": "SUM(amount)"
         }
 
-        Reason:  This is an unstructured map. It doesn’t explain transformations clearly or follow the output schema.
-
         ---
 
         Negative Example 2 (Missed transformation logic):
@@ -182,8 +165,9 @@ def sql_lineage_field_derivation():
         {
         "output_fields": [
             {
-            "name": "annual_salary",
-            "source": "payroll.salary",
+            "namespace": "default",
+            "name": "payroll",
+            "field": "salary",
             "transformation": "Direct"
             }
         ]

@@ -11,7 +11,7 @@ from .agent_manager import agent_manager
 from agents import add_trace_processor
 
 
-class OpenLineageConfig:
+class LineageConfig:
     """Configuration class for OpenLineage event metadata"""
     
     def __init__(self, 
@@ -105,17 +105,17 @@ class OpenLineageConfig:
 
 class AgentFramework:
     def __init__(self, agent_name: str, model_name: str = "gpt-4o-mini", 
-                 lineage_config: OpenLineageConfig = None):
+                 lineage_config: LineageConfig = None):
         """
         Initialize the Agent Framework.
         
         Args:
             agent_name (str): The name of the agent to use
             model_name (str): The model to use for the agents (default: "gpt-4o-mini")
-            lineage_config (OpenLineageConfig): Configuration for OpenLineage event metadata
+            lineage_config (LineageConfig): Configuration for OpenLineage event metadata
             
         Raises:
-            ValueError: If lineage_config is not provided
+            ValueError: If lineage_config is not provided   
         """
         if not lineage_config:
             raise ValueError("lineage_config is required and cannot be None")
@@ -258,8 +258,8 @@ class AgentFramework:
 # Example usage and main function
 async def main():
     # Create OpenLineage configuration
-    lineage_config = OpenLineageConfig(
-        event_type="START",
+    lineage_config = LineageConfig(
+        event_type="START", 
         event_time="2025-08-11T12:00:00Z",
         run_id="my-unique-run-id",
         job_namespace="my-namespace",
