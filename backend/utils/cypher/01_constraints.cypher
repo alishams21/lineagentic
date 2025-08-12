@@ -26,3 +26,10 @@ FOR (t:Transformation) REQUIRE t.txHash IS UNIQUE;
 // Helpful indexes
 CREATE INDEX owner_idx IF NOT EXISTS FOR (o:Owner) ON (o.name, o.type);
 CREATE INDEX tag_idx IF NOT EXISTS FOR (t:Tag) ON (t.key, t.value); 
+
+// Optional: speed up queries that touch the latest rels by updatedAt
+CREATE INDEX latest_job_version_updated_at_idx IF NOT EXISTS
+FOR ()-[l:LATEST_JOB_VERSION]-() ON (l.updatedAt);
+
+CREATE INDEX latest_dataset_version_updated_at_idx IF NOT EXISTS
+FOR ()-[l:LATEST_DATASET_VERSION]-() ON (l.updatedAt);
