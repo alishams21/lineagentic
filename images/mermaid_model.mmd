@@ -1,63 +1,74 @@
 graph TD
   %% ========= Jobs & Runs =========
-  subgraph JobsAndRuns
+  subgraph Jobs
     Job["Job<br/>{namespace, name}"]
     JobVersion["JobVersion<br/>{versionId, gitRef, codeHash, createdAt}"]
-    Run["Run<br/>{runId, eventType, eventTime}"]
-    SourceCode["SourceCode<br/>{sourceCode…}"]
+
+    SourceCode["SourceCode<br/>{language, code}"]
     SCM["SCM<br/>{type, url, repoUrl, path, version, tag, branch}"]
-    JobFacets["JobFacets<br/>{jobType, doc}"]
-    JobOwner["Owner<br/>{name, email?}"]
+    JobType["JobType<br/>{processingType, integration, jobType}"]
+    Doc["Doc<br/>{description, contentType}"]
+    JobOwner["Owner<br/>{name, type}"]
   end
 
   Job -->|HAS_VERSION| JobVersion
-  Run -->|OF_JOB| Job
-  Run -->|USES_VERSION| JobVersion
-  JobVersion -->|HAS_SOURCE_CODE| SourceCode
-  JobVersion -->|HAS_SCM| SCM
-  Job -->|HAS_FACETS| JobFacets
+  Job -->|LATEST_JOB_VERSION| JobVersion
+  Job -->|TRIGGERED| Run
+  Run -->|USING_JOB_VERSION| JobVersion
+
+  Job -->|HAS_SOURCE_CODE| SourceCode
+  Job -->|HAS_SCM| SCM
+  Job -->|HAS_TYPE| JobType
+  Job -->|HAS_DOC| Doc
   Job -->|OWNED_BY| JobOwner
 
-  %% ========= Datasets =========
+  %% ========= Datasets & Versions =========
   subgraph Datasets
     Dataset["Dataset<br/>{namespace, name}"]
-    DatasetVersion["DatasetVersion<br/>{versionId, schemaHash, createdAt}"]
-    PrevDatasetVersion["DatasetVersion<br/>{versionId, schemaHash, createdAt}"]
-    Field["Field<br/>{name, type?, description?}"]
+    DatasetVersion["DatasetVersion<br/>{versionId, schemaHash, createdAt, lifecycleState?}"]
+    Field["Field<br/>{datasetNamespace, datasetName, name}"]
+    FieldVersion["FieldVersion<br/>{datasetVersionId, name, type?, description?}"]
     Tag["Tag<br/>{key, value, source}"]
-    Owner["Owner<br/>{name, email?}"]
-    Stats["Stats<br/>{rowCount, fileCount, size}"]
-    Lifecycle["Lifecycle<br/>{state, previousIdentifier?}"]
+    DsOwner["Owner<br/>{name, type}"]
+    Lifecycle["Lifecycle<br/>{state, prevNamespace?, prevName?}"]
+
+    InputStat["InputStat<br/>{datasetVersionId, runId, rowCount, fileCount, size}"]
+    OutputStat["OutputStat<br/>{datasetVersionId, runId, rowCount, fileCount, size}"]
   end
 
   Dataset -->|HAS_VERSION| DatasetVersion
-  Dataset -->|HAS_VERSION| PrevDatasetVersion
-  DatasetVersion -->|HAS_FIELD| Field
-  DatasetVersion -->|HAS_STATS| Stats
-  DatasetVersion -->|HAS_LIFECYCLE| Lifecycle
-  Dataset -->|OWNED_BY| Owner
+  Dataset -->|LATEST_DATASET_VERSION| DatasetVersion
+  Dataset -->|OWNED_BY| DsOwner
   Dataset -->|HAS_TAG| Tag
-  DatasetVersion -->|HAS_TAG| Tag
-  Field -->|HAS_TAG| Tag
-  Lifecycle -->|PREVIOUS_VERSION| PrevDatasetVersion
+  Dataset -->|HAS_FIELD| Field
+  DatasetVersion -->|HAS_FIELD| FieldVersion
+  DatasetVersion -->|HAS_LIFECYCLE_EVENT| Lifecycle
 
-  %% ========= Run I/O =========
-  Run -->|READS_FROM| DatasetVersion
-  Run -->|WRITES_TO| PrevDatasetVersion
+  %% ========= Run I/O & Stats =========
+  Run -->|READ_FROM| DatasetVersion
+  Run -->|OBSERVED_ON_READ| InputStat
+  InputStat -->|FOR| DatasetVersion
+
+  %% FIXED LABEL (no curly braces)
+  Run -->|"WROTE_TO (mode=WRITE)"| DatasetVersion
+
+  Run -->|OBSERVED_ON_WRITE| OutputStat
+  OutputStat -->|FOR| DatasetVersion
 
   %% ========= Run facets =========
   subgraph RunFacets
     EnvVar["EnvVar<br/>{name, value}"]
     Error["Error<br/>{message, programmingLanguage, stackTrace}"]
     ExternalQuery["ExternalQuery<br/>{externalQueryId, source}"]
+    RunMeta["RunMeta<br/>{queryId, queryLanguage, queryText, querySource, executionStatus, errorDetails, startTime, endTime, memoryUsage}"]
   end
   Run -->|HAS_ENV_VAR| EnvVar
   Run -->|HAS_ERROR| Error
-  Run -->|HAS_EXTERNAL_QUERY| ExternalQuery
-
+  Run -->|ISSUED| ExternalQuery
+  Run -->|HAS_META| RunMeta
   %% ========= Field-level lineage =========
-  OutField["Field<br/>{name}"]
-  InField["Field<br/>{name}"]
-  DatasetVersion -->|HAS_FIELD| OutField
-  PrevDatasetVersion -->|HAS_FIELD| InField
-  OutField -- "DERIVES_FROM (txHash, type, subtype, description, masking, createdAt)" --> InField
+  subgraph Transforms
+    Transformation["Transformation<br/>{txHash, type, subtype, description, masking}"]
+  end
+  FieldVersion -->|APPLIES| Transformation
+  Transformation -->|ON_INPUT| FieldVersion
