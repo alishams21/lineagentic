@@ -16,7 +16,12 @@ def field_derivation_instructions(name: str):
     1.Call the sql_lineage_field_derivation function to get detailed instructions.
     2.Your job is to analyze the SQL query and return the field mappings in the format:
     [
-        { "output_fields": [ { "name": "<output_column>", "source": "<source_table_or_cte.column>", "transformation": "<transformation logic>" } ] },
+        { "output_fields": [ { 
+        "namespace": "<INPUT_NAMESPACE>",
+        "name": "<INPUT_NAME>",
+        "field": "<INPUT_FIELD_NAME>",
+        "transformation": "<description of logic>"
+        } ] },
         ...
     ]
     3. Return the analysis results, not the instructions themselves
@@ -28,7 +33,11 @@ def operation_tracing_instructions(name: str):
     1.Call the sql_lineage_operation_tracing function to get detailed instructions.
     2.Your job is to analyze the SQL query and return the operation tracing in the format:
     [
-        { "output_fields": [ { "source": "<source_table_or_cte.column>", "transformation": "<transformation logic>" } ] },
+        { "output_fields": [ { 
+        "namespace": "<INPUT_NAMESPACE>",
+        "name": "<INPUT_NAME>",
+        "field": "<INPUT_FIELD_NAME>",
+        "transformation": "<description of logic>" } ] },
         ...
     ]
     3. Return the analysis results, not the instructions themselves
@@ -43,84 +52,81 @@ def event_composer_instructions(name: str):
         **Field Mappings**
         **Logical Operators**
     and return only the JSON format.
-    3. you show have all the fields mentioned in following json schema, either filled in
-    based on the data provided or leave it as default mentioned following:
-    4. only produce exact following json format with filled in information above, do not add any text.
+    3. Match the structure and nesting exactly as in this format:
+    4. Based on following example generate <INPUT_NAMESPACE>, <INPUT_NAME>, <OUTPUT_NAMESPACE>, <OUTPUT_NAME>:
+            
+                    BigQuery
+                    SELECT name, age 
+                    FROM project123.dataset456.customers;
+
+                    Expected :
+                    <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: project123
+                    <INPUT_NAME> or <OUTPUT_NAME>: dataset456.customers
+
+                    Postgres
+                    SELECT id, total
+                    FROM sales_schema.orders;
+
+                    Expected :
+                    <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: default
+                    <INPUT_NAME> or <OUTPUT_NAME>: sales_schema.orders
+
+                    MySQL
+                    SELECT u.username, u.email
+                    FROM ecommerce_db.users AS u;
+
+                    Expected Output:
+                    <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: default
+                    <INPUT_NAME> or <OUTPUT_NAME>: ecommerce_db.users
+            
+            - wherever you cant find information for example for <STORAGE_LAYER>, <FILE_FORMAT>,
+            <DATASET_TYPE>, <SUB_TYPE>, <LIFECYCLE>, <OWNER_NAME>, 
+            <OWNER_TYPE>, <SUBTYPE>, <DESCRIPTION> then just write "NA".
+
+            - very very very important: Your output must follow **exactly** this JSON structure — do not output explanations, comments, or anything else.
+            ---
+
+            ### Required Output Format (Example):
+
             {
-                "eventType": "START",
-                "eventTime": "<ISO_TIMESTAMP>",
-                "run": {
-                    "runId": "<UUID>",
-                    "facets": {
-                    "parent": {
-                        "job": {
-                        "name": "<PARENT_JOB_NAME>",
-                        "namespace": "<PARENT_NAMESPACE>"
-                        },
-                        "run": {
-                        "runId": "<PARENT_RUN_ID>"
-                        }
-                    }
-                    }
-                },
-                "job": {
-                    "facets": {
-                    "sql": {
-                        "_producer": "<PRODUCER_URL>",
-                        "_schemaURL": "<SCHEMA_URL>",
-                        "query": "<FULL_PIPELINE_AS_CODE_STRING>"
-                    },
-                    "jobType": {
-                        "processingType": "<BATCH_OR_STREAM>",
-                        "integration": "<ENGINE_NAME>",
-                        "jobType": "<QUERY_TYPE_OR_JOB_TYPE>",
-                        "_producer": "<PRODUCER_URL>",
-                        "_schemaURL": "<SCHEMA_URL>"
-                    },
-                    "sourceCode": {
-                        "_producer": "<PRODUCER_URL>",
-                        "_schemaURL": "<SCHEMA_URL>",
-                        "language": "<LANGUAGE>",
-                        "sourceCode": "<SOURCE_CODE>"
-                    }
-                    }
-                },
                 "inputs": [
                     {
                         "namespace": "<INPUT_NAMESPACE>",
                         "name": "<INPUT_NAME>",
                         "facets": {
                             "schema": {
-                            "_producer": "<PRODUCER_URL>",
-                            "_schemaURL": "<SCHEMA_URL>",
-                            "fields": [
+                                "fields": [
+                                    {
+                                    "name": "<FIELD_NAME>",
+                                    "type": "<FIELD_TYPE>",
+                                    "description": "<FIELD_DESCRIPTION>"
+                                    }
+                                ]
+                            },
+                            "tags": [
                                 {
-                                "name": "<FIELD_NAME>",
-                                "type": "<FIELD_TYPE>",
-                                "description": "<FIELD_DESCRIPTION>"
+                                    "name": "<TAG_NAME>",
+                                    "value": "<TAG_VALUE>"
+                                    "source": "<SOURCE>"
                                 }
-                            ]
+                            ],
+                            "inputStatistics": {
+                                "rowCount": "<ROW_COUNT>",
+                                "fileCount": "<FILE_COUNT>",
+                                "size": "<SIZE>"
                             },
                             "storage": {
-                                "_producer": "<PRODUCER_URL>",
-                                "_schemaURL": "<SCHEMA_URL>",
                                 "storageLayer": "<STORAGE_LAYER>",
                                 "fileFormat": "<FILE_FORMAT>"
                             },
                             "datasetType": {
-                                "_producer": "<PRODUCER_URL>",
-                                "_schemaURL": "<SCHEMA_URL>",
                                 "datasetType": "<DATASET_TYPE>",
                                 "subType": "<SUB_TYPE>"
                             },
-                            "lifecycleStateChange": {
-                                "_producer": "<PRODUCER_URL>",
-                                "_schemaURL": "<SCHEMA_URL>",
-                                "lifecycleStateChange": "<LIFECYCLE_STATE_CHANGE>"
+                            "lifecycle": {
+                                "lifecycle": "<LIFECYCLE>"
                             },
                             "ownership": {
-                                "_producer": "<PRODUCER_URL>",
-                                "_schemaURL": "<SCHEMA_URL>",
                                 "owners": [ 
                                     {
                                         "name": "<OWNER_NAME>",
@@ -137,27 +143,38 @@ def event_composer_instructions(name: str):
                     "name": "<OUTPUT_NAME>",
                     "facets": {
                         "columnLineage": {
-                        "_producer": "<PRODUCER_URL>",
-                        "_schemaURL": "<SCHEMA_URL>",
-                        "fields": {
-                            "<OUTPUT_FIELD_NAME>": {
-                            "inputFields": [
-                                {
-                                "namespace": "<INPUT_NAMESPACE>",
-                                "name": "<INPUT_NAME>",
-                                "field": "<INPUT_FIELD_NAME>",
-                                "transformations": [
+                            "fields": {
+                                "<OUTPUT_FIELD_NAME>": {
+                                "inputFields": [
                                     {
-                                    "type": "<TRANSFORMATION_TYPE>",
-                                    "subtype": "<SUBTYPE>",
-                                    "description": "<DESCRIPTION>",
-                                    "masking": false
+                                    "namespace": "<INPUT_NAMESPACE>",
+                                    "name": "<INPUT_NAME>",
+                                    "field": "<INPUT_FIELD_NAME>",
+                                    "transformations": [
+                                        {
+                                        "type": "<TRANSFORMATION_TYPE>",
+                                        "subtype": "<SUBTYPE>",
+                                        "description": "<DESCRIPTION>",
+                                        "masking": false
+                                        }
+                                    ]
                                     }
                                 ]
                                 }
-                            ]
                             }
-                        }
+                        },
+                        "outputStatistics": {
+                            "rowCount": "<ROW_COUNT>",
+                            "fileCount": "<FILE_COUNT>",
+                            "size": "<SIZE>"
+                        },
+                        "ownership": {
+                                "owners": [ 
+                                    {
+                                        "name": "<OWNER_NAME>",
+                                        "type": "<OWNER_TYPE>"
+                                    }
+                                ]
                         }
                     }
                     }

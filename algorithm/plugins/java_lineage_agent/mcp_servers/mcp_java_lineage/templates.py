@@ -461,310 +461,200 @@ def java_lineage_event_composer():
             - Include `"columnLineage"` as a facet under `"outputs.facets"` (not at the top level)
             - Maintain the exact field names:
             - `"eventType"`, `"eventTime"`, `"run"`, `"job"`, `"inputs"`, `"outputs"`, `"facets"`, `"query"`, `"processingType"`, `"integration"`, etc.
-            - Do NOT rename or flatten any fields
-            - Inputs must refer to **source datasets**, not just field names or local variables
-            - The `columnLineage.fields` block must map output fields to their upstream input fields and describe the transformation applied
+   3. you show have all the fields mentioned in following json schema.
+    4. Based on following examples generate <INPUT_NAMESPACE>, <INPUT_NAME>, <OUTPUT_NAMESPACE>, <OUTPUT_NAME> for Java code patterns (pure Java I/O, JDBC, Hibernate/JPA):
 
-            Your output must follow **exactly** this JSON structure — do not output explanations, comments, or anything else.
+            Pure Java (read file via NIO)
+            List<String> lines = java.nio.file.Files.readAllLines(java.nio.file.Paths.get("/data/raw/customers.csv"));
+            Expected:
+            <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: default
+            <INPUT_NAME> or <OUTPUT_NAME>: file./data/raw/customers.csv
+
+            Pure Java (write file)
+            java.nio.file.Files.write(java.nio.file.Paths.get("/data/curated/sales_curated.csv"), bytes);
+            Expected:
+            <OUTPUT_NAMESPACE>: default
+            <OUTPUT_NAME>: file./data/curated/sales_curated.csv
+
+            In-memory collections/objects
+            List<Customer> customers = new ArrayList<>();
+            Expected:
+            <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: temp
+            <INPUT_NAME> or <OUTPUT_NAME>: customers
+
+            JDBC (PostgreSQL) with explicit schema.table
+            String sql = "SELECT * FROM analytics.orders";
+            try (Connection c = DriverManager.getConnection("jdbc:postgresql://host:5432/db");
+                Statement s = c.createStatement();
+                ResultSet rs = s.executeQuery(sql)) 
+            Expected:
+            <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: default
+            <INPUT_NAME> or <OUTPUT_NAME>: analytics.orders
+
+            JDBC (MySQL) database.table
+            String sql = "SELECT u.id, u.email FROM ecommerce.users u";
+            try (Connection c = DriverManager.getConnection("jdbc:mysql://host:3306/shop");
+                Statement s = c.createStatement();
+                ResultSet rs = s.executeQuery(sql)) 
+            Expected:
+            <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: default
+            <INPUT_NAME> or <OUTPUT_NAME>: ecommerce.users
+
+            JDBC (SQL Server) database.schema.table
+            String sql = "SELECT * FROM sales.dbo.orders";
+            try (Connection c = DriverManager.getConnection("jdbc:sqlserver://host;databaseName=sales");
+                Statement s = c.createStatement();
+                ResultSet rs = s.executeQuery(sql)) 
+            Expected:
+            <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: sales
+            <INPUT_NAME> or <OUTPUT_NAME>: dbo.orders
+
+            JDBC (Oracle) schema.table
+            String sql = "SELECT * FROM HR.EMPLOYEES";
+            try (Connection c = DriverManager.getConnection("jdbc:oracle:thin:@//host:1521/ORCLPDB1");
+                Statement s = c.createStatement();
+                ResultSet rs = s.executeQuery(sql)) 
+            Expected:
+            <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: default
+            <INPUT_NAME> or <OUTPUT_NAME>: HR.EMPLOYEES
+
+            Hibernate / JPA (Entity with schema)
+            @Entity
+            @Table(name = "orders", schema = "sales")
+            class Order { ... }
+            Expected:
+            <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: default
+            <INPUT_NAME> or <OUTPUT_NAME>: sales.orders
+
+            Hibernate / JPA (Entity without schema; default schema)
+            @Entity
+            @Table(name = "customers")
+            class Customer { ... }
+            Expected:
+            <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: default
+            <INPUT_NAME> or <OUTPUT_NAME>: customers
+
+            JDBC write (INSERT into schema.table)
+            String sql = "INSERT INTO analytics.daily_metrics (run_date, total) VALUES (?, ?)";
+            Expected:
+            <OUTPUT_NAMESPACE>: default
+            <OUTPUT_NAME>: analytics.daily_metrics
+
+            Notes:
+            - Use scheme prefixes for path-like sources/targets when present:
+                file./absolute/or/relative/path
+                s3./bucket/key
+                gs./bucket/key
+                abfs./container/path
+            - For in-memory variables/collections, use:
+                <NAMESPACE> = temp
+                <NAME> = <variable_or_field_name>
+            - For relational sources/targets referenced via SQL, prefer <NAME> = <schema.table>. If a database/catalog prefix exists (e.g., SQL Server), map it to <NAMESPACE> and keep <NAME> = <schema.table>. Otherwise use <NAMESPACE> = default.
+            - Wherever you can't find information for <STORAGE_LAYER>, <FILE_FORMAT>, <DATASET_TYPE>, <SUB_TYPE>, <LIFECYCLE>, <OWNER_NAME>, <OWNER_TYPE>, <SUBTYPE>, <DESCRIPTION> then write "NA".
+            - Very important: Your output must follow exactly the specified JSON structure — do not output explanations, comments, or anything else.
+            
+               
+            - wherever you cant find information for example for <STORAGE_LAYER>, <FILE_FORMAT>,
+            <DATASET_TYPE>, <SUB_TYPE>, <LIFECYCLE>, <OWNER_NAME>, 
+            <OWNER_TYPE>, <SUBTYPE>, <DESCRIPTION> then just write "NA".
+
+            - very very very important: Your output must follow **exactly** this JSON structure — do not output explanations, comments, or anything else.
+            ---
+
+            ### Required Output Format (Example):
 
             {
-            "eventType": "START",
-            "eventTime": "<ISO_TIMESTAMP>",
-            "run": {
-                "runId": "<UUID>",
-                "facets": {
-                "parent": {
-                    "job": {
-                    "name": "<PARENT_JOB_NAME>",
-                    "namespace": "<PARENT_NAMESPACE>"
-                    },
-                    "run": {
-                    "runId": "<PARENT_RUN_ID>"
-                    }
-                }
-                }
-            },
-            "job": {
-                "facets": {
-                "sql": {
-                    "_producer": "<PRODUCER_URL>",
-                    "_schemaURL": "<SCHEMA_URL>",
-                    "query": "<FULL_PIPELINE_AS_CODE_STRING>"
-                },
-                "jobType": {
-                    "processingType": "<BATCH_OR_STREAM>",
-                    "integration": "<ENGINE_NAME>",
-                    "jobType": "<QUERY_TYPE_OR_JOB_TYPE>",
-                    "_producer": "<PRODUCER_URL>",
-                    "_schemaURL": "<SCHEMA_URL>"
-                },
-                "sourceCode": {
-                    "_producer": "<PRODUCER_URL>",
-                    "_schemaURL": "<SCHEMA_URL>",
-                    "language": "java",
-                    "sourceCode": "<SOURCE_CODE>"
-                }
-                }
-            },
-            "inputs": [
-                {
-                "namespace": "<INPUT_NAMESPACE>",
-                "name": "<INPUT_NAME>",
-                "facets": {
-                    "schema": {
-                    "_producer": "<PRODUCER_URL>",
-                    "_schemaURL": "<SCHEMA_URL>",
-                    "fields": [
-                        {
-                        "name": "<FIELD_NAME>",
-                        "type": "<FIELD_TYPE>",
-                        "description": "<FIELD_DESCRIPTION>"
-                        }
-                    ]
-                    },
-                    "storage": {
-                    "_producer": "<PRODUCER_URL>",
-                    "_schemaURL": "<SCHEMA_URL>",
-                    "storageLayer": "<STORAGE_LAYER>",
-                    "fileFormat": "<FILE_FORMAT>"
-                    },
-                    "datasetType": {
-                    "_producer": "<PRODUCER_URL>",
-                    "_schemaURL": "<SCHEMA_URL>",
-                    "datasetType": "<DATASET_TYPE>",
-                    "subType": "<SUB_TYPE>"
-                    },
-                    "lifecycleStateChange": {
-                    "_producer": "<PRODUCER_URL>",
-                    "_schemaURL": "<SCHEMA_URL>",
-                    "lifecycleStateChange": "<LIFECYCLE_STATE_CHANGE>"
-                    },
-                    "ownership": {
-                    "_producer": "<PRODUCER_URL>",
-                    "_schemaURL": "<SCHEMA_URL>",
-                    "owners": [ 
-                        {
-                        "name": "<OWNER_NAME>",
-                        "type": "<OWNER_TYPE>"
-                        }
-                    ]
-                    }
-                }
-                }
-            ],
-            "outputs": [
-                {
-                "namespace": "<OUTPUT_NAMESPACE>",
-                "name": "<OUTPUT_NAME>",
-                "facets": {
-                    "columnLineage": {
-                    "_producer": "<PRODUCER_URL>",
-                    "_schemaURL": "<SCHEMA_URL>",
-                    "fields": {
-                        "<OUTPUT_FIELD_NAME>": {
-                        "inputFields": [
-                            {
-                            "namespace": "<INPUT_NAMESPACE>",
-                            "name": "<INPUT_NAME>",
-                            "field": "<INPUT_FIELD_NAME>",
-                            "transformations": [
-                                {
-                                "type": "<TRANSFORMATION_TYPE>",
-                                "subtype": "<SUBTYPE>",
-                                "description": "<DESCRIPTION>",
-                                "masking": false
-                                }
-                            ]
-                            }
-                        ]
-                        }
-                    }
-                    }
-                }
-                }
-            ]
-            }
-
-        here is a good example for the output:
-        
-        {
-            "eventType": "START",
-            "eventTime": "2025-08-02T10:15:00Z",
-            "run": {
-                "runId": "4fbd5a1c-102f-4f72-9045-5f2e1ddcbfaa",
-                "facets": {
-                "parent": {
-                    "job": {
-                    "name": "daily_customer_etl",
-                    "namespace": "airflow.dags.customer"
-                    },
-                    "run": {
-                    "runId": "b8e42c6a-a728-4b0d-9f5b-27b5be6f133f"
-                    }
-                }
-                }
-            },
-            "job": {
-                "facets": {
-                "sql": {
-                    "_producer": "https://openlineage.io/python",
-                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/SqlJobFacet.json",
-                    "query": "# Python script using pandas to transform customer data\nimport pandas as pd\nimport numpy as np\n...\n# simplified for example"
-                },
-                "jobType": {
-                    "processingType": "BATCH",
-                    "integration": "PythonScript",
-                    "jobType": "pandas_etl",
-                    "_producer": "https://openlineage.io/python",
-                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/JobTypeFacet.json"
-                },
-                "sourceCode": {
-                    "_producer": "https://openlineage.io/python",
-                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/SourceCodeJobFacet.json",
-                    "language": "python",
-                    "sourceCode": "df = pd.read_csv('/data/input/customers.csv')\ndf['first_name'] = df['first_name'].str.strip().str.title()\n..."
-                }
-                }
-            },
-            "inputs": [
-                {
-                "namespace": "local.filesystem",
-                "name": "/data/input/customers.csv",
-                "facets": {
-                    "schema": {
-                    "_producer": "https://openlineage.io/python",
-                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/SchemaDatasetFacet.json",
-                    "fields": [
-                        {
-                        "name": "first_name",
-                        "type": "string",
-                        "description": "Customer's first name"
-                        },
-                        {
-                        "name": "last_name",
-                        "type": "string",
-                        "description": "Customer's last name"
-                        },
-                        {
-                        "name": "birthdate",
-                        "type": "date",
-                        "description": "Customer date of birth"
-                        },
-                        {
-                        "name": "email",
-                        "type": "string",
-                        "description": "Customer email"
-                        }
-                    ]
-                    },
-                    "storage": {
-                    "_producer": "https://openlineage.io/python",
-                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/StorageDatasetFacet.json",
-                    "storageLayer": "filesystem",
-                    "fileFormat": "csv"
-                    },
-                    "datasetType": {
-                    "_producer": "https://openlineage.io/python",
-                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/DatasetTypeFacet.json",
-                    "datasetType": "file",
-                    "subType": "csv"
-                    },
-                    "lifecycleStateChange": {
-                    "_producer": "https://openlineage.io/python",
-                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/LifecycleStateChangeDatasetFacet.json",
-                    "lifecycleStateChange": "READ"
-                    },
-                    "ownership": {
-                    "_producer": "https://openlineage.io/python",
-                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/OwnershipDatasetFacet.json",
-                    "owners": [
-                        {
-                        "name": "data.eng@example.com",
-                        "type": "user"
-                        }
-                    ]
-                    }
-                }
-                }
-            ],
-            "outputs": [
-                {
-                "namespace": "local.filesystem",
-                "name": "/data/output/cleaned_customers.csv",
-                "facets": {
-                    "columnLineage": {
-                    "_producer": "https://openlineage.io/python",
-                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/ColumnLineageDatasetFacet.json",
-                    "fields": {
-                        "full_name": {
-                        "inputFields": [
-                            {
-                            "namespace": "local.filesystem",
-                            "name": "/data/input/customers.csv",
-                            "field": "first_name",
-                            "transformations": [
-                                {
-                                "type": "expression",
-                                "subtype": "string",
-                                "description": "Trim and title case, then concatenate with last_name",
-                                "masking": false
-                                }
-                            ]
+                "inputs": [
+                    {
+                        "namespace": "<INPUT_NAMESPACE>",
+                        "name": "<INPUT_NAME>",
+                        "facets": {
+                            "schema": {
+                                "fields": [
+                                    {
+                                    "name": "<FIELD_NAME>",
+                                    "type": "<FIELD_TYPE>",
+                                    "description": "<FIELD_DESCRIPTION>"
+                                    }
+                                ]
                             },
-                            {
-                            "namespace": "local.filesystem",
-                            "name": "/data/input/customers.csv",
-                            "field": "last_name",
-                            "transformations": [
+                            "tags": [
                                 {
-                                "type": "expression",
-                                "subtype": "string",
-                                "description": "Trim and title case, then concatenate with first_name",
-                                "masking": false
+                                    "name": "<TAG_NAME>",
+                                    "value": "<TAG_VALUE>"
+                                    "source": "<SOURCE>"
                                 }
-                            ]
+                            ],
+                            "inputStatistics": {
+                                "rowCount": "<ROW_COUNT>",
+                                "fileCount": "<FILE_COUNT>",
+                                "size": "<SIZE>"
+                            },
+                            "storage": {
+                                "storageLayer": "<STORAGE_LAYER>",
+                                "fileFormat": "<FILE_FORMAT>"
+                            },
+                            "datasetType": {
+                                "datasetType": "<DATASET_TYPE>",
+                                "subType": "<SUB_TYPE>"
+                            },
+                            "lifecycle": {
+                                "lifecycle": "<LIFECYCLE>"
+                            },
+                            "ownership": {
+                                "owners": [ 
+                                    {
+                                        "name": "<OWNER_NAME>",
+                                        "type": "<OWNER_TYPE>"
+                                    }
+                                ]
                             }
-                        ]
+                        }
+                    }
+                ],
+                "outputs": [
+                    {
+                    "namespace": "<OUTPUT_NAMESPACE>",
+                    "name": "<OUTPUT_NAME>",
+                    "facets": {
+                        "columnLineage": {
+                            "fields": {
+                                "<OUTPUT_FIELD_NAME>": {
+                                "inputFields": [
+                                    {
+                                    "namespace": "<INPUT_NAMESPACE>",
+                                    "name": "<INPUT_NAME>",
+                                    "field": "<INPUT_FIELD_NAME>",
+                                    "transformations": [
+                                        {
+                                        "type": "<TRANSFORMATION_TYPE>",
+                                        "subtype": "<SUBTYPE>",
+                                        "description": "<DESCRIPTION>",
+                                        "masking": false
+                                        }
+                                    ]
+                                    }
+                                ]
+                                }
+                            }
                         },
-                        "age": {
-                        "inputFields": [
-                            {
-                            "namespace": "local.filesystem",
-                            "name": "/data/input/customers.csv",
-                            "field": "birthdate",
-                            "transformations": [
-                                {
-                                "type": "datetime",
-                                "subtype": "arithmetic",
-                                "description": "Calculate age in years from birthdate",
-                                "masking": false
-                                }
-                            ]
-                            }
-                        ]
+                        "outputStatistics": {
+                            "rowCount": "<ROW_COUNT>",
+                            "fileCount": "<FILE_COUNT>",
+                            "size": "<SIZE>"
                         },
-                        "age_group": {
-                        "inputFields": [
-                            {
-                            "namespace": "local.filesystem",
-                            "name": "/data/input/customers.csv",
-                            "field": "birthdate",
-                            "transformations": [
-                                {
-                                "type": "conditional",
-                                "subtype": "categorization",
-                                "description": "np.where(age >= 60, 'Senior', ...) on age derived from birthdate",
-                                "masking": false
-                                }
-                            ]
-                            }
-                        ]
+                        "ownership": {
+                                "owners": [ 
+                                    {
+                                        "name": "<OWNER_NAME>",
+                                        "type": "<OWNER_TYPE>"
+                                    }
+                                ]
                         }
                     }
                     }
-                }
-                }
-            ]
+                ]
             }
-
-        """         
+            
+    5. Return only results in above mentioned json schema format. do not add any text.
+    """

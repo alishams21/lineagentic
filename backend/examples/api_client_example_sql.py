@@ -2,6 +2,8 @@ import requests
 import json
 import asyncio
 from typing import Dict, Any, Optional, List
+from datetime import datetime
+import uuid
 
 class SQLLineageAPIClient:
     def __init__(self, base_url: str = "http://localhost:8000"):
@@ -16,7 +18,9 @@ class SQLLineageAPIClient:
             response.raise_for_status()
         return response.json()
     
-    def analyze_query(self, query: str, model_name: str = "gpt-4o-mini", agent_name: str = "sql-lineage-agent") -> Dict[str, Any]:
+    def analyze_query(self, query: str, model_name: str = "gpt-4o-mini", 
+                     agent_name: str = "sql-lineage-agent", save_to_db: bool = True,
+                     save_to_neo4j: bool = True, lineage_config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Analyze a single SQL query using the sql_lineage_agent plugin
         
@@ -24,6 +28,9 @@ class SQLLineageAPIClient:
             query: SQL query to analyze
             model_name: Model to use for analysis
             agent_name: Name of the agent
+            save_to_db: Whether to save results to database
+            save_to_neo4j: Whether to save lineage data to Neo4j
+            lineage_config: Optional lineage configuration with required fields
             
         Returns:
             Analysis results
@@ -31,8 +38,14 @@ class SQLLineageAPIClient:
         payload = {
             "query": query,
             "model_name": model_name,
-            "agent_name": agent_name
+            "agent_name": agent_name,
+            "save_to_db": save_to_db,
+            "save_to_neo4j": save_to_neo4j
         }
+        
+        # Add lineage config if provided
+        if lineage_config:
+            payload["lineage_config"] = lineage_config
         
         response = requests.post(f"{self.base_url}/analyze", json=payload)
         if response.status_code != 200:
@@ -41,49 +54,6 @@ class SQLLineageAPIClient:
             response.raise_for_status()
         return response.json()
     
-    def analyze_queries_batch(self, queries: list[str], model_name: str = "gpt-4o-mini", agent_name: str = "sql-lineage-agent") -> Dict[str, Any]:
-        """
-        Analyze multiple SQL queries in batch using the sql_lineage_agent plugin
-        
-        Args:
-            queries: List of SQL queries to analyze
-            model_name: Model to use for analysis
-            agent_name: Name of the agent
-            
-        Returns:
-            Batch analysis results
-        """
-        payload = {
-            "queries": queries,
-            "model_name": model_name,
-            "agent_name": agent_name
-        }
-        
-        response = requests.post(f"{self.base_url}/analyze/batch", json=payload)
-        return response.json()
-    
-   
-    def run_operation(self, operation_name: str, query: str, model_name: str = "gpt-4o-mini", agent_name: str = "sql-lineage-agent") -> Dict[str, Any]:
-        """
-        Run a specific operation using the appropriate plugin
-        
-        Args:
-            operation_name: The operation to perform (e.g., "sql_lineage_analysis")
-            query: SQL query to analyze
-            model_name: Model to use for analysis
-            agent_name: Name of the agent
-            
-        Returns:
-            Operation results
-        """
-        payload = {
-            "query": query,
-            "model_name": model_name,
-            "agent_name": agent_name
-        }
-        
-        response = requests.post(f"{self.base_url}/operation/{operation_name}", json=payload)
-        return response.json()
 
 def main():
     """Example usage of the API client"""
@@ -144,10 +114,23 @@ def main():
         total_revenue DESC;
     """
 
-    # Run SQL lineage agent directly
-    print("Running SQL lineage agent directly...")
-    lineage_result = client.analyze_query(sample_query)
-    print(f"SQL lineage agent result: {json.dumps(lineage_result, indent=8)}")
+   
+   
+    # Example 3: Run with minimal required lineage config
+    print("Running SQL lineage agent with minimal lineage configuration...")
+    minimal_config = {
+        "event_type": "START",
+        "event_time": datetime.utcnow().isoformat() + "Z",
+        "run_id": str(uuid.uuid4()),
+        "job_namespace": "minimal-test",
+        "job_name": "minimal-job"
+    }
+    
+    lineage_result_minimal = client.analyze_query(
+        query=sample_query,
+        lineage_config=minimal_config
+    )
+    print(f"SQL lineage agent result with minimal config: {json.dumps(lineage_result_minimal, indent=8)}")
     print()
 
 

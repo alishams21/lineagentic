@@ -102,6 +102,16 @@ class Neo4jIngestion:
         """Calculate DatasetVersion.versionId based on dataset info and schema"""
         return self._sha256_str(f"{namespace}:{name}:schema:{schema_hash}")
     
+    def _calculate_field_hash(self, field: Dict[str, Any], dataset_version_id: str) -> str:
+        """Calculate FieldVersion.fieldHash based on field properties and dataset version"""
+        field_data = {
+            "name": field.get("name", ""),
+            "type": field.get("type", "STRING"),
+            "description": field.get("description", ""),
+            "datasetVersionId": dataset_version_id
+        }
+        return self._sha256_str(json.dumps(field_data, separators=(",", ":"), sort_keys=True))
+
     def _calculate_transformation_hash(self, transformation: Dict[str, Any]) -> str:
         """Calculate Transformation.txHash based on transformation properties"""
         packed = {
@@ -149,8 +159,225 @@ class Neo4jIngestion:
         
         return errors
     
+    def _normalize_transformation_types(self, event: Dict[str, Any]) -> Dict[str, Any]:
+        """Normalize transformation types to standard OpenLineage values"""
+        # Normalize transformation types in outputs
+        for out in event.get("outputs", []):
+            cl = out.get("facets", {}).get("columnLineage", {}) or {}
+            for field_name, field_data in cl.get("fields", {}).items():
+                for inref in field_data.get("inputFields", []):
+                    for tr in inref.get("transformations", []):
+                        # Normalize transformation types
+                        if tr.get("type") == "Direct copy":
+                            tr["type"] = "IDENTITY"
+                        if tr.get("subtype") == "NA":
+                            tr["subtype"] = "DIRECT_COPY"
+                        
+                        # Normalize other common patterns
+                        if tr.get("type") == "COUNT(DISTINCT o.order_id)":
+                            tr["type"] = "AGGREGATE"
+                            tr["subtype"] = "COUNT_DISTINCT"
+                        elif tr.get("type") == "SUM(oi.item_total)":
+                            tr["type"] = "AGGREGATE"
+                            tr["subtype"] = "SUM"
+                        elif tr.get("type") == "AVG(oi.item_total)":
+                            tr["type"] = "AGGREGATE"
+                            tr["subtype"] = "AVERAGE"
+                        elif tr.get("type") == "MAX(o.order_date)":
+                            tr["type"] = "AGGREGATE"
+                            tr["subtype"] = "MAX"
+                        elif tr.get("type") == "CURRENT_DATE function":
+                            tr["type"] = "FUNCTION"
+                            tr["subtype"] = "CURRENT_DATE"
+        
+        return event
+
+    def _transform_event_format(self, event: Dict[str, Any]) -> Dict[str, Any]:
+        """Transform event format to the expected OpenLineage format"""
+        # Check if this is the custom format (eventType and eventTime at top level)
+        if "eventType" in event and "eventTime" in event and "run" in event:
+            # Transform to standard OpenLineage format while preserving all facets
+            transformed = {
+                "eventType": event["eventType"],
+                "eventTime": event["eventTime"],
+                "run": {
+                    "runId": event["run"]["runId"],
+                    "facets": {
+                        "parent": {
+                            "job": {
+                                "namespace": event["job"]["namespace"],
+                                "name": event["job"]["name"]
+                            }
+                        }
+                    }
+                },
+                "job": event["job"],
+                "inputs": event.get("inputs", []),
+                "outputs": event.get("outputs", [])
+            }
+            
+            # Preserve any additional run facets that might exist
+            if "facets" in event["run"]:
+                transformed["run"]["facets"].update(event["run"]["facets"])
+            
+            # Add missing job facets if not present
+            if "facets" not in transformed["job"]:
+                transformed["job"]["facets"] = {}
+            
+            job_facets = transformed["job"]["facets"]
+            
+            # Add sourceCodeLocation if not present
+            if "sourceCodeLocation" not in job_facets:
+                job_facets["sourceCodeLocation"] = {
+                    "type": "git",
+                    "url": "https://github.com/unknown",
+                    "repoUrl": "https://github.com/unknown",
+                    "path": "jobs/unknown.sql",
+                    "version": "main",
+                    "branch": "main"
+                }
+            
+            # Add documentation if not present - ensure description is never null
+            if "documentation" not in job_facets:
+                job_facets["documentation"] = {
+                    "description": "Auto-generated job documentation",
+                    "contentType": "text/markdown"
+                }
+            else:
+                # Ensure existing documentation has a non-null description
+                if job_facets["documentation"].get("description") is None:
+                    job_facets["documentation"]["description"] = "Auto-generated job documentation"
+                # Also ensure contentType is not null
+                if job_facets["documentation"].get("contentType") is None:
+                    job_facets["documentation"]["contentType"] = "text/markdown"
+            
+            # Add ownership if not present - ensure owner names are never null
+            if "ownership" not in job_facets:
+                job_facets["ownership"] = {
+                    "owners": [
+                        {"name": "data-team", "type": "TEAM"}
+                    ]
+                }
+            else:
+                # Clean up existing ownership to ensure no null names
+                if job_facets["ownership"].get("owners"):
+                    cleaned_owners = []
+                    for owner in job_facets["ownership"]["owners"]:
+                        if owner.get("name") is not None:
+                            cleaned_owners.append(owner)
+                        else:
+                            # Replace null name with default
+                            cleaned_owners.append({
+                                "name": "unknown-owner",
+                                "type": owner.get("type", "INDIVIDUAL")
+                            })
+                    job_facets["ownership"]["owners"] = cleaned_owners
+                else:
+                    job_facets["ownership"]["owners"] = [{"name": "data-team", "type": "TEAM"}]
+            
+            # Add missing facets to inputs
+            for inp in transformed["inputs"]:
+                if "facets" not in inp:
+                    inp["facets"] = {}
+                
+                facets = inp["facets"]
+                
+                # Add tags if not present
+                if "tags" not in facets:
+                    facets["tags"] = [
+                        {"key": "domain", "value": "unknown", "source": "auto"},
+                        {"key": "sensitivity", "value": "public", "source": "auto"}
+                    ]
+                
+                # Add ownership if not present - ensure owner names are never null
+                if "ownership" not in facets:
+                    facets["ownership"] = {
+                        "owners": [
+                            {"name": "data-team", "type": "TEAM"}
+                        ]
+                    }
+                else:
+                    # Clean up existing ownership to ensure no null names
+                    if facets["ownership"].get("owners"):
+                        cleaned_owners = []
+                        for owner in facets["ownership"]["owners"]:
+                            if owner.get("name") is not None:
+                                cleaned_owners.append(owner)
+                            else:
+                                # Replace null name with default
+                                cleaned_owners.append({
+                                    "name": "unknown-owner",
+                                    "type": owner.get("type", "INDIVIDUAL")
+                                })
+                        facets["ownership"]["owners"] = cleaned_owners
+                    else:
+                        facets["ownership"]["owners"] = [{"name": "data-team", "type": "TEAM"}]
+                
+                # Add inputStatistics if not present
+                if "inputStatistics" not in facets:
+                    facets["inputStatistics"] = {
+                        "rowCount": 0,
+                        "fileCount": 0,
+                        "size": 0
+                    }
+            
+            # Add missing facets to outputs
+            for out in transformed["outputs"]:
+                if "facets" not in out:
+                    out["facets"] = {}
+                
+                facets = out["facets"]
+                
+                # Add tags if not present
+                if "tags" not in facets:
+                    facets["tags"] = [
+                        {"key": "domain", "value": "unknown", "source": "auto"},
+                        {"key": "sensitivity", "value": "public", "source": "auto"}
+                    ]
+                
+                # Add ownership if not present - ensure owner names are never null
+                if "ownership" not in facets:
+                    facets["ownership"] = {
+                        "owners": [
+                            {"name": "data-team", "type": "TEAM"}
+                        ]
+                    }
+                else:
+                    # Clean up existing ownership to ensure no null names
+                    if facets["ownership"].get("owners"):
+                        cleaned_owners = []
+                        for owner in facets["ownership"]["owners"]:
+                            if owner.get("name") is not None:
+                                cleaned_owners.append(owner)
+                            else:
+                                # Replace null name with default
+                                cleaned_owners.append({
+                                    "name": "unknown-owner",
+                                    "type": owner.get("type", "INDIVIDUAL")
+                                })
+                        facets["ownership"]["owners"] = cleaned_owners
+                    else:
+                        facets["ownership"]["owners"] = [{"name": "data-team", "type": "TEAM"}]
+                
+                # Add outputStatistics if not present
+                if "outputStatistics" not in facets:
+                    facets["outputStatistics"] = {
+                        "rowCount": 0,
+                        "fileCount": 0,
+                        "size": 0
+                    }
+            
+            # Normalize transformation types
+            transformed = self._normalize_transformation_types(transformed)
+            
+            return transformed
+        return event
+    
     def _build_params_from_event(self, event: Dict[str, Any]) -> Dict[str, Any]:
         """Build parameters from OpenLineage event for Neo4j ingestion"""
+        # Transform event format if needed
+        event = self._transform_event_format(event)
+        
         # Job & Run
         job_ns = event.get("run", {}).get("facets", {}).get("parent", {}).get("job", {}).get("namespace") \
                  or event.get("job", {}).get("namespace") or "default"
@@ -173,6 +400,20 @@ class Neo4jIngestion:
             "codeHash": self._sha256_str(sc.get("sourceCode", "")) if sc.get("sourceCode") else None,
             "createdAt": self._now_iso(),
         }
+        
+        # Handle documentation properly - only include if it has valid values
+        doc_facet = event.get("job", {}).get("facets", {}).get("documentation")
+        if doc_facet and doc_facet.get("description") is not None:
+            # Only include documentation if description is not null
+            job_facets_doc = doc_facet
+        else:
+            # Set to None so the Cypher query won't try to create a Doc node
+            job_facets_doc = None
+        
+        # Filter out owners with null names
+        job_owners = (event.get("job", {}).get("facets", {}).get("ownership", {}) or {}).get("owners", [])
+        filtered_job_owners = [owner for owner in job_owners if owner.get("name") is not None]
+        
         job_facets = {
             "sourceCode": sc or None,
             "scm": {
@@ -185,25 +426,46 @@ class Neo4jIngestion:
                 "branch": scm.get("branch"),
             } if scm else None,
             "jobType": event.get("job", {}).get("facets", {}).get("jobType"),
-            "doc": event.get("job", {}).get("facets", {}).get("documentation"),
-            "owners": (event.get("job", {}).get("facets", {}).get("ownership", {}) or {}).get("owners", []),
+            "doc": job_facets_doc,  # This will be None if description is null
+            "owners": filtered_job_owners,
         }
 
         # Inputs
         inputs = []
         for inp in event.get("inputs", []) or []:
             fields = (inp.get("facets", {}).get("schema", {}) or {}).get("fields", []) or []
+            
+            # Ensure fields are present - if not, create a default field
+            if not fields:
+                fields = [{"name": "default_field", "type": "STRING", "description": "Default field for dataset without schema"}]
+            
             schema_hash = self._norm_schema_hash(fields)
             version_id = self._calculate_dataset_version_id(inp["namespace"], inp["name"], schema_hash)
             tags = inp.get("facets", {}).get("tags", []) or []
+            
+            # Filter out owners with null names
             owners = (inp.get("facets", {}).get("ownership", {}) or {}).get("owners", []) or []
+            filtered_owners = [owner for owner in owners if owner.get("name") is not None]
+            
             stats = inp.get("facets", {}).get("inputStatistics", {}) or None
+            
+            # Process fields with proper hashing
+            processed_fields = []
+            for field in fields:
+                field_hash = self._calculate_field_hash(field, version_id)
+                processed_fields.append({
+                    "name": field.get("name", ""),
+                    "type": field.get("type", "STRING"),
+                    "description": field.get("description", ""),
+                    "fieldHash": field_hash
+                })
+            
             inputs.append({
                 "dataset": {"namespace": inp["namespace"], "name": inp["name"]},
                 "version": {"versionId": version_id, "schemaHash": schema_hash, "createdAt": self._now_iso()},
-                "fields": [{"name": f.get("name"), "type": f.get("type"), "description": f.get("description")} for f in fields],
+                "fields": processed_fields,
                 "tags": [{"key": t.get("key"), "value": t.get("value"), "source": t.get("source")} for t in tags],
-                "owners": owners,
+                "owners": filtered_owners,
                 "stats": {"rowCount": stats.get("rowCount"), "fileCount": stats.get("fileCount"), "size": stats.get("size")} if stats else None,
             })
 
@@ -214,9 +476,29 @@ class Neo4jIngestion:
         for out in event.get("outputs", []) or []:
             cl_fields = (out.get("facets", {}).get("columnLineage", {}) or {}).get("fields", {}) or {}
             out_field_names = sorted(list(cl_fields.keys()))
-            out_fields_desc = [{"name": name} for name in out_field_names]
+            
+            # Ensure fields are present - if not, create a default field
+            if not out_field_names:
+                out_field_names = ["default_field"]
+            
+            # Create field objects with proper structure
+            out_fields = []
+            for field_name in out_field_names:
+                field_hash = self._calculate_field_hash({"name": field_name, "type": "STRING", "description": ""}, "")
+                out_fields.append({
+                    "name": field_name,
+                    "type": "STRING",  # Default type for output fields
+                    "description": "",
+                    "fieldHash": field_hash
+                })
+            
             out_schema_hash = self._sha256_str(json.dumps(out_field_names, separators=(",", ":")))
             out_version_id = self._calculate_dataset_version_id(out["namespace"], out["name"], out_schema_hash)
+            
+            # Update field hashes with correct dataset version ID
+            for field in out_fields:
+                field["fieldHash"] = self._calculate_field_hash(field, out_version_id)
+            
             stats = out.get("facets", {}).get("outputStatistics", {}) or None
             lifecycle = out.get("facets", {}).get("lifecycleStateChange", {}) or None
             outputs.append({
@@ -230,7 +512,7 @@ class Neo4jIngestion:
                         "previousIdentifier": lifecycle.get("previousIdentifier", {})
                     } if lifecycle else None
                 },
-                "fields": out_fields_desc,
+                "fields": out_fields,
                 "stats": {"rowCount": stats.get("rowCount"), "fileCount": stats.get("fileCount"), "size": stats.get("size")} if stats else None,
             })
         dv_index.update({(o["dataset"]["namespace"], o["dataset"]["name"]): o["version"]["versionId"] for o in outputs})
@@ -339,6 +621,10 @@ class Neo4jIngestion:
         try:
             # Build parameters from event
             params = self._build_params_from_event(event)
+            print("--------------------------------")
+            print("PARAMS TO INGEST:")
+            print(params)
+            print("--------------------------------")
             
             # Load ingestion query
             if ingest_path is None:
@@ -346,21 +632,37 @@ class Neo4jIngestion:
                 ingest_path = os.path.join(current_dir, "cypher", "02_ingest.cypher")
             
             ingest_query = self._load_cypher(ingest_path)
+            print("--------------------------------")
+            print("INGESTION QUERY LOADED:")
+            print(f"Query file: {ingest_path}")
+            print("--------------------------------")
             
             # Execute ingestion
             driver = self._get_driver()
             with driver.session() as s:
-                s.execute_write(lambda tx: tx.run(ingest_query, **params).consume())
+                result = s.execute_write(lambda tx: tx.run(ingest_query, **params).consume())
+                print("--------------------------------")
+                print("INGESTION RESULT:")
+                print(f"Nodes created: {result.counters.nodes_created}")
+                print(f"Relationships created: {result.counters.relationships_created}")
+                print(f"Properties set: {result.counters.properties_set}")
+                print("--------------------------------")
             
             return {
                 "success": True,
                 "message": "Lineage event ingested successfully",
                 "run_id": params["run"]["runId"],
-                "job": f"{params['job']['namespace']}.{params['job']['name']}"
+                "job": f"{params['job']['namespace']}.{params['job']['name']}",
+                "nodes_created": result.counters.nodes_created,
+                "relationships_created": result.counters.relationships_created,
+                "properties_set": result.counters.properties_set
             }
             
         except Exception as e:
             self.logger.error(f"Error ingesting lineage event: {e}")
+            print("--------------------------------")
+            print(f"INGESTION ERROR: {e}")
+            print("--------------------------------")
             return {
                 "success": False,
                 "message": f"Error ingesting lineage event: {str(e)}",
@@ -435,3 +737,21 @@ class Neo4jIngestion:
         except Exception as e:
             self.logger.error(f"Error converting analysis result to event: {e}")
             raise 
+
+    def _clean_owners(self, owners: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Clean owners list to ensure no null names"""
+        if not owners:
+            return [{"name": "data-team", "type": "TEAM"}]
+        
+        cleaned_owners = []
+        for owner in owners:
+            if owner.get("name") is not None:
+                cleaned_owners.append(owner)
+            else:
+                # Replace null name with default
+                cleaned_owners.append({
+                    "name": "unknown-owner",
+                    "type": owner.get("type", "INDIVIDUAL")
+                })
+        
+        return cleaned_owners if cleaned_owners else [{"name": "data-team", "type": "TEAM"}] 

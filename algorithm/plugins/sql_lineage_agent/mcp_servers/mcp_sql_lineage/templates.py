@@ -111,8 +111,9 @@ def sql_lineage_field_derivation():
         {
         "output_fields": [
             {
-            "name": "<output_column>",
-            "source": "<source_column or expression>",
+            "namespace": "<INPUT_NAMESPACE>",
+            "name": "<INPUT_NAME>",
+            "field": "<INPUT_FIELD_NAME>",
             "transformation": "<description of logic>"
             },
             ...
@@ -130,32 +131,16 @@ def sql_lineage_field_derivation():
         {
         "output_fields": [
             {
-            "name": "customer_id",
-            "source": "orders.customer_id",
+            "namespace": "default",
+            "name": "orders",
+            "field": "customer_id",
             "transformation": "Group key, direct"
             },
             {
-            "name": "total_spent",
-            "source": "orders.amount",
+            "namespace": "default",
+            "name": "orders",
+            "field": "amount",
             "transformation": "SUM(amount)"
-            }
-        ]
-        }
-
-        ---
-
-        Positive Example 2
-
-        Input SQL:
-        SELECT UPPER(first_name) || ' ' || last_name AS full_name FROM employees;
-
-        Expected Output:
-        {
-        "output_fields": [
-            {
-            "name": "full_name",
-            "source": "employees.first_name, employees.last_name",
-            "transformation": "Concatenation with UPPER()"
             }
         ]
         }
@@ -169,8 +154,6 @@ def sql_lineage_field_derivation():
         "total_spent": "SUM(amount)"
         }
 
-        Reason:  This is an unstructured map. It doesn’t explain transformations clearly or follow the output schema.
-
         ---
 
         Negative Example 2 (Missed transformation logic):
@@ -182,8 +165,9 @@ def sql_lineage_field_derivation():
         {
         "output_fields": [
             {
-            "name": "annual_salary",
-            "source": "payroll.salary",
+            "namespace": "default",
+            "name": "payroll",
+            "field": "salary",
             "transformation": "Direct"
             }
         ]
@@ -395,93 +379,82 @@ def sql_lineage_event_composer():
             Strictly follow the structure below and do not change field names or nesting, it is very important to keep exact same format:
 
             - Include "columnLineage" as a facet under "outputs.facets" (not at the top level).
-            - Maintain the exact field names: "eventType", "eventTime", "run", "job", "inputs", "outputs", "facets", "query", "processingType", "integration", etc.
-            - inputs are the source tables. remember to have all the source tables as inputs. do not just have fields as inputs.
+            - Maintain the exact field names: "inputs", "outputs", "facets", "fields", "storage", "datasetType", "lifecycleStateChange", "ownership", ect.
             - Match the structure and nesting exactly as in this format:
+            - Based on following example generate <INPUT_NAMESPACE>, <INPUT_NAME>, <OUTPUT_NAMESPACE>, <OUTPUT_NAME>:
             
-            Your output must follow **exactly** following JSON structure and fill in the values considering: 
-            1. **Parsed SQL Blocks** 
-            2. **Field Mappings**
-            3. **Logical Operators**
-            
-            
-            very important: just generate the JSON following the format:
+                    BigQuery
+                    SELECT name, age 
+                    FROM project123.dataset456.customers;
 
-                {
-                "eventType": "START",
-                "eventTime": "<ISO_TIMESTAMP>",
-                "run": {
-                    "runId": "<UUID>",
-                    "facets": {
-                    "parent": {
-                        "job": {
-                        "name": "<PARENT_JOB_NAME>",
-                        "namespace": "<PARENT_NAMESPACE>"
-                        },
-                        "run": {
-                        "runId": "<PARENT_RUN_ID>"
-                        }
-                    }
-                    }
-                },
-                "job": {
-                    "facets": {
-                    "sql": {
-                        "_producer": "<PRODUCER_URL>",
-                        "_schemaURL": "<SCHEMA_URL>",
-                        "query": "<FULL_PIPELINE_AS_CODE_STRING>"
-                    },
-                    "jobType": {
-                        "processingType": "<BATCH_OR_STREAM>",
-                        "integration": "<ENGINE_NAME>",
-                        "jobType": "<QUERY_TYPE_OR_JOB_TYPE>",
-                        "_producer": "<PRODUCER_URL>",
-                        "_schemaURL": "<SCHEMA_URL>"
-                    },
-                    "sourceCode": {
-                        "_producer": "<PRODUCER_URL>",
-                        "_schemaURL": "<SCHEMA_URL>",
-                        "language": "<LANGUAGE>",
-                        "sourceCode": "<SOURCE_CODE>"
-                    }
-                    }
-                },
+                    Expected :
+                    <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: project123
+                    <INPUT_NAME> or <OUTPUT_NAME>: dataset456.customers
+
+                    Postgres
+                    SELECT id, total
+                    FROM sales_schema.orders;
+
+                    Expected :
+                    <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: default
+                    <INPUT_NAME> or <OUTPUT_NAME>: sales_schema.orders
+
+                    MySQL
+                    SELECT u.username, u.email
+                    FROM ecommerce_db.users AS u;
+
+                    Expected Output:
+                    <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: default
+                    <INPUT_NAME> or <OUTPUT_NAME>: ecommerce_db.users
+            
+            - wherever you cant find information for example for <STORAGE_LAYER>, <FILE_FORMAT>,
+            <DATASET_TYPE>, <SUB_TYPE>, <LIFECYCLE>, <OWNER_NAME>, 
+            <OWNER_TYPE>, <SUBTYPE>, <DESCRIPTION> then just write "NA".
+
+            - very very very important: Your output must follow **exactly** this JSON structure — do not output explanations, comments, or anything else.
+            ---
+
+            ### Required Output Format (Example):
+
+           {
                 "inputs": [
                     {
                         "namespace": "<INPUT_NAMESPACE>",
                         "name": "<INPUT_NAME>",
                         "facets": {
                             "schema": {
-                            "_producer": "<PRODUCER_URL>",
-                            "_schemaURL": "<SCHEMA_URL>",
-                            "fields": [
+                                "fields": [
+                                    {
+                                    "name": "<FIELD_NAME>",
+                                    "type": "<FIELD_TYPE>",
+                                    "description": "<FIELD_DESCRIPTION>"
+                                    }
+                                ]
+                            },
+                            "tags": [
                                 {
-                                "name": "<FIELD_NAME>",
-                                "type": "<FIELD_TYPE>",
-                                "description": "<FIELD_DESCRIPTION>"
+                                    "name": "<TAG_NAME>",
+                                    "value": "<TAG_VALUE>"
+                                    "source": "<SOURCE>"
                                 }
-                            ]
+                            ],
+                            "inputStatistics": {
+                                "rowCount": "<ROW_COUNT>",
+                                "fileCount": "<FILE_COUNT>",
+                                "size": "<SIZE>"
                             },
                             "storage": {
-                                "_producer": "<PRODUCER_URL>",
-                                "_schemaURL": "<SCHEMA_URL>",
                                 "storageLayer": "<STORAGE_LAYER>",
                                 "fileFormat": "<FILE_FORMAT>"
                             },
                             "datasetType": {
-                                "_producer": "<PRODUCER_URL>",
-                                "_schemaURL": "<SCHEMA_URL>",
                                 "datasetType": "<DATASET_TYPE>",
                                 "subType": "<SUB_TYPE>"
                             },
-                            "lifecycleStateChange": {
-                                "_producer": "<PRODUCER_URL>",
-                                "_schemaURL": "<SCHEMA_URL>",
-                                "lifecycleStateChange": "<LIFECYCLE_STATE_CHANGE>"
+                            "lifecycle": {
+                                "lifecycle": "<LIFECYCLE>"
                             },
                             "ownership": {
-                                "_producer": "<PRODUCER_URL>",
-                                "_schemaURL": "<SCHEMA_URL>",
                                 "owners": [ 
                                     {
                                         "name": "<OWNER_NAME>",
@@ -498,35 +471,43 @@ def sql_lineage_event_composer():
                     "name": "<OUTPUT_NAME>",
                     "facets": {
                         "columnLineage": {
-                        "_producer": "<PRODUCER_URL>",
-                        "_schemaURL": "<SCHEMA_URL>",
-                        "fields": {
-                            "<OUTPUT_FIELD_NAME>": {
-                            "inputFields": [
-                                {
-                                "namespace": "<INPUT_NAMESPACE>",
-                                "name": "<INPUT_NAME>",
-                                "field": "<INPUT_FIELD_NAME>",
-                                "transformations": [
+                            "fields": {
+                                "<OUTPUT_FIELD_NAME>": {
+                                "inputFields": [
                                     {
-                                    "type": "<TRANSFORMATION_TYPE>",
-                                    "subtype": "<SUBTYPE>",
-                                    "description": "<DESCRIPTION>",
-                                    "masking": false
+                                    "namespace": "<INPUT_NAMESPACE>",
+                                    "name": "<INPUT_NAME>",
+                                    "field": "<INPUT_FIELD_NAME>",
+                                    "transformations": [
+                                        {
+                                        "type": "<TRANSFORMATION_TYPE>",
+                                        "subtype": "<SUBTYPE>",
+                                        "description": "<DESCRIPTION>",
+                                        "masking": false
+                                        }
+                                    ]
                                     }
                                 ]
                                 }
-                            ]
                             }
-                        }
+                        },
+                        "outputStatistics": {
+                            "rowCount": "<ROW_COUNT>",
+                            "fileCount": "<FILE_COUNT>",
+                            "size": "<SIZE>"
+                        },
+                        "ownership": {
+                                "owners": [ 
+                                    {
+                                        "name": "<OWNER_NAME>",
+                                        "type": "<OWNER_TYPE>"
+                                    }
+                                ]
                         }
                     }
                     }
                 ]
-                }
-                
-    
-
+            }
             """
             
 

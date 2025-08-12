@@ -72,7 +72,9 @@ async def analyze_query(request: QueryRequest):
             query=request.query,
             agent_name=request.agent_name,
             model_name=request.model_name,
-            save_to_db=request.save_to_db
+            save_to_db=request.save_to_db,
+            save_to_neo4j=request.save_to_neo4j,
+            lineage_config_request=request.lineage_config
         )
         
         return QueryResponse(
@@ -109,7 +111,9 @@ async def analyze_queries_batch(request: BatchQueryRequest):
             queries=request.queries,
             agent_name=request.agent_name,
             model_name=request.model_name,
-            save_to_db=request.save_to_db
+            save_to_db=request.save_to_db,
+            save_to_neo4j=request.save_to_neo4j,
+            lineage_config_request=request.lineage_config
         )
         
         return BatchQueryResponse(

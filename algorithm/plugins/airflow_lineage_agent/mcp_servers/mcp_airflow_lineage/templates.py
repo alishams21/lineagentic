@@ -628,237 +628,189 @@ def airflow_lineage_event_composer():
             - Do NOT rename, flatten, or restructure any fields or keys.
             - Output only the final OpenLineage JSON — no extra text, comments, or explanation.
             - `inputs` should represent input **datasets**, not individual fields.
-            - Nest all lineage info under the correct `facets` blocks.
-            - Keep field names, nesting, and structure **exactly** as shown below.
-            - Use `"inputs"` and `"outputs"` as array keys (do NOT use `inputDataset` or `outputDataset`)
-            - Preserve `"facets"` blocks under `"job"`, `"inputs"`, and `"outputs"`
-            - Include `"columnLineage"` as a facet under `"outputs.facets"` (not at the top level)
-            - Maintain the exact field names:
-            - `"eventType"`, `"eventTime"`, `"run"`, `"job"`, `"inputs"`, `"outputs"`, `"facets"`, `"query"`, `"processingType"`, `"integration"`, etc.
-            - The `columnLineage.fields` block must map output columns to their upstream input columns and describe the transformation applied
+  4. Based on following examples generate <INPUT_NAMESPACE>, <INPUT_NAME>, <OUTPUT_NAMESPACE>, <OUTPUT_NAME> for Apache Airflow DAGs and tasks (file-based sources/targets, SQL-based operators, cloud storage operators, in-memory variables):
 
-            very very very important: Your output must follow **exactly** this JSON structure — do not output explanations, comments, or anything else.
-            ---
+            Airflow PythonOperator (reads local file)
+            def _read_file():
+                with open("/data/raw/customers.csv") as f:
+                    return f.read()
+            Expected:
+            <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: default
+            <INPUT_NAME> or <OUTPUT_NAME>: file./data/raw/customers.csv
 
-            ### Required Output Format (Example):
+            Airflow PythonOperator (writes local file)
+            def _write_file(data):
+                with open("/data/curated/customers_curated.csv", "w") as f:
+                    f.write(data)
+            Expected:
+            <OUTPUT_NAMESPACE>: default
+            <OUTPUT_NAME>: file./data/curated/customers_curated.csv
 
-            {
-            "eventType": "START",
-            "eventTime": "<ISO_TIMESTAMP>",
-            "run": {
-                "runId": "<UUID>",
-                "facets": {
-                "parent": {
-                    "job": {
-                    "name": "<PARENT_JOB_NAME>",
-                    "namespace": "<PARENT_NAMESPACE>"
-                    },
-                    "run": {
-                    "runId": "<PARENT_RUN_ID>"
-                    }
-                }
-                }
-            },
-            "job": {
-                "facets": {
-                "sql": {
-                    "_producer": "<PRODUCER_URL>",
-                    "_schemaURL": "<SCHEMA_URL>",
-                    "query": "<DAG_TASK_LOGIC_AS_TEXT>"
-                },
-                "jobType": {
-                    "processingType": "<BATCH_OR_STREAM>",
-                    "integration": "Airflow",
-                    "jobType": "DAG",
-                    "_producer": "<PRODUCER_URL>",
-                    "_schemaURL": "<SCHEMA_URL>"
-                }
-                }
-            },
-            "inputs": [
+            Airflow BashOperator (reads S3 file)
+            bash_command="aws s3 cp s3://datalake/raw/events/2025-08-01.json -"
+            Expected:
+            <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: default
+            <INPUT_NAME> or <OUTPUT_NAME>: s3./datalake/raw/events/2025-08-01.json
+
+            Airflow BashOperator (writes S3 file)
+            bash_command="aws s3 cp /tmp/output.json s3://warehouse/gold/output.json"
+            Expected:
+            <OUTPUT_NAMESPACE>: default
+            <OUTPUT_NAME>: s3./warehouse/gold/output.json
+
+            Airflow SQL operators (PostgresOperator with schema.table)
+            sql="SELECT * FROM analytics.orders"
+            Expected:
+            <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: default
+            <INPUT_NAME> or <OUTPUT_NAME>: analytics.orders
+
+            Airflow SQL operators (BigQueryOperator with project.dataset.table)
+            sql="SELECT id FROM project123.dataset456.customers"
+            Expected:
+            <INPUT_NAMESPACE> or <OUTPUT_NAMESPACE>: project123
+            <INPUT_NAME> or <OUTPUT_NAME>: dataset456.customers
+
+            Airflow S3ToRedshiftOperator
+            s3_bucket="datalake", s3_key="bronze/sales.csv", table="analytics.sales"
+            Expected:
+            <INPUT_NAMESPACE>: default
+            <INPUT_NAME>: s3./datalake/bronze/sales.csv
+            <OUTPUT_NAMESPACE>: default
+            <OUTPUT_NAME>: analytics.sales
+
+            Airflow LocalFilesystemToGCSOperator
+            src="/tmp/data.json", dst="bronze/data.json"
+            Expected:
+            <INPUT_NAMESPACE>: default
+            <INPUT_NAME>: file./tmp/data.json
+            <OUTPUT_NAMESPACE>: default
+            <OUTPUT_NAME>: gs./bronze/data.json
+
+            Airflow in-memory XCom variable
+            ti.xcom_push(key="intermediate_data", value=[1,2,3])
+            Expected:
+            <OUTPUT_NAMESPACE>: temp
+            <OUTPUT_NAME>: intermediate_data
+
+            Airflow XCom read
+            data = ti.xcom_pull(key="intermediate_data")
+            Expected:
+            <INPUT_NAMESPACE>: temp
+            <INPUT_NAME>: intermediate_data
+
+            Notes:
+            - Use scheme prefixes for path-like sources/targets:
+                file./absolute/or/relative/path
+                s3./bucket/key
+                gs./bucket/key
+                abfs./container/path
+            - For in-memory XComs or Python variables, use:
+                <NAMESPACE> = temp
+                <NAME> = <variable_or_key_name>
+            - For SQL-based operators:
+                BigQuery: namespace = <project>, name = <dataset.table>
+                Postgres/MySQL: namespace = default, name = <schema.table>
+                SQL Server: namespace = <database>, name = <schema.table>
+        - Wherever you can't find information for <STORAGE_LAYER>, <FILE_FORMAT>, <DATASET_TYPE>, <SUB_TYPE>, <LIFECYCLE>, <OWNER_NAME>, <OWNER_TYPE>, <SUBTYPE>, <DESCRIPTION> then write "NA".
+        - Very important: Your output must follow exactly the specified JSON structure — do not output explanations, comments, or anything else.
+        - very very very important: Your output must follow **exactly** this JSON structure — do not output explanations, comments, or anything else.
+        
+                ---
+
+                ### Required Output Format (Example):
+
                 {
-                "namespace": "<INPUT_NAMESPACE>",
-                "name": "<INPUT_NAME>",
-                "facets": {
-                    "schema": {
-                    "_producer": "<PRODUCER_URL>",
-                    "_schemaURL": "<SCHEMA_URL>",
-                    "fields": [
+                    "inputs": [
                         {
-                        "name": "<FIELD_NAME>",
-                        "type": "<FIELD_TYPE>",
-                        "description": "<FIELD_DESCRIPTION>"
-                        }
-                    ]
-                    }
-                }
-                }
-            ],
-            "outputs": [
-                {
-                "namespace": "<OUTPUT_NAMESPACE>",
-                "name": "<OUTPUT_NAME>",
-                "facets": {
-                    "columnLineage": {
-                    "_producer": "<PRODUCER_URL>",
-                    "_schemaURL": "<SCHEMA_URL>",
-                    "fields": {
-                        "<OUTPUT_FIELD_NAME>": {
-                        "inputFields": [
-                            {
                             "namespace": "<INPUT_NAMESPACE>",
                             "name": "<INPUT_NAME>",
-                            "field": "<INPUT_FIELD_NAME>",
-                            "transformations": [
-                                {
-                                "type": "<TRANSFORMATION_TYPE>",
-                                "subtype": "<SUBTYPE>",
-                                "description": "<DESCRIPTION>",
-                                "masking": false
-                                }
-                            ]
-                            }
-                        ]
-                        }
-                    }
-                    }
-                }
-                }
-            ]
-            }
-            
-        here is a good example of the output:
-                        {
-                "eventType": "START",
-                "eventTime": "2025-08-02T11:30:00Z",
-                "run": {
-                    "runId": "d2a4c210-afe2-4b2b-9c77-a1f2d74c1f59",
-                    "facets": {
-                    "parent": {
-                        "job": {
-                        "name": "daily_customer_cleanup",
-                        "namespace": "airflow.dags.customer_processing"
-                        },
-                        "run": {
-                        "runId": "parent-run-987654321"
-                        }
-                    }
-                    }
-                },
-                "job": {
-                    "facets": {
-                    "sql": {
-                        "_producer": "https://openlineage.io/airflow",
-                        "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/SqlJobFacet.json",
-                        "query": "# PythonOperator script:\nimport pandas as pd\nimport numpy as np\ndf = pd.read_csv('/data/input/customers.csv')\ndf['full_name'] = df['first_name'].str.title() + ' ' + df['last_name'].str.title()\ndf.to_csv('/data/output/cleaned_customers.csv', index=False)"
-                    },
-                    "jobType": {
-                        "processingType": "BATCH",
-                        "integration": "Airflow",
-                        "jobType": "DAG",
-                        "_producer": "https://openlineage.io/airflow",
-                        "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/JobTypeFacet.json"
-                        }
-                    ,
-                    "sourceCode": {
-                        "_producer": "https://openlineage.io/airflow",
-                        "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/SourceCodeJobFacet.json",
-                        "language": "python",
-                        "sourceCode": "# Airflow DAG definition with PythonOperator and BashOperator..."
-                    }
-                    }
-                },
-                "inputs": [
-                    {
-                    "namespace": "local.filesystem",
-                    "name": "/data/input/customers.csv",
-                    "facets": {
-                        "schema": {
-                        "_producer": "https://openlineage.io/airflow",
-                        "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/SchemaDatasetFacet.json",
-                        "fields": [
-                            { "name": "first_name", "type": "string", "description": "First name of the customer" },
-                            { "name": "last_name", "type": "string", "description": "Last name of the customer" },
-                            { "name": "birthdate", "type": "date", "description": "Date of birth" },
-                            { "name": "email", "type": "string", "description": "Email address" }
-                        ]
-                        },
-                        "storage": {
-                        "_producer": "https://openlineage.io/airflow",
-                        "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/StorageDatasetFacet.json",
-                        "storageLayer": "filesystem",
-                        "fileFormat": "csv"
-                        },
-                        "datasetType": {
-                        "_producer": "https://openlineage.io/airflow",
-                        "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/DatasetTypeFacet.json",
-                        "datasetType": "file",
-                        "subType": "csv"
-                        },
-                        "lifecycleStateChange": {
-                        "_producer": "https://openlineage.io/airflow",
-                        "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/LifecycleStateChangeDatasetFacet.json",
-                        "lifecycleStateChange": "READ"
-                        },
-                        "ownership": {
-                        "_producer": "https://openlineage.io/airflow",
-                        "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/OwnershipDatasetFacet.json",
-                        "owners": [
-                            {
-                            "name": "analytics-team@example.com",
-                            "type": "group"
-                            }
-                        ]
-                        }
-                    }
-                    }
-                ],
-                "outputs": [
-                    {
-                    "namespace": "local.filesystem",
-                    "name": "/data/output/cleaned_customers.csv",
-                    "facets": {
-                        "columnLineage": {
-                        "_producer": "https://openlineage.io/airflow",
-                        "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/ColumnLineageDatasetFacet.json",
-                        "fields": {
-                            "full_name": {
-                            "inputFields": [
-                                {
-                                "namespace": "local.filesystem",
-                                "name": "/data/input/customers.csv",
-                                "field": "first_name",
-                                "transformations": [
-                                    {
-                                    "type": "expression",
-                                    "subtype": "string",
-                                    "description": "Title-case first_name and concatenate with last_name",
-                                    "masking": false
-                                    }
-                                ]
+                            "facets": {
+                                "schema": {
+                                    "fields": [
+                                        {
+                                        "name": "<FIELD_NAME>",
+                                        "type": "<FIELD_TYPE>",
+                                        "description": "<FIELD_DESCRIPTION>"
+                                        }
+                                    ]
                                 },
-                                {
-                                "namespace": "local.filesystem",
-                                "name": "/data/input/customers.csv",
-                                "field": "last_name",
-                                "transformations": [
+                                "tags": [
                                     {
-                                    "type": "expression",
-                                    "subtype": "string",
-                                    "description": "Title-case last_name and concatenate with first_name",
-                                    "masking": false
+                                        "name": "<TAG_NAME>",
+                                        "value": "<TAG_VALUE>"
+                                        "source": "<SOURCE>"
                                     }
-                                ]
+                                ],
+                                "inputStatistics": {
+                                    "rowCount": "<ROW_COUNT>",
+                                    "fileCount": "<FILE_COUNT>",
+                                    "size": "<SIZE>"
+                                },
+                                "storage": {
+                                    "storageLayer": "<STORAGE_LAYER>",
+                                    "fileFormat": "<FILE_FORMAT>"
+                                },
+                                "datasetType": {
+                                    "datasetType": "<DATASET_TYPE>",
+                                    "subType": "<SUB_TYPE>"
+                                },
+                                "lifecycle": {
+                                    "lifecycle": "<LIFECYCLE>"
+                                },
+                                "ownership": {
+                                    "owners": [ 
+                                        {
+                                            "name": "<OWNER_NAME>",
+                                            "type": "<OWNER_TYPE>"
+                                        }
+                                    ]
                                 }
-                            ]
+                            }
+                        }
+                    ],
+                    "outputs": [
+                        {
+                        "namespace": "<OUTPUT_NAMESPACE>",
+                        "name": "<OUTPUT_NAME>",
+                        "facets": {
+                            "columnLineage": {
+                                "fields": {
+                                    "<OUTPUT_FIELD_NAME>": {
+                                    "inputFields": [
+                                        {
+                                        "namespace": "<INPUT_NAMESPACE>",
+                                        "name": "<INPUT_NAME>",
+                                        "field": "<INPUT_FIELD_NAME>",
+                                        "transformations": [
+                                            {
+                                            "type": "<TRANSFORMATION_TYPE>",
+                                            "subtype": "<SUBTYPE>",
+                                            "description": "<DESCRIPTION>",
+                                            "masking": false
+                                            }
+                                        ]
+                                        }
+                                    ]
+                                    }
+                                }
+                            },
+                            "outputStatistics": {
+                                "rowCount": "<ROW_COUNT>",
+                                "fileCount": "<FILE_COUNT>",
+                                "size": "<SIZE>"
+                            },
+                            "ownership": {
+                                    "owners": [ 
+                                        {
+                                            "name": "<OWNER_NAME>",
+                                            "type": "<OWNER_TYPE>"
+                                        }
+                                    ]
                             }
                         }
                         }
-                    }
-                    }
-                ]
+                    ]
                 }
-
-            
-            """
-    
+                
+        4. Return only results in above mentioned json schema format. do not add any text.
+        """

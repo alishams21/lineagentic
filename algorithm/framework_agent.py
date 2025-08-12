@@ -1,26 +1,128 @@
 import asyncio
 import sys
 import os
-from typing import Optional, Dict, Any
+from typing import Dict, Any, List, Optional
 import json
 from datetime import datetime
+import uuid
 
 from .utils.tracers import LogTracer
 from .agent_manager import agent_manager
 from agents import add_trace_processor
 
 
+class LineageConfig:
+    """Configuration class for OpenLineage event metadata"""
+    
+    def __init__(self, 
+                 event_type: str = "START",
+                 event_time: str = None,
+                 run_id: str = None,
+                 job_namespace: str = None,
+                 job_name: str = None,
+                 parent_run_id: str = None,
+                 parent_job_name: str = None,
+                 parent_namespace: str = None,
+                 producer_url: str = "https://github.com/give-your-url",
+                 processing_type: str = "BATCH",
+                 integration: str = "SQL",
+                 job_type: str = "QUERY",
+                 language: str = "SQL",
+                 source_code: str = None,
+                 storage_layer: str = "DATABASE",
+                 file_format: str = "TABLE",
+                 owner_name: str = None,
+                 owner_type: str = "TEAM",
+                 description: str = None,
+                 job_owner_name: str = None,
+                 job_owner_type: str = "TEAM",
+                 environment_variables: List[Dict[str, str]] = None):
+
+        """
+        Initialize OpenLineage configuration
+        
+        Args:
+            event_type: Type of event (START, COMPLETE, FAIL, etc.)
+            event_time: ISO timestamp for the event
+            run_id: Unique run identifier
+            job_namespace: Job namespace
+            job_name: Job name
+            parent_run_id: Parent run ID if this is a child run
+            parent_job_name: Parent job name
+            parent_namespace: Parent namespace
+            producer_url: URL identifying the producer
+            processing_type: BATCH or STREAM
+            integration: Engine name (SQL, SPARK, etc.)
+            job_type: Type of job (QUERY, ETL, etc.)
+            language: Programming language
+            source_code: The actual source code/query
+            storage_layer: Storage layer type
+            file_format: File format
+            owner_name: Dataset owner name
+            owner_type: Owner type (TEAM, INDIVIDUAL, etc.)
+            environment_variables: List of environment variables as dicts with 'name' and 'value' keys
+        """
+        self.event_type = event_type
+        self.event_time = event_time
+        self.run_id = run_id
+        self.job_namespace = job_namespace
+        self.job_name = job_name
+        self.parent_run_id = parent_run_id
+        self.parent_job_name = parent_job_name
+        self.parent_namespace = parent_namespace
+        self.producer_url = producer_url
+        self.processing_type = processing_type
+        self.integration = integration
+        self.job_type = job_type
+        self.language = language
+        self.source_code = source_code
+        self.storage_layer = storage_layer
+        self.file_format = file_format
+        self.owner_name = owner_name
+        self.owner_type = owner_type
+        self.job_owner_name = job_owner_name
+        self.job_owner_type = job_owner_type
+        self.description = description
+        self.environment_variables = environment_variables or []
+        
+        # Validate required fields
+        self._validate_required_fields()
+    
+    def _validate_required_fields(self):
+        """Validate that all required fields are provided"""
+        required_fields = {
+            'job_namespace': self.job_namespace,
+            'job_name': self.job_name,
+            'run_id': self.run_id,
+            'event_type': self.event_type,
+            'event_time': self.event_time
+        }
+        
+        for field_name, field_value in required_fields.items():
+            if not field_value:
+                raise ValueError(f"{field_name} is required and cannot be None or empty")
+
+
 class AgentFramework:
-    def __init__(self, agent_name: str, model_name: str = "gpt-4o-mini"):
+    def __init__(self, agent_name: str, model_name: str = "gpt-4o-mini", 
+                 lineage_config: LineageConfig = None):
         """
         Initialize the Agent Framework.
         
         Args:
             agent_name (str): The name of the agent to use
             model_name (str): The model to use for the agents (default: "gpt-4o-mini")
+            lineage_config (LineageConfig): Configuration for OpenLineage event metadata
+            
+        Raises:
+            ValueError: If lineage_config is not provided   
         """
+        if not lineage_config:
+            raise ValueError("lineage_config is required and cannot be None")
+        
         self.agent_name = agent_name
         self.model_name = model_name
+        self.lineage_config = lineage_config
         self.agent_manager = agent_manager
     
     def list_available_agents(self) -> Dict[str, Dict[str, Any]]:
@@ -35,7 +137,83 @@ class AgentFramework:
         """Get all agents that support a specific operation"""
         return self.agent_manager.get_agents_for_operation(operation)
     
-    async def run_agent_plugin(self, agent_name: str, query: str, **kwargs) -> Dict[str, Any]:
+    def get_event_metadata(self) -> Dict[str, Any]:
+        """Get the complete OpenLineage event metadata"""
+        config = self.lineage_config
+        
+        # Build the event structure
+        event = {
+            "eventType": config.event_type,
+            "eventTime": config.event_time,
+            "run": {
+                "runId": config.run_id
+            },
+            "job": {
+                "namespace": config.job_namespace,
+                "name": config.job_name,
+                "facets": {}
+            }
+        }
+        
+        # Add parent run information if provided
+        if config.parent_run_id or config.parent_job_name:
+            event["run"]["facets"] = {
+                "parent": {
+                    "job": {
+                        "name": config.parent_job_name,
+                        "namespace": config.parent_namespace
+                    },
+                    "run": {
+                        "runId": config.parent_run_id
+                    }
+                }
+            }
+        
+        # Add environment variables if provided
+        if config.environment_variables:
+            if "facets" not in event["run"]:
+                event["run"]["facets"] = {}
+            event["run"]["facets"]["environmentVariables"]={
+                "environmentVariables": config.environment_variables
+            }
+        
+        # Add job facets
+        
+        event["job"]["facets"]["jobType"] = {
+            "processingType": config.processing_type,
+            "integration": config.integration,
+            "jobType": config.job_type,
+        }
+        
+        event["job"]["facets"]["sourceCode"] = {
+            "language": config.language,
+            "sourceCode": config.source_code or "",
+            "uri": config.producer_url
+        }
+        
+
+            
+        
+        event["job"]["facets"]["documentation"] ={
+            "description": config.description
+        }
+        
+        event["job"]["facets"]["ownership"] ={
+            "owners": [
+                {
+                    "name": config.job_owner_name,
+                    "type": config.job_owner_type
+                }
+            ]
+        }
+        
+        
+        return event
+    
+
+    
+    async def run_agent_plugin(self, agent_name: str, query: str, 
+                              **kwargs) -> Dict[str, Any]:
         """
         Run a specific agent with a query.
         
@@ -45,7 +223,7 @@ class AgentFramework:
             **kwargs: Additional arguments to pass to the agent
             
         Returns:
-            Dict[str, Any]: The results from the agent
+            Dict[str, Any]: The results from the agent with merged OpenLineage metadata
         """
         add_trace_processor(LogTracer())
         
@@ -61,6 +239,13 @@ class AgentFramework:
             # Run the agent
             results = await agent.run()
             
+            # Get the base event metadata
+            event_metadata = self.get_event_metadata()
+            
+            # Merge event metadata directly into results
+            results.update(event_metadata)
+
+            
             return results
             
         except Exception as e:
@@ -69,31 +254,39 @@ class AgentFramework:
     
     
    
-    async def run_operation(self, operation: str, query: str, agent_name: Optional[str] = None) -> Dict[str, Any]:
-        """
-        Run a specific operation using an appropriate agent.
-        
-        Args:
-            operation (str): The operation to perform (e.g., "lineage_analysis")
-            query (str): The query to analyze
-            agent_name (Optional[str]): Specific agent to use. If None, uses the first available agent for the operation
-            
-        Returns:
-            Dict[str, Any]: The results from the operation
-        """
-        if agent_name is None:
-            # Find the first available agent for this operation
-            available_agents = self.agent_manager.get_agents_for_operation(operation)
-            if not available_agents:
-                raise ValueError(f"No agents available for operation: {operation}")
-            agent_name = available_agents[0]
-        
-        return await self.run_agent_plugin(agent_name, query)
-
 
 # Example usage and main function
 async def main():
-    framework = AgentFramework(agent_name="airflow-lineage-agent", model_name="gpt-4o-mini")
+    # Create OpenLineage configuration
+    lineage_config = LineageConfig(
+        event_type="START", 
+        event_time="2025-08-11T12:00:00Z",
+        run_id="my-unique-run-id",
+        job_namespace="my-namespace",
+        job_name="customer-etl-job",
+        parent_run_id="parent-run-id",
+        parent_job_name="parent-job",
+        parent_namespace="parent-namespace",
+        processing_type="BATCH",
+        integration="SQL",
+        job_type="QUERY",
+        language="SQL",
+        description="This is a test description",
+        owner_name="data-team",
+        owner_type="TEAM",
+        job_owner_name="data-team",
+        job_owner_type="TEAM",
+        environment_variables=[
+            {"name": "ENV", "value": "production"},
+            {"name": "REGION", "value": "us-west-2"}
+        ]
+    )
+    
+    framework = AgentFramework(
+        agent_name="airflow-lineage-agent", 
+        model_name="gpt-4o-mini",
+        lineage_config=lineage_config
+    )
     
     # List available agents
     print("Available agents:")
@@ -107,6 +300,7 @@ async def main():
     for op, agents_list in operations.items():
         print(f"  - {op}: {agents_list}")
     
+   
     # Run a specific operation (data validation)
     test_query = """
         from airflow import DAG
@@ -138,8 +332,17 @@ async def main():
             df.to_csv('/data/output/cleaned_customers.csv', index=False)
 
         def load_to_warehouse():
-            # Simulate writing cleaned data to a warehouse location
-            shutil.copy('/data/output/cleaned_customers.csv', '/data/warehouse/final_customers.csv')
+            # Load cleaned data to customers_1 table in database
+            df = pd.read_csv('/data/output/cleaned_customers.csv')
+            
+            # Get database connection
+            pg_hook = PostgresHook(postgres_conn_id='warehouse_connection')
+            engine = pg_hook.get_sqlalchemy_engine()
+            
+            # Write to customers_1 table
+            df.to_sql('customers_1', engine, if_exists='replace', index=False)
+            
+            print(f"Successfully loaded {len(df)} records to customers_1 table")
 
         default_args = {
             'start_date': datetime(2025, 8, 1),
@@ -169,11 +372,15 @@ async def main():
             )
 
             ff >> tt >> ll
-
-
     """
 
-    lineage_result = await framework.run_agent_plugin("airflow-lineage-agent", test_query)
+    # Update the source code in the config
+    lineage_config.source_code = test_query
+
+    lineage_result = await framework.run_agent_plugin(
+        "airflow-lineage-agent", 
+        test_query
+    )
     print("✅ Lineage analysis completed successfully!")
     print(f"📊 Result keys: {list(lineage_result.keys())}")
     print(json.dumps(lineage_result, indent=6))
