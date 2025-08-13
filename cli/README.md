@@ -12,77 +12,139 @@ pip install -e .
 
 ## Usage
 
+The CLI provides two main commands: `analyze` and `field-lineage`.
+
 ### Basic Commands
 
-#### List Available Agents
+#### Analyze Query/Code for Lineage
 ```bash
-lineagentic --list-agents
+lineagentic analyze --agent-name sql --query "your code here"
 ```
 
-#### List Supported Operations
+#### Get Field Lineage
 ```bash
-lineagentic --list-operations
-```
-
-#### Get Agents for a Specific Operation
-```bash
-lineagentic --get-agents-for-operation lineage_analysis
+lineagentic field-lineage --field-name "user_id" --dataset-name "users" --namespace "default"
 ```
 
 ### Running Analysis
 
 #### Using a Specific Agent
 ```bash
-lineagentic --agent-name airflow-lineage-agent --query "your code here"
-```
-
-#### Using an Operation (Auto-selects appropriate agent)
-```bash
-lineagentic --operation lineage_analysis --query "your code here"
+lineagentic analyze --agent-name sql --query "SELECT a,b FROM table1"
 ```
 
 #### Using a File as Input
 ```bash
-lineagentic --agent-name sql-lineage-agent --query-file path/to/your/script.sql
+lineagentic analyze --agent-name python --query-file path/to/your/script.py
 ```
 
 #### Specifying a Different Model
 ```bash
-lineagentic --agent-name python-lineage-agent --model-name gpt-4o --query "your code here"
+lineagentic analyze --agent-name airflow --model-name gpt-4o --query "your code here"
+```
+
+#### With Lineage Configuration
+```bash
+lineagentic analyze --agent-name sql --query "SELECT * FROM users" --job-namespace "my-namespace" --job-name "my-job"
 ```
 
 ### Output Options
 
 #### Pretty Print Results
 ```bash
-lineagentic --agent-name airflow-lineage-agent --query "your code" --pretty
+lineagentic analyze --agent-name sql --query "your code" --pretty
 ```
 
 #### Save Results to File
 ```bash
-lineagentic --agent-name sql-lineage-agent --query "your code" --output results.json
+lineagentic analyze --agent-name sql --query "your code" --output results.json
 ```
 
 #### Save Results with Pretty Formatting
 ```bash
-lineagentic --agent-name python-lineage-agent --query "your code" --output results.json --pretty
+lineagentic analyze --agent-name python --query "your code" --output results.json --pretty
+```
+
+#### Enable Verbose Output
+```bash
+lineagentic analyze --agent-name sql --query "your code" --verbose
 ```
 
 ## Available Agents
 
-- **airflow-lineage-agent**: Analyzes Apache Airflow DAGs and workflows
-- **sql-lineage-agent**: Analyzes SQL queries and scripts
-- **python-lineage-agent**: Analyzes Python data processing scripts
+- **sql**: Analyzes SQL queries and scripts (default)
+- **airflow**: Analyzes Apache Airflow DAGs and workflows
+- **spark**: Analyzes Apache Spark jobs
+- **python**: Analyzes Python data processing scripts
+- **java**: Analyzes Java data processing code
 
-## Available Operations
+## Commands
 
-- **lineage_analysis**: Performs data lineage analysis on the provided code
+### `analyze` Command
+
+Analyzes a query or code for lineage information.
+
+#### Required Arguments
+- Either `--query` or `--query-file` must be specified
+
+#### Optional Arguments
+- `--agent-name`: Name of the agent to use (default: sql)
+- `--model-name`: Model to use for the agents (default: gpt-4o-mini)
+- `--no-save`: Don't save results to database
+- `--no-neo4j`: Don't save lineage data to Neo4j
+
+#### Lineage Configuration Arguments
+- `--event-type`: Type of event (default: START)
+- `--event-time`: ISO timestamp for the event (default: current UTC time)
+- `--run-id`: Unique run identifier (default: auto-generated UUID)
+- `--job-namespace`: Job namespace (required if lineage config is used)
+- `--job-name`: Job name (required if lineage config is used)
+- `--parent-run-id`: Parent run ID if this is a child run
+- `--parent-job-name`: Parent job name
+- `--parent-namespace`: Parent namespace
+- `--producer-url`: URL identifying the producer (default: https://github.com/give-your-url)
+- `--processing-type`: Processing type: BATCH or STREAM (default: BATCH)
+- `--integration`: Engine name (default: SQL)
+- `--job-type`: Type of job (default: QUERY)
+- `--language`: Programming language (default: SQL)
+- `--storage-layer`: Storage layer type (default: DATABASE)
+- `--file-format`: File format (default: TABLE)
+- `--owner-name`: Dataset owner name
+- `--owner-type`: Owner type (default: TEAM)
+- `--job-owner-name`: Job owner name
+- `--job-owner-type`: Job owner type (default: TEAM)
+- `--description`: Job description
+- `--env-var`: Environment variable (can be used multiple times: --env-var NAME VALUE)
+
+### `field-lineage` Command
+
+Gets lineage for a specific field in a dataset.
+
+#### Required Arguments
+- `--field-name`: Name of the field to trace lineage for
+- `--dataset-name`: Name of the dataset to trace lineage for
+
+#### Optional Arguments
+- `--namespace`: Optional namespace filter
+- `--max-hops`: Maximum number of hops to trace lineage for (default: 10)
 
 ## Examples
 
+### SQL Analysis
+```bash
+lineagentic analyze --agent-name sql --query "
+SELECT 
+    customer_id,
+    SUM(amount) as total_amount
+FROM sales 
+WHERE date >= '2025-01-01'
+GROUP BY customer_id
+" --pretty
+```
+
 ### Airflow DAG Analysis
 ```bash
-lineagentic --agent-name airflow-lineage-agent --query "
+lineagentic analyze --agent-name airflow --query "
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 
@@ -95,21 +157,9 @@ with DAG('my_dag', start_date=datetime(2025, 1, 1)) as dag:
 " --pretty
 ```
 
-### SQL Analysis
-```bash
-lineagentic --agent-name sql-lineage-agent --query "
-SELECT 
-    customer_id,
-    SUM(amount) as total_amount
-FROM sales 
-WHERE date >= '2025-01-01'
-GROUP BY customer_id
-" --pretty
-```
-
 ### Python Script Analysis
 ```bash
-lineagentic --agent-name python-lineage-agent --query "
+lineagentic analyze --agent-name python --query "
 import pandas as pd
 
 def transform_data():
@@ -119,21 +169,37 @@ def transform_data():
 " --pretty
 ```
 
-## Command Line Arguments
+### Analysis with Lineage Configuration
+```bash
+lineagentic analyze \
+  --agent-name sql \
+  --query "SELECT user_id, name FROM users WHERE active = true" \
+  --job-namespace "analytics" \
+  --job-name "active-users-query" \
+  --description "Query to get active users" \
+  --owner-name "Data Team" \
+  --env-var "ENVIRONMENT" "production" \
+  --env-var "REGION" "us-west-2" \
+  --pretty
+```
 
-| Argument | Description | Required |
-|----------|-------------|----------|
-| `--agent-name` | Name of the agent to use | Yes (unless `--operation` is specified) |
-| `--model-name` | Model to use for the agents | No (default: gpt-4o-mini) |
-| `--operation` | Operation to perform | Yes (unless `--agent-name` is specified) |
-| `--query` | Query or code to analyze | Yes (unless `--query-file` is specified) |
-| `--query-file` | Path to file containing the query/code | Yes (unless `--query` is specified) |
-| `--output` | Output file path for results (JSON format) | No |
-| `--pretty` | Pretty print the output | No |
-| `--verbose` | Enable verbose output | No |
-| `--list-agents` | List all available agents | No |
-| `--list-operations` | List all supported operations | No |
-| `--get-agents-for-operation` | Get agents that support a specific operation | No |
+### Field Lineage Query
+```bash
+lineagentic field-lineage \
+  --field-name "user_id" \
+  --dataset-name "users" \
+  --namespace "default" \
+  --max-hops 5 \
+  --pretty
+```
+
+## Common Output Options
+
+Both commands support these output options:
+
+- `--output`: Output file path for results (JSON format)
+- `--pretty`: Pretty print the output
+- `--verbose`: Enable verbose output
 
 ## Error Handling
 
@@ -142,7 +208,7 @@ The CLI provides clear error messages for common issues:
 - Missing required arguments
 - File not found errors
 - Agent execution errors
-- Invalid agent or operation names
+- Invalid agent names
 
 ## Development
 
@@ -152,8 +218,9 @@ To run the CLI in development mode:
 python -m cli.main --help
 ```
 
-To run the example usage script:
+To run a specific command:
 
 ```bash
-python cli/example_usage.py
-``` 
+python -m cli.main analyze --agent-name sql --query "SELECT 1" --pretty
+```
+

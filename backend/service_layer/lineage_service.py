@@ -95,17 +95,7 @@ class LineageService:
         if agent_name not in valid_agents:
             logger.warning(f"Agent '{agent_name}' not in known agents: {valid_agents}")
     
-    def _validate_operation_request(self, operation_name: str, query: str, model_name: str) -> None:
-        """Validate operation request parameters"""
-        if not operation_name or not operation_name.strip():
-            raise ValueError("Operation name cannot be empty")
-        
-        if not query or not query.strip():
-            raise ValueError("Query cannot be empty")
-        
-        if not model_name:
-            raise ValueError("Model name is required")
-    
+   
     def _validate_field_lineage_request(self, field_name: str) -> None:
         """Validate field lineage request parameters"""
         if not field_name or not field_name.strip():
@@ -245,16 +235,7 @@ class LineageService:
                     logger.error(f"Failed to save error to database: {db_e}")
             
             return error_response
-    
-    
-    async def get_query_result(self, query_id: int) -> Optional[Dict[str, Any]]:
-        """Get specific query analysis result"""
-        try:
-            return self.repository.get_query_analysis(query_id)
-        except Exception as e:
-            logger.error(f"Error retrieving query result: {e}")
-            raise Exception(f"Error retrieving query result: {str(e)}")
-    
+   
 
     async def get_field_lineage(self, field_name: str, dataset_name: str, namespace: Optional[str] = None, max_hops: int = 10) -> Dict[str, Any]:
         """
