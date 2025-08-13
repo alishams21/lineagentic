@@ -1,5 +1,6 @@
 from typing import Dict, Any, List, Optional
 from ..dbconnector_layer.database_factory import DatabaseConnector, DatabaseFactory
+from .neo4j_ingestion import Neo4jIngestion
 import json
 from datetime import datetime
 
@@ -9,6 +10,7 @@ class LineageRepository:
     
     def __init__(self, db_connector: Optional[DatabaseConnector] = None):
         self.db_connector = db_connector or DatabaseFactory.get_connector()
+        self.neo4j_ingestion = Neo4jIngestion()
         self._ensure_tables_exist()
     
     def _ensure_tables_exist(self):
@@ -115,169 +117,7 @@ class LineageRepository:
         except Exception as e:
             raise Exception(f"Error saving query analysis: {e}")
     
-    def get_query_analysis(self, query_id: int) -> Optional[Dict[str, Any]]:
-        """Retrieve query analysis by ID"""
-        # Check if we're using MySQL or SQLite
-        is_mysql = hasattr(self.db_connector, 'connection') and hasattr(self.db_connector.connection, 'server_version')
-        
-        if is_mysql:
-            select_query = """
-            SELECT * FROM lineage_queries WHERE id = %s
-            """
-        else:
-            select_query = """
-            SELECT * FROM lineage_queries WHERE id = ?
-            """
-        
-        try:
-            cursor = self.db_connector.execute_query(select_query, (query_id,))
-            row = cursor.fetchone()
-            
-            if row:
-                return {
-                    "id": row["id"],
-                    "query_text": row["query_text"],
-                    "agent_name": row["agent_name"],
-                    "model_name": row["model_name"],
-                    "result_data": json.loads(row["result_data"]) if row["result_data"] else None,
-                    "status": row["status"],
-                    "created_at": row["created_at"],
-                    "updated_at": row["updated_at"]
-                }
-            return None
-        except Exception as e:
-            raise Exception(f"Error retrieving query analysis: {e}")
     
-    def get_all_query_analyses(self, limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
-        """Retrieve all query analyses with pagination"""
-        # Check if we're using MySQL or SQLite
-        is_mysql = hasattr(self.db_connector, 'connection') and hasattr(self.db_connector.connection, 'server_version')
-        
-        if is_mysql:
-            select_query = """
-            SELECT * FROM lineage_queries 
-            ORDER BY created_at DESC 
-            LIMIT %s OFFSET %s
-            """
-        else:
-            select_query = """
-            SELECT * FROM lineage_queries 
-            ORDER BY created_at DESC 
-            LIMIT ? OFFSET ?
-            """
-        
-        try:
-            cursor = self.db_connector.execute_query(select_query, (limit, offset))
-            rows = cursor.fetchall()
-            
-            results = []
-            for row in rows:
-                results.append({
-                    "id": row["id"],
-                    "query_text": row["query_text"],
-                    "agent_name": row["agent_name"],
-                    "model_name": row["model_name"],
-                    "result_data": json.loads(row["result_data"]) if row["result_data"] else None,
-                    "status": row["status"],
-                    "created_at": row["created_at"],
-                    "updated_at": row["updated_at"]
-                })
-            
-            return results
-        except Exception as e:
-            raise Exception(f"Error retrieving query analyses: {e}")
-    
-    def save_log_entry(self, level: str, message: str, agent_name: str = None, operation: str = None):
-        """Save a log entry to the database"""
-        # Check if we're using MySQL or SQLite
-        is_mysql = hasattr(self.db_connector, 'connection') and hasattr(self.db_connector.connection, 'server_version')
-        
-        if is_mysql:
-            insert_query = """
-            INSERT INTO lineage_log (level, message, agent_name, operation)
-            VALUES (%s, %s, %s, %s)
-            """
-        else:
-            insert_query = """
-            INSERT INTO lineage_log (level, message, agent_name, operation)
-            VALUES (?, ?, ?, ?)
-            """
-        
-        try:
-            self.db_connector.execute_query(
-                insert_query, 
-                (level, message, agent_name, operation)
-            )
-            self.db_connector.connection.commit()
-        except Exception as e:
-            print(f"Error saving log entry: {e}")
-    
-    def get_recent_logs(self, limit: int = 50) -> List[Dict[str, Any]]:
-        """Retrieve recent log entries"""
-        # Check if we're using MySQL or SQLite
-        is_mysql = hasattr(self.db_connector, 'connection') and hasattr(self.db_connector.connection, 'server_version')
-        
-        if is_mysql:
-            select_query = """
-            SELECT * FROM lineage_log 
-            ORDER BY datetime DESC 
-            LIMIT %s
-            """
-        else:
-            select_query = """
-            SELECT * FROM lineage_log 
-            ORDER BY datetime DESC 
-            LIMIT ?
-            """
-        
-        try:
-            cursor = self.db_connector.execute_query(select_query, (limit,))
-            rows = cursor.fetchall()
-            
-            results = []
-            for row in rows:
-                results.append({
-                    "id": row["id"],
-                    "datetime": row["datetime"],
-                    "level": row["level"],
-                    "message": row["message"],
-                    "agent_name": row["agent_name"],
-                    "operation": row["operation"]
-                })
-            
-            return results
-        except Exception as e:
-            raise Exception(f"Error retrieving logs: {e}") 
-
-    def get_lineage_by_namespace_and_table(self, namespace: str, table_name: str) -> Dict[str, Any]:
-        """Get lineage data for a specific namespace and table (placeholder)"""
-        # TODO: Implement this method based on your existing lineage logic
-        return {
-            "namespace": namespace,
-            "table_name": table_name,
-            "message": "Method not implemented yet"
-        }
-
-    def get_end_to_end_lineage(self, namespace: str, table_name: str) -> Dict[str, Any]:
-        """Get end-to-end lineage data for a specific namespace and table (placeholder)"""
-        # TODO: Implement this method based on your existing lineage logic
-        return {
-            "namespace": namespace,
-            "table_name": table_name,
-            "message": "Method not implemented yet"
-        }
-
-    def save_operation_result(self, operation_name: str, query: str, agent_name: str, 
-                            model_name: str, result: Dict[str, Any], status: str = "completed") -> int:
-        """Save operation result to database (placeholder)"""
-        # TODO: Implement this method if needed
-        return 0
-
-    def get_operation_result(self, operation_id: int) -> Optional[Dict[str, Any]]:
-        """Get operation result by ID (placeholder)"""
-        # TODO: Implement this method if needed
-        return None
-
     # Field Lineage Methods
     def get_field_lineage(self, field_name: str, dataset_name: str, namespace: Optional[str] = None, max_hops: int = 5) -> Dict[str, Any]:
         """
@@ -488,350 +328,81 @@ class LineageRepository:
         finally:
             neo4j_connector.disconnect()
 
-    def generate_field_lineage_cypher(self, field_name: str, namespace: Optional[str] = None) -> str:
+    def ingest_record(self, event: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Generate a Cypher query for field lineage tracing.
+        Ingest a lineage event record into Neo4j.
         
         Args:
-            field_name: Name of the field to trace lineage for
-            namespace: Optional namespace filter
+            event: OpenLineage event dictionary to ingest
             
         Returns:
-            Cypher query string for field lineage
+            Dictionary containing ingestion result with success status and metadata
         """
         try:
-            # Build the Cypher query based on provided filters
-            if namespace:
-                # With namespace filter
-                cypher_query = f"""// Visual lineage path for {field_name} field in namespace {namespace}
-MATCH (target_field:FieldVersion {{name: '{field_name}'}})
-MATCH (target_dv:DatasetVersion)-[:HAS_FIELD]->(target_field)
-MATCH (target_dv)<-[:HAS_VERSION]-(target_ds:Dataset {{namespace: '{namespace}'}})
-
-// Get the transformation that produces this field
-OPTIONAL MATCH (transformation:Transformation)-[:APPLIES]->(target_field)
-
-// Get the input field that this transformation consumes
-OPTIONAL MATCH (transformation)-[:ON_INPUT]->(source_field:FieldVersion)
-OPTIONAL MATCH (source_dv:DatasetVersion)-[:HAS_FIELD]->(source_field)
-OPTIONAL MATCH (source_dv)<-[:HAS_VERSION]-(source_ds:Dataset)
-
-// Get runs if they exist
-OPTIONAL MATCH (run:Run)-[:READ_FROM]->(source_dv)
-OPTIONAL MATCH (run)-[:WROTE_TO]->(target_dv)
-
-// Return the actual nodes and relationships for visualization
-RETURN 
-    source_ds, source_dv, source_field,
-    transformation,
-    target_field, target_dv, target_ds,
-    run"""
+            # Use the Neo4j ingestion module to handle the event
+            result = self.neo4j_ingestion.ingest_lineage_event(event)
+            
+            # Log the ingestion result
+            if result.get("success"):
+                print(f"Successfully ingested lineage event: {result.get('run_id')}")
+                print(f"Job: {result.get('job')}")
+                print(f"Nodes created: {result.get('nodes_created')}")
+                print(f"Relationships created: {result.get('relationships_created')}")
             else:
-                # No filters - search across all namespaces
-                cypher_query = f"""// Visual lineage path for {field_name} field
-MATCH (target_field:FieldVersion {{name: '{field_name}'}})
-MATCH (target_dv:DatasetVersion)-[:HAS_FIELD]->(target_field)
-MATCH (target_dv)<-[:HAS_VERSION]-(target_ds:Dataset)
-
-// Get the transformation that produces this field
-OPTIONAL MATCH (transformation:Transformation)-[:APPLIES]->(target_field)
-
-// Get the input field that this transformation consumes
-OPTIONAL MATCH (transformation)-[:ON_INPUT]->(source_field:FieldVersion)
-OPTIONAL MATCH (source_dv:DatasetVersion)-[:HAS_FIELD]->(source_field)
-OPTIONAL MATCH (source_dv)<-[:HAS_VERSION]-(source_ds:Dataset)
-
-// Get runs if they exist
-OPTIONAL MATCH (run:Run)-[:READ_FROM]->(source_dv)
-OPTIONAL MATCH (run)-[:WROTE_TO]->(target_dv)
-
-// Return the actual nodes and relationships for visualization
-RETURN 
-    source_ds, source_dv, source_field,
-    transformation,
-    target_field, target_dv, target_ds,
-    run"""
+                print(f"Failed to ingest lineage event: {result.get('error')}")
             
-            return cypher_query
-                
-        except Exception as e:
-            return f"// Error generating Cypher query: {str(e)}"
-
-    def execute_field_lineage_cypher(self, field_name: str, namespace: Optional[str] = None) -> List[Dict[str, Any]]:
-        """
-        Execute field lineage Cypher query and return raw results.
-        
-        Args:
-            field_name: Name of the field to trace lineage for
-            namespace: Optional namespace filter
-            
-        Returns:
-            List of raw Neo4j records
-        """
-        # Get Neo4j connector
-        neo4j_connector = DatabaseFactory.get_connector("neo4j")
-        
-        try:
-            neo4j_connector.connect()
-            
-            # Generate Cypher query
-            cypher_query = self.generate_field_lineage_cypher(field_name, namespace)
-            
-            if cypher_query.startswith("// Error:"):
-                raise Exception(cypher_query)
-            
-            # Execute the query
-            records = neo4j_connector.execute_query(cypher_query, {})
-            
-            return records
+            return result
             
         except Exception as e:
-            raise Exception(f"Error executing field lineage query: {str(e)}")
-        finally:
-            neo4j_connector.disconnect() 
-
-    # Table Lineage Methods
-    def get_table_lineage(self, table_name: str, namespace: Optional[str] = None,
-                         include_jobs: bool = True, include_fields: bool = True) -> Dict[str, Any]:
+            error_msg = f"Error in lineage repository ingest_record: {str(e)}"
+            print(error_msg)
+            return {
+                "success": False,
+                "message": error_msg,
+                "error": str(e)
+            }
+    
+    def apply_neo4j_constraints(self) -> bool:
         """
-        Get table-level lineage data from Neo4j.
+        Apply Neo4j database constraints.
+        
+        Returns:
+            True if constraints were applied successfully, False otherwise
+        """
+        try:
+            return self.neo4j_ingestion.apply_constraints()
+        except Exception as e:
+            print(f"Error applying Neo4j constraints: {e}")
+            return False
+    
+    def convert_and_ingest_analysis_result(self, analysis_result: Dict[str, Any], 
+                                         query: str, agent_name: str, model_name: str) -> Dict[str, Any]:
+        """
+        Convert analysis result to OpenLineage event format and ingest it.
         
         Args:
-            table_name: Name of the table to trace lineage for
-            namespace: Optional namespace filter
-            include_jobs: Whether to include job information
-            include_fields: Whether to include field information
+            analysis_result: Analysis result dictionary
+            query: Original query that was analyzed
+            agent_name: Name of the agent that performed the analysis
+            model_name: Name of the model used for analysis
             
         Returns:
-            Dictionary containing table lineage information
+            Dictionary containing ingestion result
         """
-        # Get Neo4j connector
-        neo4j_connector = DatabaseFactory.get_connector("neo4j")
-        
         try:
-            neo4j_connector.connect()
-            
-            # Generate Cypher query using the table lineage tool logic
-            cypher_query = self._generate_table_lineage_cypher(
-                table_name, namespace, include_jobs, include_fields
+            # Convert analysis result to OpenLineage event format
+            event = self.neo4j_ingestion.convert_analysis_result_to_event(
+                analysis_result, query, agent_name, model_name
             )
             
-            if cypher_query.startswith("// Error:"):
-                return {
-                    "table_name": table_name,
-                    "namespace": namespace,
-                    "message": cypher_query,
-                    "lineage": []
-                }
+            # Ingest the converted event
+            return self.ingest_record(event)
             
-            # Execute the query
-            records = neo4j_connector.execute_query(cypher_query, {})
-            
-            if not records:
-                return {
-                    "table_name": table_name,
-                    "namespace": namespace,
-                    "message": "No lineage found for this table",
-                    "lineage": []
-                }
-            
-            # Convert records to JSON-serializable format
-            json_records = self._convert_neo4j_records_to_json(records)
-            
+        except Exception as e:
+            error_msg = f"Error converting and ingesting analysis result: {str(e)}"
+            print(error_msg)
             return {
-                "table_name": table_name,
-                "namespace": namespace,
-                "include_jobs": include_jobs,
-                "include_fields": include_fields,
-                "lineage_count": len(json_records),
-                "lineage": json_records
+                "success": False,
+                "message": error_msg,
+                "error": str(e)
             }
-            
-        except Exception as e:
-            return {"error": f"Query execution failed: {str(e)}"}
-        finally:
-            neo4j_connector.disconnect()
-
-    def generate_table_lineage_cypher(self, table_name: str, namespace: Optional[str] = None,
-                                    include_jobs: bool = True, include_fields: bool = True) -> str:
-        """
-        Generate a Cypher query for table-level lineage tracing.
-        
-        Args:
-            table_name: Name of the table to trace lineage for
-            namespace: Optional namespace filter
-            include_jobs: Whether to include job information
-            include_fields: Whether to include field information
-            
-        Returns:
-            Cypher query string for table lineage
-        """
-        try:
-            return self._generate_table_lineage_cypher(table_name, namespace, include_jobs, include_fields)
-        except Exception as e:
-            return f"// Error generating Cypher query: {str(e)}"
-
-    def execute_table_lineage_cypher(self, table_name: str, namespace: Optional[str] = None,
-                                   include_jobs: bool = True, include_fields: bool = True) -> List[Dict[str, Any]]:
-        """
-        Execute table lineage Cypher query and return raw results.
-        
-        Args:
-            table_name: Name of the table to trace lineage for
-            namespace: Optional namespace filter
-            include_jobs: Whether to include job information
-            include_fields: Whether to include field information
-            
-        Returns:
-            List of raw Neo4j records
-        """
-        # Get Neo4j connector
-        neo4j_connector = DatabaseFactory.get_connector("neo4j")
-        
-        try:
-            neo4j_connector.connect()
-            
-            # Generate Cypher query
-            cypher_query = self._generate_table_lineage_cypher(table_name, namespace, include_jobs, include_fields)
-            
-            if cypher_query.startswith("// Error:"):
-                raise Exception(cypher_query)
-            
-            # Execute the query
-            records = neo4j_connector.execute_query(cypher_query, {})
-            
-            return records
-            
-        except Exception as e:
-            raise Exception(f"Error executing table lineage query: {str(e)}")
-        finally:
-            neo4j_connector.disconnect()
-
-    def _generate_table_lineage_cypher(self, table_name: str, namespace: Optional[str] = None,
-                                     include_jobs: bool = True, include_fields: bool = True) -> str:
-        """
-        Internal method to generate Cypher query for table-level lineage tracing.
-        
-        Args:
-            table_name: Name of the table to trace lineage for
-            namespace: Optional namespace filter
-            include_jobs: Whether to include job information
-            include_fields: Whether to include field information
-            
-        Returns:
-            Cypher query string for table lineage
-        """
-        try:
-            # Build the Cypher query - fixed to match actual data structure
-            cypher_query = f"// Table-level lineage visualization for {table_name} table\n"
-            cypher_query += "// Returns the actual nodes and relationships for graph visualization\n\n"
-            
-            # First, find the output dataset we're looking for
-            if namespace:
-                full_name = f"{namespace}.{table_name}"
-                cypher_query += f"// Find the output dataset: {full_name}\n"
-                cypher_query += f"MATCH (output_ds:Dataset {{name: '{full_name}'}})\n"
-            else:
-                # Try to find by partial name match
-                cypher_query += f"// Find the output dataset containing: {table_name}\n"
-                cypher_query += f"MATCH (output_ds:Dataset)\n"
-                cypher_query += f"WHERE output_ds.name CONTAINS '{table_name}' OR output_ds.name ENDS WITH '{table_name}'\n"
-            
-            cypher_query += "MATCH (output_ds)-[:HAS_VERSION]->(output_dv:DatasetVersion)\n"
-            cypher_query += "MATCH (run:Run)-[:WROTE_TO]->(output_dv)\n"
-            cypher_query += "MATCH (run)-[:READ_FROM]->(input_dv:DatasetVersion)\n"
-            cypher_query += "MATCH (input_ds:Dataset)-[:HAS_VERSION]->(input_dv)\n\n"
-            
-            # Job information
-            if include_jobs:
-                cypher_query += "// Get job information through the TRIGGERED relationship\n"
-                cypher_query += "OPTIONAL MATCH (job:Job)-[:TRIGGERED]->(run)\n"
-                cypher_query += "OPTIONAL MATCH (job)-[:HAS_VERSION]->(job_version:JobVersion)\n\n"
-            
-            # Field information
-            if include_fields:
-                cypher_query += "// Get field information\n"
-                cypher_query += "OPTIONAL MATCH (input_dv)-[:HAS_FIELD]->(input_field:FieldVersion)\n"
-                cypher_query += "OPTIONAL MATCH (output_dv)-[:HAS_FIELD]->(output_field:FieldVersion)\n\n"
-            
-            # Return statement
-            cypher_query += "// Return the actual nodes and relationships for visualization\n"
-            cypher_query += "RETURN \n"
-            
-            if include_jobs and include_fields:
-                cypher_query += "    input_ds, input_dv, input_field,\n"
-                cypher_query += "    output_field, output_dv, output_ds,\n"
-                cypher_query += "    run, job, job_version"
-            elif include_jobs:
-                cypher_query += "    input_ds, input_dv,\n"
-                cypher_query += "    output_dv, output_ds,\n"
-                cypher_query += "    run, job, job_version"
-            elif include_fields:
-                cypher_query += "    input_ds, input_dv, input_field,\n"
-                cypher_query += "    output_field, output_dv, output_ds,\n"
-                cypher_query += "    run"
-            else:
-                cypher_query += "    input_ds, input_dv,\n"
-                cypher_query += "    output_dv, output_ds,\n"
-                cypher_query += "    run"
-            
-            return cypher_query
-                
-        except Exception as e:
-            return f"// Error generating Cypher query: {str(e)}"
-
-    def _convert_neo4j_records_to_json(self, records: List) -> List[Dict[str, Any]]:
-        """
-        Convert Neo4j records into JSON-serializable format.
-        
-        Args:
-            records: List of Neo4j records
-            
-        Returns:
-            List of JSON-serializable dictionaries
-        """
-        from neo4j.time import DateTime
-        from neo4j.graph import Node
-        
-        def convert_value(value):
-            """Convert Neo4j values to JSON-serializable Python values."""
-            if value is None:
-                return None
-            
-            # Handle Neo4j DateTime
-            if isinstance(value, DateTime):
-                return str(value)
-            
-            # Handle lists and tuples
-            if isinstance(value, (list, tuple)):
-                return [convert_value(v) for v in value]
-            
-            # Handle dictionaries
-            if isinstance(value, dict):
-                return {k: convert_value(v) for k, v in value.items()}
-            
-            # Handle Neo4j Node objects
-            if isinstance(value, Node):
-                return {
-                    "identity": getattr(value, "id", None),
-                    "labels": list(getattr(value, "labels", [])),
-                    "properties": {k: convert_value(v) for k, v in value.items()},
-                    "elementId": getattr(value, "element_id", None)
-                }
-            
-            # Handle other Neo4j types
-            try:
-                import json
-                json.dumps(value)
-                return value
-            except (TypeError, OverflowError):
-                return str(value)
-        
-        json_records = []
-        for record in records:
-            record_data = {}
-            for key, value in record.items():
-                record_data[key] = convert_value(value)
-            json_records.append(record_data)
-        
-        return json_records 

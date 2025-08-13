@@ -32,4 +32,4 @@ CREATE INDEX latest_job_version_updated_at_idx IF NOT EXISTS
 FOR ()-[l:LATEST_JOB_VERSION]-() ON (l.updatedAt);
 
 CREATE INDEX latest_dataset_version_updated_at_idx IF NOT EXISTS
-FOR ()-[l:LATEST_DATASET_VERSION]-() ON (l.updatedAt);
+FOR ()-[l:LATEST_DATASET_VERSION]-() ON (l.updatedAt); 
