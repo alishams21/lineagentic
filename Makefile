@@ -152,8 +152,8 @@ up:
 	@echo "  - Neo4j Database: localhost:7474 (HTTP) / localhost:7687 (Bolt)"
 	@echo ""
 	@echo "🔧 Setting up Neo4j constraints..."
-	@sleep 30
-	@python backend/utils/constraints_startup.py
+	@sleep 20
+	@python backend/repository_layer/constraints_startup.py
 	@echo ""
 	@echo " Use 'make down' to stop all services"
 

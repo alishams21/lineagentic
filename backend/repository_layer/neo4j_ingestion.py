@@ -2,9 +2,9 @@ import json
 import hashlib
 import datetime
 import logging
+import os
 from typing import Dict, Any, List, Optional
 from neo4j import GraphDatabase
-import os
 
 logger = logging.getLogger(__name__)
 
@@ -650,10 +650,6 @@ class Neo4jIngestion:
         try:
             # Build parameters from event
             params = self._build_params_from_event(event)
-            print("--------------------------------")
-            print("PARAMS TO INGEST:")
-            print(params)
-            print("--------------------------------")
             
             # Load ingestion query
             if ingest_path is None:
@@ -661,21 +657,11 @@ class Neo4jIngestion:
                 ingest_path = os.path.join(current_dir, "cypher", "02_ingest.cypher")
             
             ingest_query = self._load_cypher(ingest_path)
-            print("--------------------------------")
-            print("INGESTION QUERY LOADED:")
-            print(f"Query file: {ingest_path}")
-            print("--------------------------------")
             
             # Execute ingestion
             driver = self._get_driver()
             with driver.session() as s:
                 result = s.execute_write(lambda tx: tx.run(ingest_query, **params).consume())
-                print("--------------------------------")
-                print("INGESTION RESULT:")
-                print(f"Nodes created: {result.counters.nodes_created}")
-                print(f"Relationships created: {result.counters.relationships_created}")
-                print(f"Properties set: {result.counters.properties_set}")
-                print("--------------------------------")
             
             return {
                 "success": True,
@@ -689,9 +675,6 @@ class Neo4jIngestion:
             
         except Exception as e:
             self.logger.error(f"Error ingesting lineage event: {e}")
-            print("--------------------------------")
-            print(f"INGESTION ERROR: {e}")
-            print("--------------------------------")
             return {
                 "success": False,
                 "message": f"Error ingesting lineage event: {str(e)}",

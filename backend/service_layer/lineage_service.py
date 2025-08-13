@@ -3,7 +3,7 @@ from typing import Dict, Any, List, Optional, Union
 from datetime import datetime
 import uuid
 from ..repository_layer.lineage_repository import LineageRepository
-from ..utils.neo4j_ingestion import Neo4jIngestion
+from ..repository_layer.neo4j_ingestion import Neo4jIngestion
 from algorithm.framework_agent import AgentFramework, LineageConfig
 import asyncio
 import logging

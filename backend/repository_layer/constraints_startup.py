@@ -13,8 +13,12 @@ from pathlib import Path
 backend_dir = Path(__file__).parent.parent  # Go up one level from utils to backend
 sys.path.insert(0, str(backend_dir))
 
-# Now import from the correct path
-from utils.neo4j_ingestion import Neo4jIngestion
+# Now import from the correct path - handle both direct execution and module import
+try:
+    from .neo4j_ingestion import Neo4jIngestion
+except ImportError:
+    # Fallback for direct execution
+    from neo4j_ingestion import Neo4jIngestion
 
 # Configure logging
 logging.basicConfig(

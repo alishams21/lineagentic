@@ -164,7 +164,7 @@ FOREACH (_ IN CASE WHEN d.in.namespace IS NULL THEN [] ELSE [1] END |
   MERGE (inDs)-[:HAS_VERSION]->(inDv)
 )
 
-// Always ensure DVs exist (works even if namespace/name weren’t provided)
+// Always ensure DVs exist (works even if namespace/name weren't provided)
 MERGE (outDv2:DatasetVersion {versionId:d.out.versionId})
 MERGE (inDv2:  DatasetVersion {versionId:d.in.versionId})
 
@@ -212,4 +212,4 @@ FOREACH (_ IN CASE WHEN $externalQuery IS NULL THEN [] ELSE [1] END |
   MERGE (xq:ExternalQuery {externalQueryId:$externalQuery.externalQueryId})
   SET xq.source = $externalQuery.source
   MERGE (r)-[:ISSUED]->(xq)
-)
+) 

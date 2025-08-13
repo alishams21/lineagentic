@@ -1,5 +1,6 @@
 from typing import Dict, Any, List, Optional
 from ..dbconnector_layer.database_factory import DatabaseConnector, DatabaseFactory
+from .neo4j_ingestion import Neo4jIngestion
 import json
 from datetime import datetime
 
@@ -9,6 +10,7 @@ class LineageRepository:
     
     def __init__(self, db_connector: Optional[DatabaseConnector] = None):
         self.db_connector = db_connector or DatabaseFactory.get_connector()
+        self.neo4j_ingestion = Neo4jIngestion()
         self._ensure_tables_exist()
     
     def _ensure_tables_exist(self):
@@ -326,4 +328,81 @@ class LineageRepository:
         finally:
             neo4j_connector.disconnect()
 
- 
+    def ingest_record(self, event: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Ingest a lineage event record into Neo4j.
+        
+        Args:
+            event: OpenLineage event dictionary to ingest
+            
+        Returns:
+            Dictionary containing ingestion result with success status and metadata
+        """
+        try:
+            # Use the Neo4j ingestion module to handle the event
+            result = self.neo4j_ingestion.ingest_lineage_event(event)
+            
+            # Log the ingestion result
+            if result.get("success"):
+                print(f"Successfully ingested lineage event: {result.get('run_id')}")
+                print(f"Job: {result.get('job')}")
+                print(f"Nodes created: {result.get('nodes_created')}")
+                print(f"Relationships created: {result.get('relationships_created')}")
+            else:
+                print(f"Failed to ingest lineage event: {result.get('error')}")
+            
+            return result
+            
+        except Exception as e:
+            error_msg = f"Error in lineage repository ingest_record: {str(e)}"
+            print(error_msg)
+            return {
+                "success": False,
+                "message": error_msg,
+                "error": str(e)
+            }
+    
+    def apply_neo4j_constraints(self) -> bool:
+        """
+        Apply Neo4j database constraints.
+        
+        Returns:
+            True if constraints were applied successfully, False otherwise
+        """
+        try:
+            return self.neo4j_ingestion.apply_constraints()
+        except Exception as e:
+            print(f"Error applying Neo4j constraints: {e}")
+            return False
+    
+    def convert_and_ingest_analysis_result(self, analysis_result: Dict[str, Any], 
+                                         query: str, agent_name: str, model_name: str) -> Dict[str, Any]:
+        """
+        Convert analysis result to OpenLineage event format and ingest it.
+        
+        Args:
+            analysis_result: Analysis result dictionary
+            query: Original query that was analyzed
+            agent_name: Name of the agent that performed the analysis
+            model_name: Name of the model used for analysis
+            
+        Returns:
+            Dictionary containing ingestion result
+        """
+        try:
+            # Convert analysis result to OpenLineage event format
+            event = self.neo4j_ingestion.convert_analysis_result_to_event(
+                analysis_result, query, agent_name, model_name
+            )
+            
+            # Ingest the converted event
+            return self.ingest_record(event)
+            
+        except Exception as e:
+            error_msg = f"Error converting and ingesting analysis result: {str(e)}"
+            print(error_msg)
+            return {
+                "success": False,
+                "message": error_msg,
+                "error": str(e)
+            }
