@@ -1,0 +1,13 @@
+{
+    "eventType": "START",
+    "eventTime": "2025-01-01T00:00:00Z",
+    "job": {
+      "namespace": "customer_4",
+      "name": "customer_4"
+    },
+    "run": {
+      "runId": "123"
+    },
+    "inputs": [],
+    "outputs": []
+  }
