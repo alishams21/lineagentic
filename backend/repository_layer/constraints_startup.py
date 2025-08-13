@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Startup script for applying Neo4j constraints from 01_constraints.cypher
-This script reads and applies the constraints defined in backend/utils/cypher/01_constraints.cypher
+Startup script for applying Neo4j constraints from constraints.cypher
+This script reads and applies the constraints defined in backend/repository_layer/cypher/constraints.cypher
 """
 
 import os
@@ -10,7 +10,7 @@ import logging
 from pathlib import Path
 
 # Add the backend directory to the Python path
-backend_dir = Path(__file__).parent.parent  # Go up one level from utils to backend
+backend_dir = Path(__file__).parent.parent  # Go up one level from repository_layer to backend
 sys.path.insert(0, str(backend_dir))
 
 # Now import from the correct path - handle both direct execution and module import
@@ -28,9 +28,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 def read_constraints_file():
-    """Read the constraints from 01_constraints.cypher file"""
+    """Read the constraints from constraints.cypher file"""
     # Path relative to this file location
-    constraints_file = Path(__file__).parent / "cypher" / "01_constraints.cypher"
+    constraints_file = Path(__file__).parent / "cypher" / "constraints.cypher"
     
     if not constraints_file.exists():
         raise FileNotFoundError(f"Constraints file not found: {constraints_file}")
@@ -47,11 +47,60 @@ def read_constraints_file():
     
     return content
 
+def apply_constraints_to_neo4j(neo4j_ingestion: Neo4jIngestion) -> bool:
+    """Apply Neo4j database constraints"""
+    try:
+        constraints_file = Path(__file__).parent / "cypher" / "constraints.cypher"
+        
+        if not constraints_file.exists():
+            print(f"❌ Constraints file not found: {constraints_file}")
+            return False
+        
+        with open(constraints_file, 'r') as f:
+            constraints_content = f.read()
+        
+        driver = neo4j_ingestion._get_driver()
+        with driver.session() as session:
+            # Split constraints by semicolon and filter out comments and empty lines
+            lines = constraints_content.split('\n')
+            filtered_lines = []
+            
+            for line in lines:
+                line = line.strip()
+                # Skip empty lines and comments
+                if line and not line.startswith('#'):
+                    filtered_lines.append(line)
+            
+            # Join lines and split by semicolon
+            constraint_queries = []
+            current_query = []
+            
+            for line in filtered_lines:
+                if line.endswith(';'):
+                    current_query.append(line[:-1])  # Remove semicolon
+                    if current_query:
+                        constraint_queries.append(' '.join(current_query))
+                    current_query = []
+                else:
+                    current_query.append(line)
+            
+            # Execute each constraint query
+            for query in constraint_queries:
+                if query.strip():
+                    print(f"Applying constraint: {query.strip()}")
+                    session.run(query.strip())
+            
+            return True
+            
+    except Exception as e:
+        print(f"Error applying Neo4j constraints: {e}")
+        return False
+
 def main():
-    """Main startup function to apply Neo4j constraints from 01_constraints.cypher"""
+    """Main startup function to apply Neo4j constraints from constraints.cypher"""
     
     print("🚀 LINEAGENTIC BACKEND STARTUP")
-    print("📋 Applying constraints from 01_constraints.cypher")
+    print("📋 Applying constraints from constraints.cypher")
     print("=" * 60)
     
     try:
@@ -78,15 +127,15 @@ def main():
         
         print("✅ Neo4j connection successful!")
         
-        # --- STEP 1: Apply constraints from 01_constraints.cypher ---
+        # --- STEP 1: Apply constraints from constraints.cypher ---
         print("\n" + "=" * 40)
-        print("STEP 1: Applying constraints from 01_constraints.cypher")
+        print("STEP 1: Applying constraints from constraints.cypher")
         print("=" * 40)
         
-        success = ni.apply_constraints()
+        success = apply_constraints_to_neo4j(ni)
         
         if success:
-            print("✅ Constraints from 01_constraints.cypher applied successfully!")
+            print("✅ Constraints from constraints.cypher applied successfully!")
             print("\n📋 Applied constraints include:")
             print("  🔑 Run ID uniqueness constraint")
             print("   Job key uniqueness (namespace, name)")
@@ -100,14 +149,14 @@ def main():
             print("   Latest job version updatedAt index")
             print("  📊 Latest dataset version updatedAt index")
         else:
-            print("❌ Failed to apply constraints from 01_constraints.cypher")
+            print("❌ Failed to apply constraints from constraints.cypher")
             return False
         
         print("\n" + "=" * 40)
         print("🎉 STARTUP COMPLETED SUCCESSFULLY!")
         print("=" * 40)
         print("✅ Neo4j database is now ready for lineage data ingestion")
-        print("✅ All constraints from 01_constraints.cypher have been applied")
+        print("✅ All constraints from constraints.cypher have been applied")
         print("✅ You can now start the API server and begin processing lineage events")
         
         return True

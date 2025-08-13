@@ -175,7 +175,7 @@ start-databases:
 	@echo "  - Redis Database: localhost:6379"
 	@echo ""
 	@echo "🔧 Setting up Neo4j constraints..."
-	@sleep 20
+	@sleep 5
 	@python backend/repository_layer/constraints_startup.py
 
 # Stop all databases with docker-compose
