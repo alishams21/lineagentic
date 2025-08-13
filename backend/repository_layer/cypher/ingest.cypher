@@ -38,7 +38,7 @@ FOREACH (_ IN CASE WHEN e.job.facets.sourceCode IS NULL OR e.job.facets.sourceCo
 
 // Job owners
 FOREACH (o IN coalesce(e.job.facets.ownership.owners, []) |
-  MERGE (owner:Owner {name:o.name, type:o.type})
+  MERGE (owner:Owner {name: coalesce(o.name, 'NA'), type: coalesce(o.type, 'NA')})
   MERGE (j)-[:OWNED_BY]->(owner)
 )
 
@@ -81,7 +81,7 @@ MERGE (fld)-[:LATEST]->(fss)
 // owners & tags on input dataset
 WITH e, j, js, r, d, ds, dss
 FOREACH (o IN coalesce(d.facets.ownership.owners, []) |
-  MERGE (owner:Owner {name:o.name, type:o.type})
+  MERGE (owner:Owner {name: coalesce(o.name, 'NA'), type: coalesce(o.type, 'NA')})
   MERGE (ds)-[:OWNED_BY]->(owner)
 )
 FOREACH (t IN coalesce(d.facets.tags, []) |
@@ -121,7 +121,7 @@ FOREACH (t IN coalesce(o.facets.tags, []) |
   MERGE (ods)-[:TAGGED]->(tag)
 )
 FOREACH (oo IN coalesce(o.facets.ownership.owners, []) |
-  MERGE (owner:Owner {name:oo.name, type:oo.type})
+  MERGE (owner:Owner {name: coalesce(oo.name, 'NA'), type: coalesce(oo.type, 'NA')})
   MERGE (ods)-[:OWNED_BY]->(owner)
 )
 

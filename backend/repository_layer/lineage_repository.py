@@ -362,18 +362,7 @@ class LineageRepository:
                 "error": str(e)
             }
     
-    def apply_neo4j_constraints(self) -> bool:
-        """
-        Apply Neo4j database constraints.
-        
-        Returns:
-            True if constraints were applied successfully, False otherwise
-        """
-        try:
-            return self.neo4j_ingestion.apply_constraints()
-        except Exception as e:
-            print(f"Error applying Neo4j constraints: {e}")
-            return False
+
     
     def convert_and_ingest_analysis_result(self, analysis_result: Dict[str, Any], 
                                          query: str, agent_name: str, model_name: str) -> Dict[str, Any]:

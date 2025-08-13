@@ -174,8 +174,7 @@ class LineageService:
             # Save lineage data to Neo4j if requested
             if save_to_neo4j and isinstance(serializable_result, dict):
                 try:
-                    # Apply Neo4j constraints first (if not already applied)
-                    #self.neo4j_ingestion.apply_constraints()
+
                     
                     # Extract lineage data from the correct location
                     # Check if lineage data is in 'data' field (your API response structure)
