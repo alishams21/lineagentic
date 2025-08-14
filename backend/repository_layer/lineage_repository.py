@@ -138,61 +138,76 @@ class LineageRepository:
         try:
             neo4j_connector.connect()
             
-            # Use the comprehensive field lineage query from the examples
+            # Construct dataset key from namespace and dataset name
+            dataset_key = f"{namespace}:{dataset_name}" if namespace else dataset_name
+            
+            # Use the parametrized field lineage query with both upstream and downstream
             query = """
-            // Params expected: $namespace, $datasetName, $fieldName, $maxHops
+            // Lineage path that includes transformation nodes for both directions
+            WITH $datasetKey AS datasetKey, 
+                 $field AS field, 
+                 $maxHops AS maxHops
 
-            // ---------- UPSTREAM ----------
-            MATCH (targetDs:Dataset {namespace:$namespace, name:$datasetName})
-            MATCH (targetDs)-[:LATEST_DATASET_VERSION]->(targetDv:DatasetVersion)
-            MATCH (targetDv)-[:HAS_FIELD]->(targetField:FieldVersion {name:$fieldName})
-            OPTIONAL MATCH p = (targetField)-[e:DERIVED_FROM*]->(:FieldVersion)
-            WHERE length(p) <= $maxHops
-            UNWIND relationships(p) AS edge
-            WITH 'UPSTREAM' AS direction, edge
-            WITH direction, edge, startNode(edge) AS ofv, endNode(edge) AS ifv
-            OPTIONAL MATCH (ofv)-[:APPLIES]->(tr:Transformation {txHash: edge.txHash})-[:ON_INPUT]->(ifv)
-            WITH direction, edge, tr, ofv, ifv
-            OPTIONAL MATCH (fromDv:DatasetVersion)-[:HAS_FIELD]->(ofv)
-            OPTIONAL MATCH (fromDs:Dataset)-[:HAS_VERSION]->(fromDv)
-            OPTIONAL MATCH (toDv:DatasetVersion)-[:HAS_FIELD]->(ifv)
-            OPTIONAL MATCH (toDs:Dataset)-[:HAS_VERSION]->(toDv)
-            OPTIONAL MATCH (run:Run {runId: edge.runId})
-            RETURN
-              direction,
-              fromDs, fromDv, ofv AS fromField,
-              tr, edge,                   // edge has type/subtype/description/masking/runId/txHash/createdAt
-              ifv AS toField, toDv, toDs,
-              run
+            MATCH (startF:Field {datasetKey:datasetKey, name:field})-[:LATEST]->(startFS:FieldSnapshot)
+            OPTIONAL MATCH (startD:Dataset {key:datasetKey})-[:HAS_FIELD]->(startF)
+
+            // UPSTREAM: Find fields that this field derives from
+            MATCH p1 = (startFS)-[:DERIVES_FROM*1..]->(ufs:FieldSnapshot)<-[:LATEST]-(uf:Field)
+            WHERE length(p1) <= maxHops
+            OPTIONAL MATCH (uD:Dataset)-[:HAS_FIELD]->(uf)
+            OPTIONAL MATCH (startFS)-[:USING_TRANSFORMATION]->(tr:Transformation)
+            RETURN 'UPSTREAM' AS direction,
+                   'FIELD' AS level,
+                   p1 AS basePath,
+                   startF AS sourceNode,
+                   startD AS sourceDataset,
+                   uf AS targetNode,
+                   uD AS targetDataset,
+                   tr AS transformationNode,
+                   CASE 
+                     WHEN tr IS NOT NULL 
+                     THEN [uf, tr, startF]
+                     ELSE [uf, startF]
+                   END AS transformationPath,
+                   CASE 
+                     WHEN tr IS NOT NULL 
+                     THEN uf.name + ' → [' + tr.type + '] → ' + startF.name
+                     ELSE uf.name + ' → ' + startF.name
+                   END AS transformationDescription
 
             UNION ALL
 
-            // ---------- DOWNSTREAM ----------
-            MATCH (targetDs:Dataset {namespace:$namespace, name:$datasetName})
-            MATCH (targetDs)-[:LATEST_DATASET_VERSION]->(targetDv:DatasetVersion)
-            MATCH (targetDv)-[:HAS_FIELD]->(targetField:FieldVersion {name:$fieldName})
-            OPTIONAL MATCH p = (:FieldVersion)-[e:DERIVED_FROM*]->(targetField)
-            WHERE length(p) <= $maxHops
-            UNWIND relationships(p) AS edge
-            WITH 'DOWNSTREAM' AS direction, edge
-            WITH direction, edge, startNode(edge) AS ofv, endNode(edge) AS ifv
-            OPTIONAL MATCH (ofv)-[:APPLIES]->(tr:Transformation {txHash: edge.txHash})-[:ON_INPUT]->(ifv)
-            WITH direction, edge, tr, ofv, ifv
-            OPTIONAL MATCH (fromDv:DatasetVersion)-[:HAS_FIELD]->(ofv)
-            OPTIONAL MATCH (fromDs:Dataset)-[:HAS_VERSION]->(fromDv)
-            OPTIONAL MATCH (toDv:DatasetVersion)-[:HAS_FIELD]->(ifv)
-            OPTIONAL MATCH (toDs:Dataset)-[:HAS_VERSION]->(toDv)
-            OPTIONAL MATCH (run:Run {runId: edge.runId})
-            RETURN
-              direction,
-              fromDs, fromDv, ofv AS fromField,
-              tr, edge,
-              ifv AS toField, toDv, toDs,
-              run
+            // DOWNSTREAM: Find fields that derive from this field
+            WITH $datasetKey AS datasetKey, 
+                 $field AS field, 
+                 $maxHops AS maxHops
+            MATCH (startF:Field {datasetKey:datasetKey, name:field})-[:LATEST]->(startFS:FieldSnapshot)
+            OPTIONAL MATCH (startD:Dataset {key:datasetKey})-[:HAS_FIELD]->(startF)
+            MATCH p2 = (dfs:FieldSnapshot)-[:DERIVES_FROM*1..]->(startFS)<-[:LATEST]-(df:Field)
+            WHERE length(p2) <= maxHops
+            OPTIONAL MATCH (dD:Dataset)-[:HAS_FIELD]->(df)
+            OPTIONAL MATCH (dfs)-[:USING_TRANSFORMATION]->(tr2:Transformation)
+            RETURN 'DOWNSTREAM' AS direction,
+                   'FIELD' AS level,
+                   p2 AS basePath,
+                   startF AS sourceNode,
+                   startD AS sourceDataset,
+                   df AS targetNode,
+                   dD AS targetDataset,
+                   tr2 AS transformationNode,
+                   CASE 
+                     WHEN tr2 IS NOT NULL 
+                     THEN [startF, tr2, df]
+                     ELSE [startF, df]
+                   END AS transformationPath,
+                   CASE 
+                     WHEN tr2 IS NOT NULL 
+                     THEN startF.name + ' → [' + tr2.type + '] → ' + df.name
+                     ELSE startF.name + ' → ' + df.name
+                   END AS transformationDescription
 
-            ORDER BY direction, edge.createdAt ASC
+            ORDER BY direction, length(basePath)
             """
-            
             
             if not dataset_name:
                 return {
@@ -203,9 +218,8 @@ class LineageRepository:
                 }
             
             params = {
-                "namespace": namespace,
-                "datasetName": dataset_name,
-                "fieldName": field_name,
+                "datasetKey": dataset_key,
+                "field": field_name,
                 "maxHops": max_hops
             }
             
@@ -257,59 +271,20 @@ class LineageRepository:
                 except (TypeError, OverflowError):
                     return str(value)
             
-            # Process results
+            # Process results with the new query structure
             lineage_data = []
             for record in records:
-                # Process the lineage path with the new structure
                 lineage_record = {
                     "direction": convert_neo4j_value(record["direction"]),
-                    "from_dataset": {
-                        "namespace": convert_neo4j_value(record["fromDs"]["namespace"]) if record["fromDs"] else None,
-                        "name": convert_neo4j_value(record["fromDs"]["name"]) if record["fromDs"] else None
-                    },
-                    "from_dataset_version": {
-                        "version_id": convert_neo4j_value(record["fromDv"]["versionId"]) if record["fromDv"] else None,
-                        "created_at": convert_neo4j_value(record["fromDv"]["createdAt"]) if record["fromDv"] else None
-                    },
-                    "from_field": {
-                        "name": convert_neo4j_value(record["fromField"]["name"]) if record["fromField"] else None,
-                        "dataset_version_id": convert_neo4j_value(record["fromField"]["datasetVersionId"]) if record["fromField"] else None,
-                        "type": convert_neo4j_value(record["fromField"].get("type")) if record["fromField"] else None,
-                        "description": convert_neo4j_value(record["fromField"].get("description")) if record["fromField"] else None
-                    },
-                    "transformation": {
-                        "type": convert_neo4j_value(record["tr"]["type"]) if record["tr"] else None,
-                        "subtype": convert_neo4j_value(record["tr"]["subtype"]) if record["tr"] else None,
-                        "description": convert_neo4j_value(record["tr"]["description"]) if record["tr"] else None,
-                        "tx_hash": convert_neo4j_value(record["tr"]["txHash"]) if record["tr"] else None
-                    },
-                    "edge": {
-                        "type": convert_neo4j_value(record["edge"]["type"]) if record["edge"] else None,
-                        "subtype": convert_neo4j_value(record["edge"]["subtype"]) if record["edge"] else None,
-                        "description": convert_neo4j_value(record["edge"]["description"]) if record["edge"] else None,
-                        "masking": convert_neo4j_value(record["edge"]["masking"]) if record["edge"] else None,
-                        "run_id": convert_neo4j_value(record["edge"]["runId"]) if record["edge"] else None,
-                        "tx_hash": convert_neo4j_value(record["edge"]["txHash"]) if record["edge"] else None,
-                        "created_at": convert_neo4j_value(record["edge"]["createdAt"]) if record["edge"] else None
-                    },
-                    "to_field": {
-                        "name": convert_neo4j_value(record["toField"]["name"]) if record["toField"] else None,
-                        "dataset_version_id": convert_neo4j_value(record["toField"]["datasetVersionId"]) if record["toField"] else None,
-                        "type": convert_neo4j_value(record["toField"].get("type")) if record["toField"] else None,
-                        "description": convert_neo4j_value(record["toField"].get("description")) if record["toField"] else None
-                    },
-                    "to_dataset_version": {
-                        "version_id": convert_neo4j_value(record["toDv"]["versionId"]) if record["toDv"] else None,
-                        "created_at": convert_neo4j_value(record["toDv"]["createdAt"]) if record["toDv"] else None
-                    },
-                    "to_dataset": {
-                        "namespace": convert_neo4j_value(record["toDs"]["namespace"]) if record["toDs"] else None,
-                        "name": convert_neo4j_value(record["toDs"]["name"]) if record["toDs"] else None
-                    },
-                    "run": {
-                        "run_id": convert_neo4j_value(record["run"]["runId"]) if record["run"] else None,
-                        "event_time": convert_neo4j_value(record["run"]["eventTime"]) if record["run"] else None
-                    } if record["run"] else None
+                    "level": convert_neo4j_value(record["level"]),
+                    "base_path": convert_neo4j_value(record["basePath"]),
+                    "source_node": convert_neo4j_value(record["sourceNode"]),
+                    "source_dataset": convert_neo4j_value(record["sourceDataset"]),
+                    "target_node": convert_neo4j_value(record["targetNode"]),
+                    "target_dataset": convert_neo4j_value(record["targetDataset"]),
+                    "transformation_node": convert_neo4j_value(record["transformationNode"]),
+                    "transformation_path": convert_neo4j_value(record["transformationPath"]),
+                    "transformation_description": convert_neo4j_value(record["transformationDescription"])
                 }
                 
                 lineage_data.append(lineage_record)
