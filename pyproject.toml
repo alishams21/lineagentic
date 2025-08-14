@@ -9,6 +9,7 @@ dependencies = [
     "autogen-agentchat>=0.4.9.2",
     "autogen-ext[grpc,mcp,ollama,openai]>=0.4.9.2",
     "bs4>=0.0.2",
+    "fastapi>=0.115.0",
     "gradio>=5.22.0",
     "httpx>=0.28.1",
     "ipykernel>=6.29.5",
