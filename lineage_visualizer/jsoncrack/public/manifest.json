@@ -1,8 +1,8 @@
 {
-  "name": "JSON Crack",
-  "short_name": "JSON Crack",
-  "description": "JSON Crack Editor is a tool for visualizing into graphs, analyzing, editing, formatting, querying, transforming and validating JSON, CSV, YAML, XML, and more.",
-  "theme_color": "#36393e",
+  "name": "Lineagentic",
+  "short_name": "Lineagentic",
+  "description": "Lineagentic is a tool for visualizing data lineage and analyzing relationships across diverse data processing scripts.",
+  "theme_color": "#8b5cf6",
   "background_color": "#36393e",
   "display": "standalone",
   "orientation": "landscape",

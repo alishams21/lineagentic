@@ -21,8 +21,8 @@ const theme = createTheme({
   fontFamily:
     'system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji"',
   defaultGradient: {
-    from: "#388cdb",
-    to: "#0f037f",
+    from: "#8b5cf6",
+    to: "#a855f7",
     deg: 180,
   },
   primaryShade: 8,
@@ -52,7 +52,7 @@ const theme = createTheme({
   },
 });
 
-function JsonCrack({ Component, pageProps }: AppProps) {
+function Lineagentic({ Component, pageProps }: AppProps) {
   const { pathname } = useRouter();
 
   // Create a single smart manager that handles pathname logic internally
@@ -66,12 +66,12 @@ function JsonCrack({ Component, pageProps }: AppProps) {
     <>
       <NextSeo {...SEO} />
       <SoftwareAppJsonLd
-        name="JSON Crack"
+        name="Lineagentic"
         price="0"
         priceCurrency="USD"
         type="SoftwareApplication"
         operatingSystem="Browser"
-        keywords="json, json viewer, json visualizer, json formatter, json editor, json parser, json to tree view, json to diagram, json graph, json beautifier, json validator, json to csv, json to yaml, json minifier, json schema, json data transformer, json api, online json viewer, online json formatter, online json editor, json tool"
+        keywords="data lineage, lineage analysis, data visualization, json viewer, json visualizer, json formatter, json editor, json parser, json to tree view, json to diagram, json graph, json beautifier, json validator, json to csv, json to yaml, json minifier, json schema, json data transformer, json api, online json viewer, online json formatter, online json editor, json tool"
         applicationCategory="DeveloperApplication"
         aggregateRating={{ ratingValue: "4.9", ratingCount: "19" }}
       />
@@ -105,4 +105,4 @@ function JsonCrack({ Component, pageProps }: AppProps) {
   );
 }
 
-export default JsonCrack;
+export default Lineagentic;

@@ -102,8 +102,8 @@ const HomePage = () => {
     <>
       <NextSeo
         {...SEO}
-        title="Editor | JSON Crack"
-        description="JSON Crack Editor is a tool for visualizing into graphs, analyzing, editing, formatting, querying, transforming and validating JSON, CSV, YAML, XML, and more."
+        title="Lineagentic"
+        description="Lineagentic is a tool for visualizing data lineage and analyzing relationships across diverse data processing scripts."
         canonical="https://jsoncrack.com"
       />
       <ThemeProvider theme={darkmodeEnabled ? darkTheme : lightTheme}>
