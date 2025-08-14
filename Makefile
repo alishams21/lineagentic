@@ -234,7 +234,10 @@ clean-all-stack:
 	@rm -rf demo-deploy 2>/dev/null || echo "No demo-deploy folder found"
 	@rm -rf lineagent.egg-info 2>/dev/null || echo "No lineagent.egg-info folder found"
 	@rm -rf .pytest_cache 2>/dev/null || echo "No .pytest_cache folder found"
+	@rm -rf .mypy_cache 2>/dev/null || echo "No .mypy_cache folder found"
+	@rm -rf mysql 2>/dev/null || echo "No mysql folder found"
 	@rm -rf lineage.db 2>/dev/null || echo "No lineage.db file found"
+	@rm -rf lineagentic.egg-info 2>/dev/null || echo "No lineagentic.egg-info folder found"
 	@$(MAKE) clean-pycache
 	@echo "✅ Cleanup completed!"
 

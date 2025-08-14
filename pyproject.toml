@@ -1,7 +1,7 @@
 [project]
-name = "lineagent"
+name = "lineagentic"
 version = "0.1.0"
-description = "Agentic approach for data lineage parsing across various data processing script types"
+description = " Lineagentic is agentic approach for building data lineage across diverse data processing scripts including python, sql, java, airflow, spark, etc."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [

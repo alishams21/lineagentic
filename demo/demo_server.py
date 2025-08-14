@@ -6,10 +6,9 @@ import time
 import sys
 import os
 from typing import Optional, Dict, Any
+from datetime import datetime
 
-
-
-from algorithm.framework_agent import AgentFramework
+from algorithm.framework_agent import AgentFramework, LineageConfig
 from algorithm.utils.database import read_lineage_log, write_lineage_log
 
 class SQLLineageFrontend:
@@ -128,11 +127,34 @@ class SQLLineageFrontend:
         else:
             return "Please initialize an agent first"
 
-    async def run_analysis(self, agent_name: str, model_name: str, query: str):
+    async def run_analysis(self, agent_name: str, model_name: str, query: str, 
+                          event_type: str, event_time: str, run_id: str, 
+                          job_namespace: str, job_name: str, description: str = None,
+                          processing_type: str = "BATCH", integration: str = "SQL",
+                          job_type: str = "QUERY", language: str = "SQL"):
         """Run SQL lineage analysis"""
         try:
+            # Create LineageConfig with required fields
+            lineage_config = LineageConfig(
+                event_type=event_type,
+                event_time=event_time,
+                run_id=run_id,
+                job_namespace=job_namespace,
+                job_name=job_name,
+                description=description,
+                processing_type=processing_type,
+                integration=integration,
+                job_type=job_type,
+                language=language,
+                source_code=query
+            )
+            
             # Initialize the agent framework
-            self.agent_framework = AgentFramework(agent_name=agent_name, model_name=model_name)
+            self.agent_framework = AgentFramework(
+                agent_name=agent_name, 
+                model_name=model_name,
+                lineage_config=lineage_config
+            )
             self.current_agent_name = agent_name
             
             # Run the analysis using the correct framework method
@@ -148,9 +170,17 @@ class SQLLineageFrontend:
         except Exception as e:
             return f"❌ Error running analysis: {str(e)}"
 
-    def run_analysis_sync(self, agent_name: str, model_name: str, query: str):
+    def run_analysis_sync(self, agent_name: str, model_name: str, query: str,
+                         event_type: str, event_time: str, run_id: str,
+                         job_namespace: str, job_name: str, description: str = None,
+                         processing_type: str = "BATCH", integration: str = "SQL",
+                         job_type: str = "QUERY", language: str = "SQL"):
         """Synchronous wrapper for run_analysis"""
-        return asyncio.run(self.run_analysis(agent_name, model_name, query))
+        return asyncio.run(self.run_analysis(
+            agent_name, model_name, query, event_type, event_time, run_id,
+            job_namespace, job_name, description, processing_type, integration,
+            job_type, language
+        ))
 
     def create_ui(self):
         """Create the Gradio interface"""
@@ -161,12 +191,10 @@ class SQLLineageFrontend:
             gr.Markdown('<div style="text-align: center;font-size:14px">Currently supports SQL queries, coming soon for Python and other languages</div>')
             gr.Markdown('<div style="text-align: center;font-size:14px">For local and production runs, check out the repo: <a href="https://github.com/alishams21/lineagentic" target="_blank" style="color: #007bff; text-decoration: none; font-weight: bold;">🔗 https://github.com/alishams21/lineagentic</a></div>')
 
-
-            
             with gr.Row():
                 # Left column - Configuration and Query
                 with gr.Column(scale=1):
-                    gr.Markdown("### 1. Configuration")
+                    gr.Markdown("### 1. Agent Configuration")
                     agent_dropdown = gr.Dropdown(
                         label="Agent Type",
                         choices=[
@@ -190,7 +218,61 @@ class SQLLineageFrontend:
                         value="gpt-4o-mini"
                     )
                     
-                    gr.Markdown("### 2. Query for Lineage Analysis")
+                    gr.Markdown("### 2. Lineage Configuration (Required)")
+                    event_type_dropdown = gr.Dropdown(
+                        label="Event Type",
+                        choices=["START", "COMPLETE", "FAIL"],
+                        value="START"
+                    )
+                    event_time_input = gr.Textbox(
+                        label="Event Time (ISO format)",
+                        placeholder="2025-08-11T12:00:00Z",
+                        value=datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+                    )
+                    run_id_input = gr.Textbox(
+                        label="Run ID",
+                        placeholder="my-unique-run-id",
+                        value=f"run-{int(time.time())}"
+                    )
+                    job_namespace_input = gr.Textbox(
+                        label="Job Namespace",
+                        placeholder="my-namespace",
+                        value="demo-namespace"
+                    )
+                    job_name_input = gr.Textbox(
+                        label="Job Name",
+                        placeholder="customer-etl-job",
+                        value="demo-lineage-job"
+                    )
+                    description_input = gr.Textbox(
+                        label="Description (Optional)",
+                        placeholder="Description of the job",
+                        value="Demo lineage analysis job"
+                    )
+                    
+                    gr.Markdown("### 3. Advanced Configuration (Optional)")
+                    processing_type_dropdown = gr.Dropdown(
+                        label="Processing Type",
+                        choices=["BATCH", "STREAM"],
+                        value="BATCH"
+                    )
+                    integration_dropdown = gr.Dropdown(
+                        label="Integration",
+                        choices=["SQL", "SPARK", "PYTHON", "JAVA", "AIRFLOW"],
+                        value="SQL"
+                    )
+                    job_type_dropdown = gr.Dropdown(
+                        label="Job Type",
+                        choices=["QUERY", "ETL", "ANALYSIS", "TRANSFORMATION"],
+                        value="QUERY"
+                    )
+                    language_dropdown = gr.Dropdown(
+                        label="Language",
+                        choices=["SQL", "PYTHON", "JAVA", "SCALA"],
+                        value="SQL"
+                    )
+                    
+                    gr.Markdown("### 4. Query for Lineage Analysis")
                     query_input = gr.Textbox(
                         label="Query",
                         placeholder="Enter your SQL query here...",
@@ -203,11 +285,11 @@ class SQLLineageFrontend:
                 
                 # Right column - Visualization and Logs
                 with gr.Column(scale=1):
-                    gr.Markdown("### 3. Visualize Results")
+                    gr.Markdown("### 5. Visualize Results")
                     gr.Markdown("📊 **JSONCrack Integration**: After successful analysis, visualize your results using the JSONCrack editor")
                     visualize_html = gr.HTML(self.get_visualize_link())
                     
-                    gr.Markdown("### 4. Live Logs")
+                    gr.Markdown("### 6. Live Logs")
                     logs_html = gr.HTML(self.get_logs_html())
                     test_log_button = gr.Button("Test Log Writing", variant="secondary", size="sm")
                     
@@ -215,10 +297,16 @@ class SQLLineageFrontend:
                     refresh_logs = gr.Button("🔄 Refresh Logs", variant="secondary", size="sm")
             
             # Event handlers
-            def run_analysis_and_update(agent_name, model_name, query):
+            def run_analysis_and_update(agent_name, model_name, query, event_type, event_time, 
+                                      run_id, job_namespace, job_name, description,
+                                      processing_type, integration, job_type, language):
                 """Run analysis and update visualization"""
                 # Run the analysis
-                status_result = self.run_analysis_sync(agent_name, model_name, query)
+                status_result = self.run_analysis_sync(
+                    agent_name, model_name, query, event_type, event_time,
+                    run_id, job_namespace, job_name, description,
+                    processing_type, integration, job_type, language
+                )
                 # Update visualization and logs
                 viz_html = self.get_visualize_link()
                 logs_html = self.get_logs_html()
@@ -226,7 +314,12 @@ class SQLLineageFrontend:
             
             analyze_button.click(
                 fn=run_analysis_and_update,
-                inputs=[agent_dropdown, model_dropdown, query_input],
+                inputs=[
+                    agent_dropdown, model_dropdown, query_input, event_type_dropdown,
+                    event_time_input, run_id_input, job_namespace_input, job_name_input,
+                    description_input, processing_type_dropdown, integration_dropdown,
+                    job_type_dropdown, language_dropdown
+                ],
                 outputs=[status_output, visualize_html, logs_html]
             )
             
