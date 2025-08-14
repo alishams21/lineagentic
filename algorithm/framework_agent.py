@@ -18,24 +18,31 @@ class LineageConfig:
                  event_type: str = "START",
                  event_time: str = None,
                  run_id: str = None,
+                 run_parent_job_name: str = None,
+                 run_parent_job_namespace: str = None,
                  job_namespace: str = None,
                  job_name: str = None,
-                 parent_run_id: str = None,
-                 parent_job_name: str = None,
-                 parent_namespace: str = None,
-                 producer_url: str = "https://github.com/give-your-url",
-                 processing_type: str = "BATCH",
-                 integration: str = "SQL",
-                 job_type: str = "QUERY",
-                 language: str = "SQL",
-                 source_code: str = None,
-                 storage_layer: str = "DATABASE",
-                 file_format: str = "TABLE",
-                 owner_name: str = None,
-                 owner_type: str = "TEAM",
-                 description: str = None,
-                 job_owner_name: str = None,
-                 job_owner_type: str = "TEAM",
+                 job_version_id: str = None,
+                 job_source_code_location_type: str = None,
+                 job_source_code_location_url: str = None,
+                 job_source_code_location_repo_url: str = None,
+                 job_source_code_location_path: str = None,
+                 job_source_code_location_version: str = None,
+                 job_source_code_location_branch: str = None,
+                 job_source_code_language: str = None,
+                 job_source_code_source_code: str = None,
+                 job_job_type_processing_type: str = None,
+                 job_job_type_integration: str = None,
+                 job_job_type_job_type: str = None,
+                 job_documentation_description: str = None,
+                 job_documentation_content_type: str = None,
+                 job_ownership_owners: List[Dict[str, str]] = None,
+                 input_tags: List[Dict[str, str]] = None,
+                 input_statistics: Dict[str, Any] = None,
+                 input_ownership: List[Dict[str, Any]] = None,
+                 output_statistics: Dict[str, Any] = None,
+                 output_tags: List[Dict[str, str]] = None,
+                 output_ownership: List[Dict[str, Any]] = None,
                  environment_variables: List[Dict[str, str]] = None):
 
         """
@@ -47,42 +54,57 @@ class LineageConfig:
             run_id: Unique run identifier
             job_namespace: Job namespace
             job_name: Job name
-            parent_run_id: Parent run ID if this is a child run
-            parent_job_name: Parent job name
-            parent_namespace: Parent namespace
-            producer_url: URL identifying the producer
-            processing_type: BATCH or STREAM
-            integration: Engine name (SQL, SPARK, etc.)
-            job_type: Type of job (QUERY, ETL, etc.)
-            language: Programming language
-            source_code: The actual source code/query
-            storage_layer: Storage layer type
-            file_format: File format
-            owner_name: Dataset owner name
-            owner_type: Owner type (TEAM, INDIVIDUAL, etc.)
-            environment_variables: List of environment variables as dicts with 'name' and 'value' keys
+            job_version_id: Job version ID
+            job_source_code_location_type: Job source code location type
+            job_source_code_location_url: Job source code location URL
+            job_source_code_location_repo_url: Job source code location repo URL
+            job_source_code_location_path: Job source code location path
+            job_source_code_location_version: Job source code location version
+            job_source_code_location_branch: Job source code location branch
+            job_source_code_language: Job source code language
+            job_source_code_source_code: Job source code source code
+            job_job_type_processing_type: Job job type processing type
+            job_job_type_integration: Job job type integration
+            job_job_type_job_type: Job job type job type
+            job_documentation_description: Job documentation description
+            job_documentation_content_type: Job documentation content type
+            job_ownership_owners: Job ownership owners
+            input_tags: Input tags
+            input_statistics: Input statistics
+            input_ownership: Input ownership
+            output_statistics: Output statistics
+            output_tags: Output tags
+            output_ownership: Output ownership
+            environment_variables: Environment variables
         """
         self.event_type = event_type
         self.event_time = event_time
         self.run_id = run_id
+        self.run_parent_job_name = run_parent_job_name
+        self.run_parent_job_namespace = run_parent_job_namespace
         self.job_namespace = job_namespace
         self.job_name = job_name
-        self.parent_run_id = parent_run_id
-        self.parent_job_name = parent_job_name
-        self.parent_namespace = parent_namespace
-        self.producer_url = producer_url
-        self.processing_type = processing_type
-        self.integration = integration
-        self.job_type = job_type
-        self.language = language
-        self.source_code = source_code
-        self.storage_layer = storage_layer
-        self.file_format = file_format
-        self.owner_name = owner_name
-        self.owner_type = owner_type
-        self.job_owner_name = job_owner_name
-        self.job_owner_type = job_owner_type
-        self.description = description
+        self.job_version_id = job_version_id
+        self.job_source_code_location_type = job_source_code_location_type
+        self.job_source_code_location_url = job_source_code_location_url
+        self.job_source_code_location_repo_url = job_source_code_location_repo_url
+        self.job_source_code_location_path = job_source_code_location_path
+        self.job_source_code_location_version = job_source_code_location_version
+        self.job_source_code_location_branch = job_source_code_location_branch
+        self.job_source_code_language = job_source_code_language
+        self.job_source_code_source_code = job_source_code_source_code
+        self.job_job_type_processing_type = job_job_type_processing_type
+        self.job_job_type_integration = job_job_type_integration
+        self.job_job_type_job_type = job_job_type_job_type
+        self.job_documentation_description = job_documentation_description
+        self.job_documentation_content_type = job_documentation_content_type
+        self.job_ownership_owners = job_ownership_owners
+        self.input_tags = input_tags
+        self.input_statistics = input_statistics
+        self.input_ownership = input_ownership
+        self.output_statistics = output_statistics
+        self.output_tags = output_tags
+        self.output_ownership = output_ownership
         self.environment_variables = environment_variables or []
         
         # Validate required fields
@@ -91,11 +113,11 @@ class LineageConfig:
     def _validate_required_fields(self):
         """Validate that all required fields are provided"""
         required_fields = {
+            'event_type': self.event_type,
+            'event_time': self.event_time,
+            'run_id': self.run_id,
             'job_namespace': self.job_namespace,
             'job_name': self.job_name,
-            'run_id': self.run_id,
-            'event_type': self.event_type,
-            'event_time': self.event_time
         }
         
         for field_name, field_value in required_fields.items():
@@ -104,6 +126,7 @@ class LineageConfig:
 
 
 class AgentFramework:
+    
     def __init__(self, agent_name: str, model_name: str = "gpt-4o-mini", 
                  lineage_config: LineageConfig = None):
         """
@@ -138,7 +161,7 @@ class AgentFramework:
         return self.agent_manager.get_agents_for_operation(operation)
     
     def get_event_metadata(self) -> Dict[str, Any]:
-        """Get the complete OpenLineage event metadata"""
+        """Get the complete event metadata"""
         config = self.lineage_config
         
         # Build the event structure
@@ -146,67 +169,49 @@ class AgentFramework:
             "eventType": config.event_type,
             "eventTime": config.event_time,
             "run": {
-                "runId": config.run_id
+                "runId": config.run_id,
+                "facets": {
+                    "parent": {
+                        "job": {
+                            "name": config.run_parent_job_name,
+                            "namespace": config.run_parent_job_namespace
+                        }
+                    }
+                }
             },
             "job": {
                 "namespace": config.job_namespace,
                 "name": config.job_name,
-                "facets": {}
-            }
-        }
-        
-        # Add parent run information if provided
-        if config.parent_run_id or config.parent_job_name:
-            event["run"]["facets"] = {
-                "parent": {
-                    "job": {
-                        "name": config.parent_job_name,
-                        "namespace": config.parent_namespace
+                "facets": {
+                    "sourceCodeLocation": {
+                        "type": config.job_source_code_location_type,
+                        "url": config.job_source_code_location_url,
+                        "repoUrl": config.job_source_code_location_repo_url,
+                        "path": config.job_source_code_location_path,
+                        "version": config.job_source_code_location_version,
+                        "branch": config.job_source_code_location_branch
                     },
-                    "run": {
-                        "runId": config.parent_run_id
+                    "sourceCode": {
+                        "language": config.job_source_code_language,
+                        "sourceCode": config.job_source_code_source_code,
+                    },
+                    "jobType": {
+                        "processingType": config.job_job_type_processing_type,
+                        "integration": config.job_job_type_integration,
+                        "jobType": config.job_job_type_job_type
+                    },
+                    "documentation": {
+                        "description": config.job_documentation_description,
+                        "contentType": config.job_documentation_content_type
+                    },
+                    "ownership": {
+                        "owners": config.job_ownership_owners
                     }
+                
                 }
             }
-        
-        # Add environment variables if provided
-        if config.environment_variables:
-            if "facets" not in event["run"]:
-                event["run"]["facets"] = {}
-            event["run"]["facets"]["environmentVariables"]={
-                "environmentVariables": config.environment_variables
-            }
-        
-        # Add job facets
-        
-        event["job"]["facets"]["jobType"] = {
-            "processingType": config.processing_type,
-            "integration": config.integration,
-            "jobType": config.job_type,
         }
-        
-        event["job"]["facets"]["sourceCode"] = {
-            "language": config.language,
-            "sourceCode": config.source_code or "",
-            "uri": config.producer_url
-        }
-        
-
-            
-        
-        event["job"]["facets"]["documentation"] ={
-            "description": config.description
-        }
-        
-        event["job"]["facets"]["ownership"] ={
-            "owners": [
-                {
-                    "name": config.job_owner_name,
-                    "type": config.job_owner_type
-                }
-            ]
-        }
-        
+           
         
         return event
     
@@ -287,18 +292,7 @@ async def main():
         model_name="gpt-4o-mini",
         lineage_config=lineage_config
     )
-    
-    # List available agents
-    print("Available agents:")
-    agents = framework.list_available_agents()
-    for name, info in agents.items():
-        print(f"  - {name}: {info.get('description', 'No description')}")
-    
-    # List supported operations
-    print("\nSupported operations:")
-    operations = framework.get_supported_operations()
-    for op, agents_list in operations.items():
-        print(f"  - {op}: {agents_list}")
+
     
    
     # Run a specific operation (data validation)
@@ -375,7 +369,7 @@ async def main():
     """
 
     # Update the source code in the config
-    lineage_config.source_code = test_query
+    lineage_config.job_source_code_source_code = test_query
 
     lineage_result = await framework.run_agent_plugin(
         "airflow-lineage-agent", 

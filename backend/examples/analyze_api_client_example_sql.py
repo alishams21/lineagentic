@@ -2,7 +2,7 @@ import requests
 import json
 import asyncio
 from typing import Dict, Any, Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 class SQLLineageAPIClient:
@@ -40,7 +40,8 @@ class SQLLineageAPIClient:
             "model_name": model_name,
             "agent_name": agent_name,
             "save_to_db": save_to_db,
-            "save_to_neo4j": save_to_neo4j
+            "save_to_neo4j": save_to_neo4j,
+            "lineage_config": lineage_config
         }
         
         # Add lineage config if provided
@@ -118,17 +119,62 @@ def main():
    
     # Example 3: Run with minimal required lineage config
     print("Running SQL lineage agent with minimal lineage configuration...")
-    minimal_config = {
+    config = {
         "event_type": "START",
-        "event_time": datetime.utcnow().isoformat() + "Z",
+        "event_time": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "run_id": str(uuid.uuid4()),
         "job_namespace": "minimal-test",
-        "job_name": "minimal-job"
+        "job_name": "minimal-job",
+        "job_source_code_location_path": "/path/to/source.sql",
+        "job_source_code_location_type": "file",
+        "job_source_code_language": "sql",
+        "job_source_code_location_branch": "main",
+        "job_source_code_location_version": "1.0.0",
+        "job_source_code_location_repo_url": "https://github.com/your-repo/your-job",
+        "job_source_code_location_url": "https://github.com/your-repo/your-job/blob/main/source.sql",
+        "job_source_code_source_code": sample_query,
+        "job_job_type_processing_type": "BATCH",
+        "job_job_type_integration": "SQL",
+        "job_job_type_job_type": "QUERY",
+        "job_documentation_description": "This is a test query",
+        "job_documentation_content_type": "text/plain",
+        "job_ownership_owners": [
+            {"name": "John Doe", "type": "individual"}
+        ],
+        "input_tags": [
+            {"name": "input", "value": "test"}
+        ],
+        "input_statistics": {
+            "count": 100,
+            "min": 1,
+            "max": 100,
+            "avg": 50
+        },
+        "input_ownership": [
+            {"name": "John Doe", "type": "individual"}
+        ],
+        "output_statistics": {
+            "count": 100,
+            "min": 1,
+            "max": 100,
+            "avg": 50
+        },
+        "output_tags": [
+            {"name": "output", "value": "test"}
+        ],
+        "output_ownership": [
+            {"name": "John Doe", "type": "individual"}
+        ],
+        "environment_variables": [
+            {"name": "DB_HOST", "value": "localhost"},
+            {"name": "DB_PORT", "value": "5432"},
+            {"name": "DB_USER", "value": "postgres"},
+            {"name": "DB_PASSWORD", "value": "password"}
+        ]
     }
-    
     lineage_result_minimal = client.analyze_query(
         query=sample_query,
-        lineage_config=minimal_config
+        lineage_config=config
     )
     print(f"SQL lineage agent result with minimal config: {json.dumps(lineage_result_minimal, indent=8)}")
     print()
