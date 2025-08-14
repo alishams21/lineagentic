@@ -174,8 +174,14 @@ start-databases:
 	@echo "  - Neo4j Database: localhost:7474 (HTTP) / localhost:7687 (Bolt)"
 	@echo "  - Redis Database: localhost:6379"
 	@echo ""
+	@echo "⏳ Waiting for Neo4j to be ready..."
+	@until docker exec neo4j-lineage cypher-shell -u neo4j -p password "RETURN 1" > /dev/null 2>&1; do \
+		echo "   Waiting for Neo4j to be ready..."; \
+		sleep 3; \
+	done
+	@echo "✅ Neo4j is ready!"
+	@echo ""
 	@echo "🔧 Setting up Neo4j constraints..."
-	@sleep 5
 	@python backend/repository_layer/constraints_startup.py
 
 # Stop all databases with docker-compose
@@ -222,7 +228,7 @@ clean-all-stack:
 	@find . -name "temp_*.json" -type f -delete
 	@find . -name "generated-*.json" -type f -delete
 	@echo "🗑️  Removing data folders..."
-	@rm -rf agents_log_db 2>/dev/null || echo "No agents_log_db folder found"
+	@rm -rf agents_log 2>/dev/null || echo "No agents_log folder found"
 	@rm -rf lineage_extraction_dumps 2>/dev/null || echo "No lineage_extraction_dumps folder found"
 	@rm -rf .venv 2>/dev/null || echo "No .venv folder found"
 	@rm -rf demo-deploy 2>/dev/null || echo "No demo-deploy folder found"

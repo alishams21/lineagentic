@@ -176,6 +176,6 @@ cython_debug/
 
 # Project-specific ignores
 lineage_extraction_dumps/
-agents_log_db/
+agents_log/
 
 lineage.db

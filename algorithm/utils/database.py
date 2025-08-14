@@ -1,4 +1,3 @@
-import sqlite3
 import json
 import os
 from datetime import datetime
@@ -7,12 +6,12 @@ from enum import Enum
 
 load_dotenv(override=True)
 
-# Create the agents_log_db directory if it doesn't exist
-agents_log_dir = "agents_log_db"
+# Create the agents_log directory if it doesn't exist
+agents_log_dir = "agents_log"
 os.makedirs(agents_log_dir, exist_ok=True)
 
-# Set the database path inside the agents_log_db folder
-DB = os.path.join(agents_log_dir, "agents_logs.db")
+# Set the log file path inside the agents_log folder
+LOG_FILE = os.path.join(agents_log_dir, "lineage_logs.jsonl")
 
 # Color enum for console output
 class Color(Enum):
@@ -35,23 +34,10 @@ color_mapper = {
     "span": Color.CYAN,  # Default for span type
 }
 
-with sqlite3.connect(DB) as conn:
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS lineage_log (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT,
-            datetime DATETIME,
-            type TEXT,
-            message TEXT
-        )
-    ''')
-    conn.commit()
-
 
 def write_lineage_log(name: str, type: str, message: str):
     """
-    Write a log entry to the logs table and console with colors.
+    Write a log entry to the log file and console with colors.
     
     Args:
         name (str): The name associated with the log
@@ -66,14 +52,17 @@ def write_lineage_log(name: str, type: str, message: str):
     # Console logging with colors
     print(f"{color.value}[{now}] {name.upper()}: {type} - {message}{Color.RESET.value}")
     
-    # Database logging
-    with sqlite3.connect(DB) as conn:
-        cursor = conn.cursor()
-        cursor.execute('''
-            INSERT INTO lineage_log (name, datetime, type, message)
-            VALUES (?, datetime('now'), ?, ?)
-        ''', (name.lower(), type, message))
-        conn.commit()
+    # File logging - write as JSON Lines format
+    log_entry = {
+        "datetime": now,
+        "name": name.lower(),
+        "type": type,
+        "message": message
+    }
+    
+    with open(LOG_FILE, 'a', encoding='utf-8') as f:
+        f.write(json.dumps(log_entry) + '\n')
+
 
 def read_lineage_log(name: str, last_n=10):
     """
@@ -86,14 +75,27 @@ def read_lineage_log(name: str, last_n=10):
     Returns:
         list: A list of tuples containing (datetime, type, message)
     """
-    with sqlite3.connect(DB) as conn:
-        cursor = conn.cursor()
-        cursor.execute('''
-            SELECT datetime, type, message FROM lineage_log 
-            WHERE name = ? 
-            ORDER BY datetime DESC
-            LIMIT ?
-        ''', (name.lower(), last_n))
-        
-        return reversed(cursor.fetchall())
+    if not os.path.exists(LOG_FILE):
+        return []
+    
+    entries = []
+    name_lower = name.lower()
+    
+    # Read all lines and filter by name
+    with open(LOG_FILE, 'r', encoding='utf-8') as f:
+        for line in f:
+            try:
+                entry = json.loads(line.strip())
+                if entry.get('name') == name_lower:
+                    entries.append((
+                        entry.get('datetime'),
+                        entry.get('type'),
+                        entry.get('message')
+                    ))
+            except json.JSONDecodeError:
+                # Skip malformed lines
+                continue
+    
+    # Return the last N entries
+    return entries[-last_n:] if entries else []
 
