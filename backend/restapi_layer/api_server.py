@@ -11,6 +11,7 @@ from .models import (
     HealthResponse,
     FieldLineageRequest,
     FieldLineageResponse,
+    LineageConfigRequest,
 )
 from ..service_layer.lineage_service import LineageService
 

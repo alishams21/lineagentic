@@ -37,16 +37,16 @@ class LineageService:
         """
 
         env_vars = None
-        if config_request.environment_variables:
+        if config_request and config_request.environment_variables:
             env_vars = [{"name": ev.name, "value": ev.value} for ev in config_request.environment_variables]
         
         # Validate required fields from config request
         required_fields = {
-            'event_type': config_request.event_type,
-            'event_time': config_request.event_time,
-            'run_id': config_request.run_id,
-            'job_namespace': config_request.job_namespace,
-            'job_name': config_request.job_name
+            'event_type': config_request.event_type if config_request else None,
+            'event_time': config_request.event_time if config_request else None,
+            'run_id': config_request.run_id if config_request else None,
+            'job_namespace': config_request.job_namespace if config_request else None,
+            'job_name': config_request.job_name if config_request else None
         }
         
         missing_fields = [field for field, value in required_fields.items() if not value]
@@ -57,26 +57,34 @@ class LineageService:
             event_type=config_request.event_type,
             event_time=config_request.event_time,
             run_id=config_request.run_id,
+            run_parent_job_name=config_request.run_parent_job_name,
+            run_parent_job_namespace=config_request.run_parent_job_namespace,
             job_namespace=config_request.job_namespace,
             job_name=config_request.job_name,
-            parent_run_id=config_request.parent_run_id,
-            parent_job_name=config_request.parent_job_name,
-            parent_namespace=config_request.parent_namespace,
-            producer_url=config_request.producer_url,
-            processing_type=config_request.processing_type,
-            integration=config_request.integration,
-            job_type=config_request.job_type,
-            language=config_request.language,
-            source_code=config_request.source_code,
-            storage_layer=config_request.storage_layer,
-            file_format=config_request.file_format,
-            owner_name=config_request.owner_name,
-            owner_type=config_request.owner_type,
-            job_owner_name=config_request.job_owner_name,
-            job_owner_type=config_request.job_owner_type,
-            description=config_request.description,
+            job_version_id=config_request.job_version_id,
+            job_source_code_location_type=config_request.job_source_code_location_type,
+            job_source_code_location_url=config_request.job_source_code_location_url,
+            job_source_code_location_repo_url=config_request.job_source_code_location_repo_url,
+            job_source_code_location_path=config_request.job_source_code_location_path,
+            job_source_code_location_version=config_request.job_source_code_location_version,
+            job_source_code_location_branch=config_request.job_source_code_location_branch,
+            job_source_code_language=config_request.job_source_code_language,
+            job_source_code_source_code=config_request.job_source_code_source_code,
+            job_job_type_processing_type=config_request.job_job_type_processing_type,
+            job_job_type_integration=config_request.job_job_type_integration,
+            job_job_type_job_type=config_request.job_job_type_job_type,
+            job_documentation_description=config_request.job_documentation_description,
+            job_documentation_content_type=config_request.job_documentation_content_type,
+            job_ownership_owners=config_request.job_ownership_owners,
+            input_tags=config_request.input_tags,
+            input_statistics=config_request.input_statistics,
+            input_ownership=config_request.input_ownership,
+            output_statistics=config_request.output_statistics,
+            output_tags=config_request.output_tags,
+            output_ownership=config_request.output_ownership,
             environment_variables=env_vars
         )
+
 
     
     def _validate_query_request(self, query: str, agent_name: str, model_name: str) -> None:

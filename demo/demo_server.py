@@ -134,19 +134,19 @@ class SQLLineageFrontend:
                           job_type: str = "QUERY", language: str = "SQL"):
         """Run SQL lineage analysis"""
         try:
-            # Create LineageConfig with required fields
+            # Create LineageConfig with required fields - updated to match new constructor
             lineage_config = LineageConfig(
                 event_type=event_type,
                 event_time=event_time,
                 run_id=run_id,
                 job_namespace=job_namespace,
                 job_name=job_name,
-                description=description,
-                processing_type=processing_type,
-                integration=integration,
-                job_type=job_type,
-                language=language,
-                source_code=query
+                job_documentation_description=description,
+                job_job_type_processing_type=processing_type,
+                job_job_type_integration=integration,
+                job_job_type_job_type=job_type,
+                job_source_code_language=language,
+                job_source_code_source_code=query
             )
             
             # Initialize the agent framework

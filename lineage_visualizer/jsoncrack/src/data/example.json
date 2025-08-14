@@ -1,42 +1,271 @@
 {
-  "fruits": [
-    {
-      "name": "Apple",
-      "color": "#FF0000",
-      "details": {
-        "type": "Pome",
-        "season": "Fall"
-      },
-      "nutrients": {
-        "calories": 52,
-        "fiber": "2.4g",
-        "vitaminC": "4.6mg"
+    "eventType": "START",
+    "eventTime": "2025-01-01T10:30:00Z",
+    "run": {
+      "runId": "run-2025-01-01-103000",
+      "facets": {
+        "parent": {
+          "job": {
+            "namespace": "data_engineering",
+            "name": "customer_etl_pipeline"
+          }
+        }
       }
     },
-    {
-      "name": "Banana",
-      "color": "#FFFF00",
-      "details": {
-        "type": "Berry",
-        "season": "Year-round"
-      },
-      "nutrients": {
-        "calories": 89,
-        "fiber": "2.6g",
-        "potassium": "358mg"
+    "job": {
+      "namespace": "data_engineering",
+      "name": "customer_etl_pipeline",
+      "versionId": "v1.2.3",
+      "facets": {
+        "sourceCodeLocation": {
+          "type": "git",
+          "url": "https://github.com/company/data-pipelines",
+          "repoUrl": "https://github.com/company/data-pipelines",
+          "path": "pipelines/customer_etl.py",
+          "version": "main",
+          "branch": "main"
+        },
+        "sourceCode": {
+          "language": "Python",
+          "sourceCode": "def process_customers():\n    # ETL logic here\n    pass"
+        },
+        "jobType": {
+          "processingType": "BATCH",
+          "integration": "SPARK",
+          "jobType": "ETL"
+        },
+        "documentation": {
+          "description": "ETL pipeline to process customer data from raw to clean format",
+          "contentType": "text/markdown"
+        },
+        "ownership": {
+          "owners": [
+            {"name": "data-engineering-team", "type": "TEAM"},
+            {"name": "john.doe@company.com", "type": "INDIVIDUAL"}
+          ]
+        }
       }
     },
-    {
-      "name": "Orange",
-      "color": "#FFA500",
-      "details": {
-        "type": "Citrus",
-        "season": "Winter"
+    "inputs": [
+      {
+        "namespace": "raw_data",
+        "name": "customers_raw",
+        "versionId": "v1.0.0",
+        "facets": {
+          "schema": {
+            "fields": [
+              {
+                "name": "customer_id",
+                "type": "integer",
+                "description": "Unique identifier for the customer",
+                "versionId": "v1.0.0"
+              },
+              {
+                "name": "customer_name",
+                "type": "string",
+                "description": "Full name of the customer",
+                "versionId": "v1.0.0"
+              },
+              {
+                "name": "email",
+                "type": "string",
+                "description": "Customer email address",
+                "versionId": "v1.0.0"
+              },
+              {
+                "name": "registration_date",
+                "type": "timestamp",
+                "description": "Date when customer registered",
+                "versionId": "v1.0.0"
+              }
+            ]
+          },
+          "tags": [
+            {"key": "domain", "value": "customer", "source": "manual"},
+            {"key": "sensitivity", "value": "pii", "source": "auto"},
+            {"key": "environment", "value": "raw", "source": "manual"}
+          ],
+          "ownership": {
+            "owners": [
+              {"name": "data-engineering-team", "type": "TEAM"}
+            ]
+          },
+          "inputStatistics": {
+            "rowCount": 50000,
+            "fileCount": 5,
+            "size": 2048576
+          }
+        }
       },
-      "nutrients": {
-        "calories": 47,
-        "fiber": "2.4g",
-        "vitaminC": "53.2mg"
+      {
+        "namespace": "reference_data",
+        "name": "customer_segments",
+        "versionId": "v2.1.0",
+        "facets": {
+          "schema": {
+            "fields": [
+              {
+                "name": "segment_id",
+                "type": "integer",
+                "description": "Segment identifier",
+                "versionId": "v2.1.0"
+              },
+              {
+                "name": "segment_name",
+                "type": "string",
+                "description": "Name of the customer segment",
+                "versionId": "v2.1.0"
+              },
+              {
+                "name": "segment_criteria",
+                "type": "string",
+                "description": "Criteria for segment classification",
+                "versionId": "v2.1.0"
+              }
+            ]
+          },
+          "tags": [
+            {"key": "domain", "value": "customer", "source": "manual"},
+            {"key": "type", "value": "reference", "source": "manual"}
+          ],
+          "ownership": {
+            "owners": [
+              {"name": "business-intelligence-team", "type": "TEAM"}
+            ]
+          },
+          "inputStatistics": {
+            "rowCount": 100,
+            "fileCount": 1,
+            "size": 10240
+          }
+        }
+      }
+    ],
+    "outputs": [
+      {
+        "namespace": "clean_data",
+        "name": "customers_clean",
+        "versionId": "v1.2.3",
+        "facets": {
+          "columnLineage": {
+            "fields": {
+              "customer_id": {
+                "inputFields": [
+                  {
+                    "namespace": "raw_data",
+                    "name": "customers_raw",
+                    "field": "customer_id",
+                    "transformations": [
+                      {
+                        "type": "IDENTITY",
+                        "subtype": "DIRECT_COPY",
+                        "description": "Direct mapping of customer ID",
+                        "masking": false
+                      }
+                    ]
+                  }
+                ]
+              },
+              "customer_name": {
+                "inputFields": [
+                  {
+                    "namespace": "raw_data",
+                    "name": "customers_raw",
+                    "field": "customer_name",
+                    "transformations": [
+                      {
+                        "type": "TRANSFORM",
+                        "subtype": "CLEANING",
+                        "description": "Clean and standardize customer names",
+                        "masking": false
+                      }
+                    ]
+                  }
+                ]
+              },
+              "email_hash": {
+                "inputFields": [
+                  {
+                    "namespace": "raw_data",
+                    "name": "customers_raw",
+                    "field": "email",
+                    "transformations": [
+                      {
+                        "type": "TRANSFORM",
+                        "subtype": "HASHING",
+                        "description": "Hash email for privacy",
+                        "masking": true
+                      }
+                    ]
+                  }
+                ]
+              },
+              "segment_name": {
+                "inputFields": [
+                  {
+                    "namespace": "raw_data",
+                    "name": "customers_raw",
+                    "field": "customer_id",
+                    "transformations": [
+                      {
+                        "type": "JOIN",
+                        "subtype": "LOOKUP",
+                        "description": "Join with segment reference data",
+                        "masking": false
+                      }
+                    ]
+                  },
+                  {
+                    "namespace": "reference_data",
+                    "name": "customer_segments",
+                    "field": "segment_name",
+                    "transformations": [
+                      {
+                        "type": "JOIN",
+                        "subtype": "LOOKUP",
+                        "description": "Join with segment reference data",
+                        "masking": false
+                      }
+                    ]
+                  }
+                ]
+              },
+              "registration_year": {
+                "inputFields": [
+                  {
+                    "namespace": "raw_data",
+                    "name": "customers_raw",
+                    "field": "registration_date",
+                    "transformations": [
+                      {
+                        "type": "TRANSFORM",
+                        "subtype": "EXTRACTION",
+                        "description": "Extract year from registration date",
+                        "masking": false
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "tags": [
+            {"key": "domain", "value": "customer", "source": "manual"},
+            {"key": "sensitivity", "value": "clean", "source": "auto"},
+            {"key": "environment", "value": "clean", "source": "manual"},
+            {"key": "quality", "value": "validated", "source": "manual"}
+          ],
+          "ownership": {
+            "owners": [
+              {"name": "data-engineering-team", "type": "TEAM"},
+              {"name": "analytics-team", "type": "TEAM"}
+            ]
+          },
+          "outputStatistics": {
+            "rowCount": 49850,
+            "fileCount": 3,
+            "size": 1536000
+          }
       }
     }
   ]
