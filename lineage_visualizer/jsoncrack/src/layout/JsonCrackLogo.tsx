@@ -1,7 +1,6 @@
 import React, { useEffect } from "react";
 import localFont from "next/font/local";
 import Link from "next/link";
-import { Image } from "@mantine/core";
 import styled from "styled-components";
 
 const monaSans = localFont({
@@ -29,6 +28,17 @@ const StyledTitle = styled.span<{ fontSize: string }>`
   mix-blend-mode: difference;
 `;
 
+const PurpleCircle = styled.div<{ size: number }>`
+  width: ${({ size }) => size}px;
+  height: ${({ size }) => size}px;
+  background: linear-gradient(135deg, #8b5cf6, #a855f7);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+`;
+
 interface LogoProps extends React.ComponentPropsWithoutRef<"div"> {
   fontSize?: string;
   hideLogo?: boolean;
@@ -42,23 +52,26 @@ export const JSONCrackLogo = ({ fontSize = "1.2rem", hideText, hideLogo, ...prop
     setIsIframe(window !== undefined && window.location.href.includes("widget"));
   }, []);
 
+  const logoSize = parseFloat(fontSize) * 18;
+
   return (
     <Link href="/" prefetch={false} target={isIframe ? "_blank" : "_self"}>
       <StyledLogoWrapper>
         {!hideLogo && (
-          <Image
-            src="/assets/192.png"
-            loading="eager"
-            width={parseFloat(fontSize) * 18}
-            height={parseFloat(fontSize) * 18}
-            alt="logo"
-            radius={4}
-            mb="2"
-          />
+          <PurpleCircle size={logoSize}>
+            <span style={{ 
+              color: 'white', 
+              fontSize: `${logoSize * 0.4}px`, 
+              fontWeight: 'bold',
+              fontFamily: monaSans.style.fontFamily
+            }}>
+              L
+            </span>
+          </PurpleCircle>
         )}
         {!hideText && (
           <StyledTitle fontSize={fontSize} {...props}>
-            JSON CRACK
+            Lineagentic
           </StyledTitle>
         )}
       </StyledLogoWrapper>

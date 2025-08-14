@@ -6,9 +6,8 @@ import { BiSolidDockLeft } from "react-icons/bi";
 import { FaCrown } from "react-icons/fa6";
 import { IoMdCheckmark } from "react-icons/io";
 import { MdArrowUpward } from "react-icons/md";
-import { VscCheck, VscError, VscRunAll, VscSync, VscSyncIgnored } from "react-icons/vsc";
+import { VscCheck, VscError } from "react-icons/vsc";
 import { formats } from "../../enums/file.enum";
-import useConfig from "../../store/useConfig";
 import useFile from "../../store/useFile";
 import useGraph from "./views/GraphView/stores/useGraph";
 
@@ -75,12 +74,21 @@ const StyledBottomBarItem = styled.button<{ $bg?: string }>`
   }
 `;
 
+const StyledCustomText = styled.div`
+  font-size: 10px;
+  color: ${({ theme }) => theme.INTERACTIVE_NORMAL};
+  opacity: 0.7;
+  margin-left: 8px;
+  white-space: nowrap;
+  
+  @media screen and (max-width: 768px) {
+    display: none;
+  }
+`;
+
 export const BottomBar = () => {
   const data = useFile(state => state.fileData);
-  const toggleLiveTransform = useConfig(state => state.toggleLiveTransform);
-  const liveTransformEnabled = useConfig(state => state.liveTransformEnabled);
   const error = useFile(state => state.error);
-  const setContents = useFile(state => state.setContents);
   const toggleFullscreen = useGraph(state => state.toggleFullscreen);
   const fullscreen = useGraph(state => state.fullscreen);
   const setFormat = useFile(state => state.setFormat);
@@ -92,7 +100,7 @@ export const BottomBar = () => {
   };
 
   React.useEffect(() => {
-    if (data?.name) window.document.title = `${data.name} | JSON Crack`;
+    if (data?.name) window.document.title = `${data.name} | Lineagentic`;
   }, [data]);
 
   return (
@@ -123,21 +131,9 @@ export const BottomBar = () => {
             </Flex>
           )}
         </StyledBottomBarItem>
-        <StyledBottomBarItem
-          onClick={() => {
-            toggleLiveTransform(!liveTransformEnabled);
-            gaEvent("toggle_live_transform");
-          }}
-        >
-          {liveTransformEnabled ? <VscSync /> : <VscSyncIgnored />}
-          <Text fz="xs">Live Transform</Text>
-        </StyledBottomBarItem>
-        {!liveTransformEnabled && (
-          <StyledBottomBarItem onClick={() => setContents({})} disabled={!!error}>
-            <VscRunAll />
-            Click to Transform
-          </StyledBottomBarItem>
-        )}
+        <StyledCustomText>
+          We customized jsoncrack opensource to suit our visualization usecases
+        </StyledCustomText>
       </StyledLeft>
 
       <StyledRight>

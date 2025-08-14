@@ -4,8 +4,7 @@ import { Flex, Group, Button } from "@mantine/core";
 import styled from "styled-components";
 import toast from "react-hot-toast";
 import { AiOutlineFullscreen } from "react-icons/ai";
-import { FaCrown, FaGithub } from "react-icons/fa6";
-import { LuLink } from "react-icons/lu";
+import { FaGithub } from "react-icons/fa6";
 import { JSONCrackLogo } from "../../../layout/JsonCrackLogo";
 import { useModal } from "../../../store/useModal";
 import { FileMenu } from "./FileMenu";
@@ -56,34 +55,9 @@ export const Toolbar = () => {
         <FileMenu />
         <ViewMenu />
         <ToolsMenu />
-        <Button
-          component={Link}
-          href="https://todiagram.com/editor?utm_source=jsoncrack&utm_medium=toolbar"
-          target="_blank"
-          rel="noopener"
-          autoContrast
-          color="yellow"
-          variant="light"
-          size="compact-xs"
-          fz="12"
-          fw="600"
-          leftSection={<FaCrown />}
-        >
-          Try Pro
-        </Button>
       </Group>
       <Group gap="xs" justify="right" w="100%" style={{ flexWrap: "nowrap" }}>
-        <Button
-          color="gray"
-          fz="12"
-          leftSection={<LuLink />}
-          size="compact-sm"
-          variant="default"
-          onClick={() => setVisible("UpgradeModal", true)}
-        >
-          Share
-        </Button>
-        <Link href="https://github.com/AykutSarac/jsoncrack.com" rel="noopener" target="_blank">
+        <Link href="https://github.com/alishams21/lineagentic" rel="noopener" target="_blank">
           <StyledToolElement title="GitHub">
             <FaGithub size="18" />
           </StyledToolElement>

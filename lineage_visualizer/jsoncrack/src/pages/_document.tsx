@@ -35,6 +35,11 @@ class MyDocument extends Document {
       <Html lang="en">
         <Head>
           <ColorSchemeScript />
+          <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
+          <link rel="alternate icon" type="image/png" href="/assets/192.png?v=2" />
+          <link rel="apple-touch-icon" href="/assets/192.png?v=2" />
+          <link rel="manifest" href="/manifest.json?v=2" />
+          <meta name="theme-color" content="#8b5cf6" />
         </Head>
         <body>
           <Main />
