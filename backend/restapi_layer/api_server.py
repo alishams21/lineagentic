@@ -70,7 +70,6 @@ async def analyze_query(request: QueryRequest):
     """
     try:
         result = await lineage_service.analyze_query(
-            query=request.query,
             agent_name=request.agent_name,
             model_name=request.model_name,
             save_to_db=request.save_to_db,

@@ -1,7 +1,7 @@
 import asyncio
 import sys
 import os
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Union
 import json
 from datetime import datetime
 import uuid
@@ -18,12 +18,13 @@ from .events_models import (
     ColumnLineageField, InputField, Transformation,
     EnvironmentVariable
 )
+from .agent_result_models import AgentResult
 
 
 class AgentFramework:
     
     def __init__(self, agent_name: str, model_name: str = "gpt-4o-mini", 
-                 event_ingestion_request: Event = None):
+                 source_code: str = None):
         """
         Initialize the Agent Framework.
         
@@ -35,249 +36,21 @@ class AgentFramework:
         Raises:
             ValueError: If lineage_config is not provided   
         """
-        if not event_ingestion_request:
-            raise ValueError("event_ingestion_request is required and cannot be None")
+        if not source_code:
+            raise ValueError("source_code is required and cannot be None")
         
         self.agent_name = agent_name
         self.model_name = model_name
-        self.event_ingestion_request = event_ingestion_request
+        self.source_code = source_code
         self.agent_manager = agent_manager
+
     
-    def list_available_agents(self) -> Dict[str, Dict[str, Any]]:
-        """List all available agents"""
-        return self.agent_manager.list_agents()
     
-    def get_supported_operations(self) -> Dict[str, list]:
-        """Get all supported operations from all agents""" 
-        return self.agent_manager.get_supported_operations()
-    
-    def get_agents_for_operation(self, operation: str) -> list:
-        """Get all agents that support a specific operation"""
-        return self.agent_manager.get_agents_for_operation(operation)
-    
-    def get_event_metadata(self) -> Dict[str, Any]:
-        """Get the complete event metadata"""
-        config = self.event_ingestion_request
-        
-        # Build the event structure
-        event = {
-            "eventType": config.event_type,
-            "eventTime": config.event_time,
-            "run": self._build_run_metadata(config.run),
-            "job": self._build_job_metadata(config.job),
-            "inputs": [self._build_input_metadata(input_data) for input_data in config.inputs],
-            "outputs": [self._build_output_metadata(output_data) for output_data in config.outputs]
-        }
-        
-        return event
-    
-    def _build_run_metadata(self, run: Run) -> Dict[str, Any]:
-        """Build run metadata"""
-        run_metadata = {
-            "runId": run.run_id
-        }
-        
-        if run.facets:
-            run_metadata["facets"] = {}
-            if run.facets.parent:
-                run_metadata["facets"]["parent"] = {
-                    "job": {
-                        "namespace": run.facets.parent.job.namespace,
-                        "name": run.facets.parent.job.name
-                    }
-                }
-        
-        return run_metadata
-    
-    def _build_job_metadata(self, job: Job) -> Dict[str, Any]:
-        """Build job metadata"""
-        job_metadata = {
-            "namespace": job.namespace,
-            "name": job.name
-        }
-        
-        if job.version_id:
-            job_metadata["versionId"] = job.version_id
-        
-        if job.facets:
-            job_metadata["facets"] = {}
-            
-            if job.facets.source_code_location:
-                job_metadata["facets"]["sourceCodeLocation"] = {
-                    "type": job.facets.source_code_location.type,
-                    "url": job.facets.source_code_location.url,
-                    "repoUrl": job.facets.source_code_location.repo_url,
-                    "path": job.facets.source_code_location.path,
-                    "version": job.facets.source_code_location.version,
-                    "branch": job.facets.source_code_location.branch
-                }
-            
-            if job.facets.source_code:
-                job_metadata["facets"]["sourceCode"] = {
-                    "language": job.facets.source_code.language,
-                    "sourceCode": job.facets.source_code.source_code
-                }
-            
-            if job.facets.job_type:
-                job_metadata["facets"]["jobType"] = {
-                    "processingType": job.facets.job_type.processing_type,
-                    "integration": job.facets.job_type.integration,
-                    "jobType": job.facets.job_type.job_type
-                }
-            
-            if job.facets.documentation:
-                job_metadata["facets"]["documentation"] = {
-                    "description": job.facets.documentation.description,
-                    "contentType": job.facets.documentation.content_type
-                }
-            
-            if job.facets.ownership:
-                job_metadata["facets"]["ownership"] = {
-                    "owners": [
-                        {"name": owner.name, "type": owner.type} 
-                        for owner in job.facets.ownership.owners
-                    ]
-                }
-            
-            if job.facets.environment_variables:
-                job_metadata["facets"]["environmentVariables"] = [
-                    {"name": env.name, "value": env.value} 
-                    for env in job.facets.environment_variables
-                ]
-        
-        return job_metadata
-    
-    def _build_input_metadata(self, input_data: Input) -> Dict[str, Any]:
-        """Build input metadata"""
-        input_metadata = {
-            "namespace": input_data.namespace,
-            "name": input_data.name
-        }
-        
-        if input_data.version_id:
-            input_metadata["versionId"] = input_data.version_id
-        
-        if input_data.facets:
-            input_metadata["facets"] = {}
-            
-            if input_data.facets.schema:
-                input_metadata["facets"]["schema"] = {
-                    "fields": [
-                        {
-                            "name": field.name,
-                            "type": field.type,
-                            "description": field.description,
-                            "versionId": field.version_id
-                        }
-                        for field in input_data.facets.schema.fields
-                    ]
-                }
-            
-            if input_data.facets.tags:
-                input_metadata["facets"]["tags"] = [
-                    {"key": tag.key, "value": tag.value, "source": tag.source}
-                    for tag in input_data.facets.tags
-                ]
-            
-            if input_data.facets.ownership:
-                input_metadata["facets"]["ownership"] = {
-                    "owners": [
-                        {"name": owner.name, "type": owner.type}
-                        for owner in input_data.facets.ownership.owners
-                    ]
-                }
-            
-            if input_data.facets.input_statistics:
-                input_metadata["facets"]["inputStatistics"] = {
-                    "rowCount": input_data.facets.input_statistics.row_count,
-                    "fileCount": input_data.facets.input_statistics.file_count,
-                    "size": input_data.facets.input_statistics.size
-                }
-            
-            if input_data.facets.environment_variables:
-                input_metadata["facets"]["environmentVariables"] = [
-                    {"name": env.name, "value": env.value}
-                    for env in input_data.facets.environment_variables
-                ]
-        
-        return input_metadata
-    
-    def _build_output_metadata(self, output_data: Output) -> Dict[str, Any]:
-        """Build output metadata"""
-        output_metadata = {
-            "namespace": output_data.namespace,
-            "name": output_data.name
-        }
-        
-        if output_data.version_id:
-            output_metadata["versionId"] = output_data.version_id
-        
-        if output_data.facets:
-            output_metadata["facets"] = {}
-            
-            if output_data.facets.column_lineage:
-                output_metadata["facets"]["columnLineage"] = {
-                    "fields": {
-                        field_name: {
-                            "inputFields": [
-                                {
-                                    "namespace": input_field.namespace,
-                                    "name": input_field.name,
-                                    "field": input_field.field,
-                                    "transformations": [
-                                        {
-                                            "type": trans.type,
-                                            "subtype": trans.subtype,
-                                            "description": trans.description,
-                                            "masking": trans.masking
-                                        }
-                                        for trans in input_field.transformations
-                                    ]
-                                }
-                                for input_field in field_data.input_fields
-                            ]
-                        }
-                        for field_name, field_data in output_data.facets.column_lineage.fields.items()
-                    }
-                }
-            
-            if output_data.facets.tags:
-                output_metadata["facets"]["tags"] = [
-                    {"key": tag.key, "value": tag.value, "source": tag.source}
-                    for tag in output_data.facets.tags
-                ]
-            
-            if output_data.facets.ownership:
-                output_metadata["facets"]["ownership"] = {
-                    "owners": [
-                        {"name": owner.name, "type": owner.type}
-                        for owner in output_data.facets.ownership.owners
-                    ]
-                }
-            
-            if output_data.facets.output_statistics:
-                output_metadata["facets"]["outputStatistics"] = {
-                    "rowCount": output_data.facets.output_statistics.row_count,
-                    "fileCount": output_data.facets.output_statistics.file_count,
-                    "size": output_data.facets.output_statistics.size
-                }
-            
-            if output_data.facets.environment_variables:
-                output_metadata["facets"]["environmentVariables"] = [
-                    {"name": env.name, "value": env.value}
-                    for env in output_data.facets.environment_variables
-                ]
-        
-        return output_metadata
-    
-    async def run_agent_plugin(self, agent_name: str, query: str, 
-                              **kwargs) -> Dict[str, Any]:
+    async def run_agent_plugin(self, **kwargs) -> Dict[str, Any]:
         """
-        Run a specific agent with a query.
+        Run a specific agent with a source code.
         
         Args:
-            agent_name (str): The name of the agent to use
-            query (str): The query to analyze
             **kwargs: Additional arguments to pass to the agent
             
         Returns:
@@ -289,26 +62,62 @@ class AgentFramework:
             # Create the agent using the plugin's factory function
             agent = self.agent_manager.create_agent(
                 agent_name=self.agent_name, 
-                query=query, 
+                source_code=self.source_code, 
                 model_name=self.model_name,
                 **kwargs
             )
             
             # Run the agent
             results = await agent.run()
-            
-            # Get the base event metadata
-            event_metadata = self.get_event_metadata()
-            
-            # Merge event metadata directly into results
-            results.update(event_metadata)
-
-            
+                                  
             return results
             
         except Exception as e:
-            print(f"Error running agent {agent_name}: {e}")
+            print(f"Error running agent {self.agent_name}: {e}")
             return {"error": str(e)}
+
+    def map_results_to_objects(self, results: Dict[str, Any]) -> Union[AgentResult, Dict[str, Any]]:
+        """
+        Map JSON results from agent to structured AgentResult objects.
+        
+        Args:
+            results: Dictionary containing the agent results
+            
+        Returns:
+            AgentResult: Structured object representation of the results, or original dict if mapping fails
+        """
+        try:
+            # Check if results contain the expected structure
+            if not isinstance(results, dict):
+                return results
+            
+            # Check if it's an error response
+            if "error" in results:
+                return results
+            
+            # Check if it has the expected structure for lineage results
+            if "inputs" in results and "outputs" in results:
+                return AgentResult.from_dict(results)
+            
+            # If it doesn't match the expected structure, return as-is
+            return results
+            
+        except Exception as e:
+            print(f"Error mapping results to objects: {e}")
+            return results
+
+    async def run_agent_plugin_with_objects(self, **kwargs) -> Union[AgentResult, Dict[str, Any]]:
+        """
+        Run a specific agent and return structured objects instead of raw dictionaries.
+        
+        Args:
+            **kwargs: Additional arguments to pass to the agent
+            
+        Returns:
+            Union[AgentResult, Dict[str, Any]]: Structured AgentResult object or error dict
+        """
+        raw_results = await self.run_agent_plugin(**kwargs)
+        return self.map_results_to_objects(raw_results)
 
 
 # Example usage and main function
@@ -345,8 +154,8 @@ async def main():
                     branch="main"
                 ),
                 source_code=SourceCode(
-                    language="python",
-                    source_code="def process_customers():\n    # ETL logic here\n    pass"
+                    language="sql",
+                    source_code="-- SQL query will be set later"
                 ),
                 job_type=JobType(
                     processing_type="BATCH",
@@ -477,41 +286,63 @@ async def main():
         ]
     )
     
-    framework = AgentFramework(
-        agent_name="airflow-lineage-agent", 
-        model_name="gpt-4o-mini",
-        event_ingestion_request=event_ingestion_request
-    )
-
     # Test query for lineage analysis
     test_query = """
-    from airflow import DAG
-    from airflow.operators.python import PythonOperator
-    from datetime import datetime
-    import pandas as pd
-
-    def transform_customer_data():
-        df = pd.read_csv('/data/input/customers.csv')
-        df['customer_name'] = df['customer_name'].str.strip().str.title()
-        df.to_csv('/data/output/cleaned_customers.csv', index=False)
-
-    with DAG('customer_etl', schedule_interval='@daily') as dag:
-        transform_task = PythonOperator(
-            task_id='transform_customers',
-            python_callable=transform_customer_data
-        )
+    -- Read from customer_4 and orders tables, then write to customer_5
+    INSERT INTO customer_5 (
+        customer_id,
+        customer_name,
+        email,
+        region,
+        status,
+        total_orders,
+        total_revenue,
+        avg_order_value,
+        last_order_date,
+        processed_date
+    )
+    SELECT 
+        c.customer_id,
+        c.customer_name,
+        c.email,
+        c.region,
+        c.status,
+        COUNT(DISTINCT o.order_id) AS total_orders,
+        SUM(oi.item_total) AS total_revenue,
+        AVG(oi.item_total) AS avg_order_value,
+        MAX(o.order_date) AS last_order_date,
+        CURRENT_DATE AS processed_date
+    FROM 
+        customer_4 c
+    JOIN 
+        orders o ON c.customer_id = o.customer_id
+    JOIN 
+        order_items oi ON o.order_id = oi.order_id
+    WHERE 
+        c.status = 'active'
+        AND o.order_date BETWEEN '2025-01-01' AND '2025-06-30'
+    GROUP BY 
+        c.customer_id,
+        c.customer_name,
+        c.email,
+        c.region,
+        c.status
+    HAVING 
+        SUM(oi.item_total) > 5000
+    ORDER BY 
+        total_revenue DESC;
     """
 
     # Update the source code in the config
     event_ingestion_request.job.facets.source_code.source_code = test_query
-
-    event_ingestion_result = await framework.run_agent_plugin(
-        "airflow-lineage-agent", 
-        test_query
+    
+    framework = AgentFramework(
+        agent_name="sql-lineage-agent", 
+        model_name="gpt-4o-mini",
+        source_code=test_query
     )
-    print("✅ Lineage analysis completed successfully!")
-    print(f"📊 Result keys: {list(event_ingestion_result.keys())}")
-    print(json.dumps(event_ingestion_result, indent=6))
+
+    agent_result = await framework.run_agent_plugin_with_objects()
 
 
 if __name__ == "__main__":

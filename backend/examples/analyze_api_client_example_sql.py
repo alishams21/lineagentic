@@ -35,17 +35,48 @@ class SQLLineageAPIClient:
         Returns:
             Analysis results
         """
+        # If no event_ingestion_request provided, create a basic one with the query
+        if event_ingestion_request is None:
+            event_ingestion_request = {
+                "event_type": "START",
+                "event_time": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                "run": {
+                    "run_id": str(uuid.uuid4()),
+                    "facets": {}
+                },
+                "job": {
+                    "namespace": "default",
+                    "name": "sql-query-analysis",
+                    "facets": {
+                        "source_code": {
+                            "language": "sql",
+                            "source_code": query
+                        }
+                    }
+                },
+                "inputs": [],
+                "outputs": []
+            }
+        else:
+            # Ensure the query is set in the event_ingestion_request
+            if "job" not in event_ingestion_request:
+                event_ingestion_request["job"] = {}
+            if "facets" not in event_ingestion_request["job"]:
+                event_ingestion_request["job"]["facets"] = {}
+            if "source_code" not in event_ingestion_request["job"]["facets"]:
+                event_ingestion_request["job"]["facets"]["source_code"] = {}
+            
+            # Set the query in the source_code
+            event_ingestion_request["job"]["facets"]["source_code"]["source_code"] = query
+            event_ingestion_request["job"]["facets"]["source_code"]["language"] = "sql"
+        
         payload = {
-            "query": query,
             "model_name": model_name,
             "agent_name": agent_name,
             "save_to_db": save_to_db,
-            "save_to_neo4j": save_to_neo4j
+            "save_to_neo4j": save_to_neo4j,
+            "event_ingestion_request": event_ingestion_request
         }
-        
-        # Add event ingestion request if provided
-        if event_ingestion_request:
-            payload["event_ingestion_request"] = event_ingestion_request
         
         response = requests.post(f"{self.base_url}/analyze", json=payload)
         if response.status_code != 200:
@@ -114,8 +145,6 @@ def main():
         total_revenue DESC;
     """
 
-    # Example 3: Run with proper EventIngestionRequest structure
-    print("Running SQL lineage agent with proper EventIngestionRequest structure...")
     
     # Create the event ingestion request with proper structure
     event_ingestion_request = {
@@ -326,7 +355,7 @@ def main():
         query=sample_query,
         event_ingestion_request=event_ingestion_request
     )
-    print(f"SQL lineage agent result with proper EventIngestionRequest: {json.dumps(lineage_result_proper, indent=8)}")
+    print(f"SQL lineage agent result with proper EventIngestionRequest: {json.dumps(lineage_result_proper, indent=2)}")
     print()
 
 

@@ -450,8 +450,7 @@ def spark_lineage_event_composer():
             ---
 
             ### Required Output Format (Example):
-
-            {
+           {
                 "inputs": [
                     {
                         "namespace": "<INPUT_NAMESPACE>",
@@ -465,84 +464,38 @@ def spark_lineage_event_composer():
                                     "description": "<FIELD_DESCRIPTION>"
                                     }
                                 ]
-                            },
-                            "tags": [
-                                {
-                                    "name": "<TAG_NAME>",
-                                    "value": "<TAG_VALUE>"
-                                    "source": "<SOURCE>"
-                                }
-                            ],
-                            "inputStatistics": {
-                                "rowCount": "<ROW_COUNT>",
-                                "fileCount": "<FILE_COUNT>",
-                                "size": "<SIZE>"
-                            },
-                            "storage": {
-                                "storageLayer": "<STORAGE_LAYER>",
-                                "fileFormat": "<FILE_FORMAT>"
-                            },
-                            "datasetType": {
-                                "datasetType": "<DATASET_TYPE>",
-                                "subType": "<SUB_TYPE>"
-                            },
-                            "lifecycle": {
-                                "lifecycle": "<LIFECYCLE>"
-                            },
-                            "ownership": {
-                                "owners": [ 
-                                    {
-                                        "name": "<OWNER_NAME>",
-                                        "type": "<OWNER_TYPE>"
-                                    }
-                                ]
                             }
                         }
                     }
                 ],
                 "outputs": [
                     {
-                    "namespace": "<OUTPUT_NAMESPACE>",
-                    "name": "<OUTPUT_NAME>",
-                    "facets": {
-                        "columnLineage": {
-                            "fields": {
-                                "<OUTPUT_FIELD_NAME>": {
-                                "inputFields": [
-                                    {
-                                    "namespace": "<INPUT_NAMESPACE>",
-                                    "name": "<INPUT_NAME>",
-                                    "field": "<INPUT_FIELD_NAME>",
-                                    "transformations": [
+                        "namespace": "<OUTPUT_NAMESPACE>",
+                        "name": "<OUTPUT_NAME>",
+                        "facets": {
+                            "columnLineage": {
+                                "fields": {
+                                    "<OUTPUT_FIELD_NAME>": {
+                                    "inputFields": [
                                         {
-                                        "type": "<TRANSFORMATION_TYPE>",
-                                        "subtype": "<SUBTYPE>",
-                                        "description": "<DESCRIPTION>",
-                                        "masking": false
+                                        "namespace": "<INPUT_NAMESPACE>",
+                                        "name": "<INPUT_NAME>",
+                                        "field": "<INPUT_FIELD_NAME>",
+                                        "transformations": [
+                                            {
+                                            "type": "<TRANSFORMATION_TYPE>",
+                                            "subtype": "<SUBTYPE>",
+                                            "description": "<DESCRIPTION>",
+                                            "masking": false
+                                            }
+                                        ]
                                         }
                                     ]
                                     }
-                                ]
                                 }
                             }
-                        },
-                        "outputStatistics": {
-                            "rowCount": "<ROW_COUNT>",
-                            "fileCount": "<FILE_COUNT>",
-                            "size": "<SIZE>"
-                        },
-                        "ownership": {
-                                "owners": [ 
-                                    {
-                                        "name": "<OWNER_NAME>",
-                                        "type": "<OWNER_TYPE>"
-                                    }
-                                ]
                         }
-                    }
                     }
                 ]
             }
-            
-
         """         

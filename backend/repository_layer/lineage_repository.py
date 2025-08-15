@@ -85,7 +85,7 @@ class LineageRepository:
         except Exception as e:
             print(f"Error creating tables: {e}")
     
-    def save_query_analysis(self, query: str, agent_name: str, model_name: str, 
+    def save_query_analysis(self, source_code: str, agent_name: str, model_name: str, 
                           result: Dict[str, Any], status: str = "completed") -> int:
         """Save query analysis results to database"""
         # Check if we're using MySQL or SQLite
@@ -105,7 +105,7 @@ class LineageRepository:
         try:
             cursor = self.db_connector.execute_query(
                 insert_query, 
-                (query, agent_name, model_name, json.dumps(result), status)
+                (source_code, agent_name, model_name, json.dumps(result), status)
             )
             self.db_connector.connection.commit()
             

@@ -10,6 +10,7 @@ from typing import Any, Dict
 
 import yaml
 from neo4j import GraphDatabase
+from ..models.models import EventIngestionRequest
 
 def utc_now_ms() -> int:
     return int(dt.datetime.utcnow().timestamp() * 1000)
@@ -153,25 +154,25 @@ class Neo4jMetadataWriter:
                 json=json.dumps(payload, ensure_ascii=False), now=utc_now_ms()
             )
 
-def ingest_openlineage_event(event: Dict[str, Any], writer: Neo4jMetadataWriter):
-    event_type = event.get("eventType")
-    event_time = event.get("eventTime")
+def ingest_openlineage_event(agent_result: Dict[str, Any], event_ingestion_request: EventIngestionRequest, writer: Neo4jMetadataWriter):
+    event_type = event_ingestion_request.event_type
+    event_time = event_ingestion_request.event_time
     ts_ms = to_ms(event_time) if event_time else utc_now_ms()
 
-    run = event.get("run", {}) or {}
-    run_id = run.get("runId") or f"run-{ts_ms}"
-    parent = ((run.get("facets") or {}).get("parent") or {}).get("job") or {}
+    run = event_ingestion_request.run
+    run_id = run.run_id if hasattr(run, 'run_id') else f"run-{ts_ms}"
+    parent = run.facets.parent.job if hasattr(run, 'facets') and hasattr(run.facets, 'parent') and hasattr(run.facets.parent, 'job') else None
 
-    job = event.get("job", {}) or {}
-    j_ns = job.get("namespace") or "default_ns"
-    j_name = job.get("name") or "job"
-    j_ver  = job.get("versionId") or "v0"
-    j_facets = job.get("facets") or {}
+    job = event_ingestion_request.job
+    j_ns = job.namespace if hasattr(job, 'namespace') else "default_ns"
+    j_name = job.name if hasattr(job, 'name') else "job"
+    j_ver = job.version_id if hasattr(job, 'version_id') else "v0"
+    j_facets = job.facets if hasattr(job, 'facets') else None
 
-    job_type = j_facets.get("jobType") or {}
-    integration = job_type.get("integration") or "unknown"
-    processing_type = job_type.get("processingType")
-    job_type_name = job_type.get("jobType")
+    job_type = j_facets.job_type if hasattr(j_facets, 'job_type') else None
+    integration = job_type.integration if job_type and hasattr(job_type, 'integration') else "unknown"
+    processing_type = job_type.processing_type if job_type and hasattr(job_type, 'processing_type') else None
+    job_type_name = job_type.job_type if job_type and hasattr(job_type, 'job_type') else None
 
     flow_id = f"{j_ns}.{j_name}"
     flow_urn = urn_dataflow(integration, flow_id, env="PROD")
@@ -194,35 +195,35 @@ def ingest_openlineage_event(event: Dict[str, Any], writer: Neo4jMetadataWriter)
         "integration": integration, "processingType": processing_type, "jobType": job_type_name
     })
 
-    if "documentation" in j_facets:
-        doc = j_facets["documentation"]
+    if hasattr(j_facets, 'documentation') and j_facets.documentation:
+        doc = j_facets.documentation
         writer.upsert_versioned_aspect("DataJob", job_urn, "documentation", {
-            "description": doc.get("description"),
-            "contentType": doc.get("contentType")
+            "description": doc.description if hasattr(doc, 'description') else None,
+            "contentType": doc.content_type if hasattr(doc, 'content_type') else None
         })
 
-    if "sourceCodeLocation" in j_facets:
-        writer.upsert_versioned_aspect("DataJob", job_urn, "sourceCodeLocation", j_facets["sourceCodeLocation"])
+    if hasattr(j_facets, 'source_code_location') and j_facets.source_code_location:
+        writer.upsert_versioned_aspect("DataJob", job_urn, "sourceCodeLocation", j_facets.source_code_location.__dict__)
 
-    if "sourceCode" in j_facets:
-        sc = j_facets["sourceCode"]
-        code = sc.get("sourceCode", "")
+    if hasattr(j_facets, 'source_code') and j_facets.source_code:
+        sc = j_facets.source_code
+        code = sc.source_code if hasattr(sc, 'source_code') else ""
         writer.upsert_versioned_aspect("DataJob", job_urn, "sourceCode", {
-            "language": sc.get("language"),
+            "language": sc.language if hasattr(sc, 'language') else None,
             "snippet": code if len(code) < 4000 else code[:4000] + "..."
         })
 
-    if "environmentVariables" in j_facets:
-        envs = j_facets["environmentVariables"]
-        safe_envs = [{ "name": e.get("name"), "value": mask_secret(e.get("name",""), e.get("value","")) } for e in envs]
+    if hasattr(j_facets, 'environment_variables') and j_facets.environment_variables:
+        envs = j_facets.environment_variables
+        safe_envs = [{ "name": e.name if hasattr(e, 'name') else "", "value": mask_secret(e.name if hasattr(e, 'name') else "", e.value if hasattr(e, 'value') else "") } for e in envs]
         writer.upsert_versioned_aspect("DataJob", job_urn, "environmentProperties", {"env": safe_envs})
 
-    if "ownership" in j_facets:
-        owners = j_facets["ownership"].get("owners", [])
-        writer.upsert_versioned_aspect("DataJob", job_urn, "ownership", {"owners": owners})
+    if hasattr(j_facets, 'ownership') and j_facets.ownership:
+        owners = j_facets.ownership.owners if hasattr(j_facets.ownership, 'owners') else []
+        writer.upsert_versioned_aspect("DataJob", job_urn, "ownership", {"owners": [o.__dict__ for o in owners]})
         for o in owners:
-            t = (o.get("type") or "").upper()
-            name = o.get("name") or ""
+            t = (o.type if hasattr(o, 'type') else "").upper()
+            name = o.name if hasattr(o, 'name') else ""
             if t == "INDIVIDUAL":
                 user_urn = urn_corpuser(email_to_username(name))
                 writer.upsert_entity("CorpUser", user_urn, {"username": email_to_username(name)})
@@ -235,16 +236,16 @@ def ingest_openlineage_event(event: Dict[str, Any], writer: Neo4jMetadataWriter)
     writer.append_timeseries_aspect("DataJob", job_urn, "dataJobRun", {
         "eventType": event_type,
         "runId": run_id,
-        "parent": {"namespace": parent.get("namespace"), "name": parent.get("name")} if parent else None
+        "parent": {"namespace": parent.namespace if parent and hasattr(parent, 'namespace') else None, "name": parent.name if parent and hasattr(parent, 'name') else None} if parent else None
     }, timestamp_ms=ts_ms)
 
-    inputs = event.get("inputs", []) or []
+    inputs = agent_result.get("inputs", []) or []
     input_dataset_urns = []
 
     for ds in inputs:
         ns = ds.get("namespace") or "unknown_platform"
         name = ds.get("name") or "unknown_name"
-        version = ds.get("versionId")
+        version = event_ingestion_request.job.facets.schema.version_id if hasattr(event_ingestion_request.job.facets, 'schema') and hasattr(event_ingestion_request.job.facets.schema, 'version_id') else "v0"
         ds_urn = urn_dataset(ns, name, env="PROD")
 
         writer.upsert_entity("Dataset", ds_urn, {"platform": ns, "name": name, "env": "PROD", "versionId": version})
@@ -267,10 +268,10 @@ def ingest_openlineage_event(event: Dict[str, Any], writer: Neo4jMetadataWriter)
             }
             writer.upsert_versioned_aspect("Dataset", ds_urn, "schemaMetadata", schema_payload)
 
-        if "tags" in facets:
-            tags = facets["tags"]
+        # Handle tags if present in the dataset facets
+        if ds.get("facets", {}).get("tags"):
             tag_urns = []
-            for t in tags:
+            for t in ds.get("facets", {}).get("tags", []):
                 k, v, src = t.get("key"), t.get("value"), t.get("source")
                 t_urn = urn_tag(k, v)
                 writer.upsert_entity("Tag", t_urn, {"key": k, "value": v})
@@ -278,8 +279,9 @@ def ingest_openlineage_event(event: Dict[str, Any], writer: Neo4jMetadataWriter)
                 tag_urns.append(t_urn)
             writer.upsert_versioned_aspect("Dataset", ds_urn, "globalTags", {"tags": tag_urns})
 
-        if "ownership" in facets:
-            owners = facets["ownership"].get("owners", [])
+        # Handle ownership if present in the dataset facets
+        if ds.get("facets", {}).get("ownership"):
+            owners = ds.get("facets", {}).get("ownership", {}).get("owners", [])
             writer.upsert_versioned_aspect("Dataset", ds_urn, "ownership", {"owners": owners})
             for o in owners:
                 t = (o.get("type") or "").upper()
@@ -293,8 +295,9 @@ def ingest_openlineage_event(event: Dict[str, Any], writer: Neo4jMetadataWriter)
                     writer.upsert_entity("CorpGroup", group_urn, {"name": name})
                     writer.create_relationship("CorpGroup", group_urn, "OWNS", "Dataset", ds_urn, {"via":"aspect"})
 
-        if "inputStatistics" in facets:
-            stats = facets["inputStatistics"]
+        # Handle input statistics if present in the dataset facets
+        if ds.get("facets", {}).get("inputStatistics"):
+            stats = ds.get("facets", {}).get("inputStatistics", {})
             writer.append_timeseries_aspect("Dataset", ds_urn, "datasetProfile", {
                 "rowCount": stats.get("rowCount"),
                 "fileCount": stats.get("fileCount"),
@@ -302,20 +305,22 @@ def ingest_openlineage_event(event: Dict[str, Any], writer: Neo4jMetadataWriter)
                 "kind": "input"
             }, timestamp_ms=ts_ms)
 
-        if "environmentVariables" in ds:
-            envs = ds.get("environmentVariables", [])
+        # Handle environment variables if present in the dataset facets
+        if ds.get("facets", {}).get("environmentVariables"):
+            envs = ds.get("facets", {}).get("environmentVariables", [])
             safe_envs = [{ "name": e.get("name"), "value": mask_secret(e.get("name",""), e.get("value","")) } for e in envs]
             writer.upsert_versioned_aspect("Dataset", ds_urn, "datasetProperties", {"env": safe_envs})
 
         input_dataset_urns.append(ds_urn)
 
-    outputs = event.get("outputs", []) or []
+    outputs = agent_result.get("outputs", []) or []
     output_dataset_urns = []
 
     for ds in outputs:
         ns = ds.get("namespace") or "unknown_platform"
         name = ds.get("name") or "unknown_name"
-        version = ds.get("versionId")
+        version = getattr(event_ingestion_request.job.facets, 'schema', None)
+        version = getattr(version, 'versionId', 'v0') if version else 'v0'
         ds_urn = urn_dataset(ns, name, env="PROD")
 
         writer.upsert_entity("Dataset", ds_urn, {"platform": ns, "name": name, "env": "PROD", "versionId": version})
@@ -323,8 +328,8 @@ def ingest_openlineage_event(event: Dict[str, Any], writer: Neo4jMetadataWriter)
         facets = ds.get("facets", {}) or {}
 
         # columnLineage (build edges) and write 'transformation' Column aspect
-        if "columnLineage" in facets:
-            cl = facets["columnLineage"].get("fields", {})
+        if ds.get("facets", {}).get("columnLineage"):
+            cl = ds.get("facets", {}).get("columnLineage", {}).get("fields", {})
             for out_col, spec in cl.items():
                 out_col_urn = urn_column(ds_urn, out_col)
                 writer.upsert_entity("Column", out_col_urn, {"datasetUrn": ds_urn, "fieldPath": out_col})
@@ -367,10 +372,10 @@ def ingest_openlineage_event(event: Dict[str, Any], writer: Neo4jMetadataWriter)
                     "notes": "auto-generated from columnLineage facet"
                 })
 
-        if "tags" in facets:
-            tags = facets["tags"]
+        # Handle tags if present in the dataset facets
+        if ds.get("facets", {}).get("tags"):
             tag_urns = []
-            for t in tags:
+            for t in ds.get("facets", {}).get("tags", []):
                 k, v, src = t.get("key"), t.get("value"), t.get("source")
                 t_urn = urn_tag(k, v)
                 writer.upsert_entity("Tag", t_urn, {"key": k, "value": v})
@@ -378,8 +383,9 @@ def ingest_openlineage_event(event: Dict[str, Any], writer: Neo4jMetadataWriter)
                 tag_urns.append(t_urn)
             writer.upsert_versioned_aspect("Dataset", ds_urn, "globalTags", {"tags": tag_urns})
 
-        if "ownership" in facets:
-            owners = facets["ownership"].get("owners", [])
+        # Handle ownership if present in the dataset facets
+        if ds.get("facets", {}).get("ownership"):
+            owners = ds.get("facets", {}).get("ownership", {}).get("owners", [])
             writer.upsert_versioned_aspect("Dataset", ds_urn, "ownership", {"owners": owners})
             for o in owners:
                 t = (o.get("type") or "").upper()
@@ -393,8 +399,9 @@ def ingest_openlineage_event(event: Dict[str, Any], writer: Neo4jMetadataWriter)
                     writer.upsert_entity("CorpGroup", group_urn, {"name": name})
                     writer.create_relationship("CorpGroup", group_urn, "OWNS", "Dataset", ds_urn, {"via":"aspect"})
 
-        if "outputStatistics" in facets:
-            stats = facets["outputStatistics"]
+        # Handle output statistics if present in the dataset facets
+        if ds.get("facets", {}).get("outputStatistics"):
+            stats = ds.get("facets", {}).get("outputStatistics", {})
             writer.append_timeseries_aspect("Dataset", ds_urn, "datasetProfile", {
                 "rowCount": stats.get("rowCount"),
                 "fileCount": stats.get("fileCount"),
@@ -430,7 +437,7 @@ def main():
         registry = yaml.safe_load(f)
 
     with open(args.event, "r") as f:
-        event = json.load(f)
+        agent_result = json.load(f)
 
     uri = os.environ.get("NEO4J_URI", "bolt://localhost:7687")
     user = os.environ.get("NEO4J_USER", "neo4j")
@@ -438,7 +445,7 @@ def main():
 
     writer = Neo4jMetadataWriter(uri, user, pwd, registry)
     try:
-        ingest_openlineage_event(event, writer)
+        ingest_openlineage_event(agent_result, event_ingestion_request, writer)
         print("Ingestion complete.")
         print("Try queries:")
         print("  MATCH (c:Column)-[r:DERIVES_FROM]->(i:Column) RETURN c,r,i LIMIT 25;")

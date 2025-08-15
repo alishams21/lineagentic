@@ -187,12 +187,11 @@ class EventIngestionRequest(BaseModel):
 
 
 class QueryRequest(BaseModel):
-    query: str = Field(..., description="The query to analyze")
     model_name: Optional[str] = Field(default="gpt-4o-mini", description="The model to use for analysis")
     agent_name: Optional[str] = Field(default="sql", description="The agent to use for analysis")
     save_to_db: Optional[bool] = Field(default=True, description="Whether to save results to database")
     save_to_neo4j: Optional[bool] = Field(default=True, description="Whether to save lineage data to Neo4j")
-    event_ingestion_request: Optional[EventIngestionRequest] = Field(default=None, description="Lineage configuration")
+    event_ingestion_request: Optional[EventIngestionRequest] = Field(default=None, description="Event ingestion request")
 
 
 class BatchQueryRequest(BaseModel):
@@ -201,7 +200,7 @@ class BatchQueryRequest(BaseModel):
     agent_name: Optional[str] = Field(default="sql", description="The agent to use for analysis")
     save_to_db: Optional[bool] = Field(default=True, description="Whether to save results to database")
     save_to_neo4j: Optional[bool] = Field(default=True, description="Whether to save lineage data to Neo4j")
-    event_ingestion_request: Optional[EventIngestionRequest] = Field(default=None, description="Lineage configuration")
+    event_ingestion_request: Optional[EventIngestionRequest] = Field(default=None, description="Event ingestion request")
 
 
 class LineageRequest(BaseModel):

@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 from neo4j import GraphDatabase, basic_auth
 import yaml
+from ..models.models import EventIngestionRequest
 try:
     from .ingestion_model import Neo4jMetadataWriter, ingest_openlineage_event
 except ImportError:
@@ -53,17 +54,17 @@ class Neo4jIngestion:
         except Exception:
             return False
     
-    def ingest_lineage_event(self, event: Dict[str, Any]) -> Dict[str, Any]:
+    def ingest_lineage_event(self, agent_result: Dict[str, Any], event_ingestion_request: EventIngestionRequest) -> Dict[str, Any]:
         """Ingest a lineage event using the ingestion.py functionality"""
         try:
             writer = self._get_writer()
             
             # Use the existing ingestion logic from ingestion.py
-            ingest_openlineage_event(event, writer)
+            ingest_openlineage_event(agent_result, event_ingestion_request, writer)
             
             # Get basic event information for response
-            run_id = event.get("run", {}).get("runId", "unknown")
-            job_name = event.get("job", {}).get("name", "unknown")
+            run_id = event_ingestion_request.run.run_id if hasattr(event_ingestion_request.run, 'run_id') else "unknown"
+            job_name = event_ingestion_request.job.name if hasattr(event_ingestion_request.job, 'name') else "unknown"
             
             return {
                 "success": True,
