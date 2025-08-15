@@ -1,0 +1,122 @@
+graph TD
+  %% Entities
+  subgraph DF["DataFlow"]
+    DF_E[DataFlow]
+    DF_A1[dataFlowInfo]
+  end
+
+  subgraph DJ["DataJob"]
+    DJ_E[DataJob]
+    DJ_A1[dataJobInfo]
+    DJ_A2[documentation]
+    DJ_A3[sourceCodeLocation]
+    DJ_A4[sourceCode]
+    DJ_A5[environmentProperties]
+    DJ_A6[ownership]
+    DJ_A7[dataJobInputOutput]
+    DJ_A8[dataJobRun<br/>timeseries]
+  end
+
+  subgraph DS_IN["Dataset (Inputs)"]
+    DSIN_E[Dataset]
+    DSIN_A1[datasetProperties]
+    DSIN_A2[schemaMetadata]
+    DSIN_A3[ownership]
+    DSIN_A4[globalTags]
+    DSIN_A5[datasetProfile<br/>timeseries]
+  end
+
+  subgraph DS_OUT["Dataset (Outputs)"]
+    DSOUT_E[Dataset]
+    DSOUT_A1[datasetProperties]
+    DSOUT_A2[schemaMetadata]
+    DSOUT_A3[ownership]
+    DSOUT_A4[globalTags]
+    DSOUT_A5[datasetProfile<br/>timeseries]
+    DSOUT_A6[columnLineage]
+  end
+
+  subgraph COL["Column"]
+    COL_E[Column]
+    COL_A1[columnProperties]
+    COL_A2[transformation]
+  end
+
+  subgraph USER["Users & Groups"]
+    U1[CorpUser]
+    G1[CorpGroup]
+  end
+
+  subgraph TAGS["Tag"]
+    T1[Tag]
+  end
+
+  subgraph RUNS["Run"]
+    R1[Run]
+  end
+
+  %% Aspect attachment edges (entity → aspect)
+  DF_E --- DF_A1
+  DJ_E --- DJ_A1
+  DJ_E --- DJ_A2
+  DJ_E --- DJ_A3
+  DJ_E --- DJ_A4
+  DJ_E --- DJ_A5
+  DJ_E --- DJ_A6
+  DJ_E --- DJ_A7
+  DJ_E --- DJ_A8
+
+  DSIN_E --- DSIN_A1
+  DSIN_E --- DSIN_A2
+  DSIN_E --- DSIN_A3
+  DSIN_E --- DSIN_A4
+  DSIN_E --- DSIN_A5
+
+  DSOUT_E --- DSOUT_A1
+  DSOUT_E --- DSOUT_A2
+  DSOUT_E --- DSOUT_A3
+  DSOUT_E --- DSOUT_A4
+  DSOUT_E --- DSOUT_A5
+  DSOUT_E --- DSOUT_A6
+
+  COL_E --- COL_A1
+  COL_E --- COL_A2
+
+  %% Relationships between entities
+  DF_E -->|HAS_JOB| DJ_E
+  DJ_E -->|CONSUMES| DSIN_E
+  DJ_E -->|PRODUCES| DSOUT_E
+  DSOUT_E -->|UPSTREAM_OF| DSIN_E
+  DSOUT_E -->|HAS_COLUMN| COL_E
+  COL_E -->|DERIVES_FROM| COL_E
+
+  U1 -->|OWNS| DJ_E
+  G1 -->|OWNS| DJ_E
+  U1 -->|OWNS| DSIN_E
+  G1 -->|OWNS| DSIN_E
+  U1 -->|OWNS| DSOUT_E
+  G1 -->|OWNS| DSOUT_E
+
+  DSIN_E -->|TAGGED| T1
+  DSOUT_E -->|TAGGED| T1
+
+  DJ_E -->|TRIGGERED| R1
+
+  %% Legend
+  subgraph LEGEND["Legend"]
+    L1[Entity]
+    L2[Versioned Aspect]
+    L3[Timeseries Aspect]
+  end
+
+  %% Classes for styling
+  classDef entity fill:#8fd3fe,stroke:#1f78b4,color:#000,stroke-width:2px
+  classDef aspectV fill:#ffd480,stroke:#b36b00,color:#000,stroke-dasharray:3,2
+  classDef aspectTS fill:#b2f2bb,stroke:#2b8a3e,color:#000,stroke-dasharray:2,2
+  classDef helper fill:#e0c3fc,stroke:#7b2cbf,color:#000
+
+  %% Apply classes
+  class DF_E,DJ_E,DSIN_E,DSOUT_E,COL_E,U1,G1,T1,R1,L1 entity
+  class DF_A1,DJ_A1,DJ_A2,DJ_A3,DJ_A4,DJ_A5,DJ_A6,DJ_A7,DSIN_A1,DSIN_A2,DSIN_A3,DSIN_A4,DSOUT_A1,DSOUT_A2,DSOUT_A3,DSOUT_A4,DSOUT_A6,COL_A1,COL_A2,L2 aspectV
+  class DJ_A8,DSIN_A5,DSOUT_A5,L3 aspectTS
+  class COL_E helper
