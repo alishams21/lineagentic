@@ -5,13 +5,13 @@ import uvicorn
 import logging
 from pydantic import BaseModel, Field
 
-from .models import (
+from ..models.models import (
     QueryRequest,
     QueryResponse,
     HealthResponse,
     FieldLineageRequest,
     FieldLineageResponse,
-    LineageConfigRequest,
+    EventIngestionRequest,
 )
 from ..service_layer.lineage_service import LineageService
 
@@ -75,7 +75,7 @@ async def analyze_query(request: QueryRequest):
             model_name=request.model_name,
             save_to_db=request.save_to_db,
             save_to_neo4j=request.save_to_neo4j,
-            lineage_config_request=request.lineage_config
+            event_ingestion_request=request.event_ingestion_request
         )
         
         return QueryResponse(

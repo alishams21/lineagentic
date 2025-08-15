@@ -9,9 +9,10 @@ import sys
 import logging
 from pathlib import Path
 
-# Add the backend directory to the Python path
-backend_dir = Path(__file__).parent.parent  # Go up one level from repository_layer to backend
-sys.path.insert(0, str(backend_dir))
+
+# Add the repository_layer directory to the Python path
+repo_layer_dir = Path(__file__).parent
+sys.path.insert(0, str(repo_layer_dir))
 
 # Now import from the correct path - handle both direct execution and module import
 try:
@@ -59,7 +60,8 @@ def apply_constraints_to_neo4j(neo4j_ingestion: Neo4jIngestion) -> bool:
         with open(constraints_file, 'r') as f:
             constraints_content = f.read()
         
-        driver = neo4j_ingestion._get_driver()
+        writer = neo4j_ingestion._get_writer()
+        driver = writer._driver
         with driver.session() as session:
             # Split constraints by semicolon and filter out comments and empty lines
             lines = constraints_content.split('\n')
