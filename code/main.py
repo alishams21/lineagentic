@@ -201,6 +201,9 @@ def ingest_openlineage_event(event: Dict[str, Any], writer: Neo4jMetadataWriter)
         "integration": integration, "processingType": processing_type, "jobType": job_type_name
     })
 
+    # Create relationship between DataFlow and DataJob
+    writer.create_relationship("DataFlow", flow_urn, "HAS_JOB", "DataJob", job_urn, {})
+
     writer.upsert_versioned_aspect("DataJob", job_urn, "dataJobInfo", {
         "name": j_name, "namespace": j_ns, "versionId": j_ver,
         "integration": integration, "processingType": processing_type, "jobType": job_type_name
@@ -426,17 +429,10 @@ def ingest_openlineage_event(event: Dict[str, Any], writer: Neo4jMetadataWriter)
 
     for out_urn in output_dataset_urns:
         for in_urn in input_dataset_urns:
-            writer.create_relationship("Dataset", out_urn, "UPSTREAM_OF", "Dataset", in_urn, {"via":"job"})
+            writer.create_relationship("Dataset", in_urn, "UPSTREAM_OF", "Dataset", out_urn, {"via":"job"})
 
-    with writer._driver.session() as s:
-        s.run(
-            """
-            MERGE (r:Run {runId:$rid})
-            SET r.eventType=$etype, r.eventTime=$etime
-            """,
-            rid=run_id, etype=event_type, etime=event_time
-        )
-    writer.create_relationship("DataJob", job_urn, "TRIGGERED", "Run", run_id, {"at": ts_ms})
+    # Run information is already stored as dataJobRun TimeSeries aspect
+    # No need for separate Run node - it's redundant
 
 def main():
     import argparse
