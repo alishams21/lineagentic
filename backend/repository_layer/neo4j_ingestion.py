@@ -3,75 +3,75 @@ import os
 from pathlib import Path
 from typing import Dict, Any, Optional
 from neo4j import GraphDatabase, basic_auth
+import yaml
+from ..models.models import EventIngestionRequest
+try:
+    from .ingestion_model import Neo4jMetadataWriter, ingest_openlineage_event
+except ImportError:
+    # Fallback for direct execution
+    from ingestion_model import Neo4jMetadataWriter, ingest_openlineage_event
 
 
-
-def load_cypher_file(filename: str) -> str:
-    """Load a Cypher query from a file"""
-    cypher_file = Path(__file__).parent / "cypher" / filename
-    with open(cypher_file, 'r') as f:
-        return f.read()
 
 class Neo4jIngestion:
-    """Neo4j ingestion class for lineage data"""
+    """Neo4j ingestion class for lineage data using the ingestion.py functionality"""
     
-    def __init__(self, bolt_url: Optional[str] = None, username: Optional[str] = None, password: Optional[str] = None):
+    def __init__(self, bolt_url: Optional[str] = None, username: Optional[str] = None, 
+                 password: Optional[str] = None, registry_path: Optional[str] = None):
         self.bolt_url = bolt_url or os.getenv("NEO4J_BOLT_URL", "bolt://localhost:7687")
         self.username = username or os.getenv("NEO4J_USERNAME", "neo4j")
         self.password = password or os.getenv("NEO4J_PASSWORD", "password")
-        self.driver = None
-        self.ingest_event_cypher = load_cypher_file("ingest.cypher")
+        self.registry_path = registry_path or os.path.join(Path(__file__).parent, "registry.yaml")
+        self.writer = None
+        self.registry = self._load_registry()
     
-    def _get_driver(self):
-        """Get Neo4j driver, creating it if necessary"""
-        if self.driver is None:
-            self.driver = GraphDatabase.driver(self.bolt_url, auth=basic_auth(self.username, self.password))
-        return self.driver
+    def _load_registry(self) -> Dict[str, Any]:
+        """Load the registry configuration"""
+        if os.path.exists(self.registry_path):
+            with open(self.registry_path, 'r') as f:
+                return yaml.safe_load(f)
+        else:
+            return {}
+            
+    def _get_writer(self) -> Neo4jMetadataWriter:
+        """Get Neo4j writer, creating it if necessary"""
+        if self.writer is None:
+            self.writer = Neo4jMetadataWriter(
+                self.bolt_url, 
+                self.username, 
+                self.password, 
+                self.registry
+            )
+        return self.writer
     
     def is_neo4j_available(self) -> bool:
         """Check if Neo4j is available"""
         try:
-            driver = self._get_driver()
-            with driver.session() as session:
+            writer = self._get_writer()
+            with writer._driver.session() as session:
                 session.run("RETURN 1")
             return True
         except Exception:
             return False
     
-    def ingest_lineage_event(self, event: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Ingest a lineage event into Neo4j.
-        
-        Args:
-            event: OpenLineage event dictionary to ingest
-            
-        Returns:
-            Dictionary containing ingestion result with success status and metadata
-        """
+    def ingest_lineage_event(self, agent_result: Dict[str, Any], event_ingestion_request: EventIngestionRequest) -> Dict[str, Any]:
+        """Ingest a lineage event using the ingestion.py functionality"""
         try:
-            # Minimal structure checks & defaults
-            event.setdefault("inputs", [])
-            event.setdefault("outputs", [])
-            if "job" not in event or "run" not in event:
-                raise ValueError("Event must contain 'job' and 'run' keys.")
-
-            driver = self._get_driver()
-            with driver.session() as session:
-                result = session.run(self.ingest_event_cypher, e=event)
-                
-                # Get summary information
-                summary = result.consume()
-                
-                return {
-                    "success": True,
-                    "run_id": event.get("run", {}).get("runId"),
-                    "job": event.get("job", {}).get("name"),
-                    "nodes_created": summary.counters.nodes_created,
-                    "relationships_created": summary.counters.relationships_created,
-                    "properties_set": summary.counters.properties_set,
-                    "labels_added": summary.counters.labels_added,
-                    "message": f"Successfully ingested lineage event"
-                }
+            writer = self._get_writer()
+            
+            # Use the existing ingestion logic from ingestion.py
+            ingest_openlineage_event(agent_result, event_ingestion_request, writer)
+            
+            # Get basic event information for response
+            run_id = event_ingestion_request.run.run_id if hasattr(event_ingestion_request.run, 'run_id') else "unknown"
+            job_name = event_ingestion_request.job.name if hasattr(event_ingestion_request.job, 'name') else "unknown"
+            
+            return {
+                "success": True,
+                "run_id": run_id,
+                "job": job_name,
+                "message": f"Successfully ingested lineage event for job '{job_name}' with run ID '{run_id}'"
+            }
                 
         except Exception as e:
             return {
@@ -81,7 +81,7 @@ class Neo4jIngestion:
             }
     
     def close(self):
-        """Close the Neo4j driver"""
-        if self.driver:
-            self.driver.close()
-            self.driver = None
+        """Close the Neo4j writer"""
+        if self.writer:
+            self.writer.close()
+            self.writer = None

@@ -1,0 +1,13 @@
+# 1) Create and activate a venv (recommended)
+python -m venv .venv && source .venv/bin/activate
+
+# 2) Install deps
+pip install -r requirements.txt
+
+# 3) Set Neo4j connection (adjust as needed)
+export NEO4J_URI=bolt://localhost:7687
+export NEO4J_USER=neo4j
+export NEO4J_PASSWORD=password
+
+# 4) Ingest your sample event
+python main.py --event sample_event.json

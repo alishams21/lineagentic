@@ -20,7 +20,7 @@ class SQLLineageAPIClient:
     
     def analyze_query(self, query: str, model_name: str = "gpt-4o-mini", 
                      agent_name: str = "sql-lineage-agent", save_to_db: bool = True,
-                     save_to_neo4j: bool = True, lineage_config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+                     save_to_neo4j: bool = True, event_ingestion_request: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Analyze a single SQL query using the sql_lineage_agent plugin
         
@@ -30,23 +30,53 @@ class SQLLineageAPIClient:
             agent_name: Name of the agent
             save_to_db: Whether to save results to database
             save_to_neo4j: Whether to save lineage data to Neo4j
-            lineage_config: Optional lineage configuration with required fields
+            event_ingestion_request: Optional EventIngestionRequest configuration
             
         Returns:
             Analysis results
         """
+        # If no event_ingestion_request provided, create a basic one with the query
+        if event_ingestion_request is None:
+            event_ingestion_request = {
+                "event_type": "START",
+                "event_time": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                "run": {
+                    "run_id": str(uuid.uuid4()),
+                    "facets": {}
+                },
+                "job": {
+                    "namespace": "default",
+                    "name": "sql-query-analysis",
+                    "facets": {
+                        "source_code": {
+                            "language": "sql",
+                            "source_code": query
+                        }
+                    }
+                },
+                "inputs": [],
+                "outputs": []
+            }
+        else:
+            # Ensure the query is set in the event_ingestion_request
+            if "job" not in event_ingestion_request:
+                event_ingestion_request["job"] = {}
+            if "facets" not in event_ingestion_request["job"]:
+                event_ingestion_request["job"]["facets"] = {}
+            if "source_code" not in event_ingestion_request["job"]["facets"]:
+                event_ingestion_request["job"]["facets"]["source_code"] = {}
+            
+            # Set the query in the source_code
+            event_ingestion_request["job"]["facets"]["source_code"]["source_code"] = query
+            event_ingestion_request["job"]["facets"]["source_code"]["language"] = "sql"
+        
         payload = {
-            "query": query,
             "model_name": model_name,
             "agent_name": agent_name,
             "save_to_db": save_to_db,
             "save_to_neo4j": save_to_neo4j,
-            "lineage_config": lineage_config
+            "event_ingestion_request": event_ingestion_request
         }
-        
-        # Add lineage config if provided
-        if lineage_config:
-            payload["lineage_config"] = lineage_config
         
         response = requests.post(f"{self.base_url}/analyze", json=payload)
         if response.status_code != 200:
@@ -115,68 +145,217 @@ def main():
         total_revenue DESC;
     """
 
-   
-   
-    # Example 3: Run with minimal required lineage config
-    print("Running SQL lineage agent with minimal lineage configuration...")
-    config = {
+    
+    # Create the event ingestion request with proper structure
+    event_ingestion_request = {
         "event_type": "START",
         "event_time": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-        "run_id": str(uuid.uuid4()),
-        "job_namespace": "minimal-test",
-        "job_name": "minimal-job",
-        "job_source_code_location_path": "/path/to/source.sql",
-        "job_source_code_location_type": "file",
-        "job_source_code_language": "sql",
-        "job_source_code_location_branch": "main",
-        "job_source_code_location_version": "1.0.0",
-        "job_source_code_location_repo_url": "https://github.com/your-repo/your-job",
-        "job_source_code_location_url": "https://github.com/your-repo/your-job/blob/main/source.sql",
-        "job_source_code_source_code": sample_query,
-        "job_job_type_processing_type": "BATCH",
-        "job_job_type_integration": "SQL",
-        "job_job_type_job_type": "QUERY",
-        "job_documentation_description": "This is a test query",
-        "job_documentation_content_type": "text/plain",
-        "job_ownership_owners": [
-            {"name": "John Doe", "type": "individual"}
-        ],
-        "input_tags": [
-            {"name": "input", "value": "test"}
-        ],
-        "input_statistics": {
-            "count": 100,
-            "min": 1,
-            "max": 100,
-            "avg": 50
+        "run": {
+            "run_id": str(uuid.uuid4()),
+            "facets": {
+                "parent": {
+                    "job": {
+                        "namespace": "test-namespace",
+                        "name": "test-job",
+                        "facets": {
+                            "source_code_location": {
+                                "type": "file",
+                                "url": "https://github.com/your-repo/your-job/blob/main/source.sql",
+                                "repo_url": "https://github.com/your-repo/your-job",
+                                "path": "/path/to/source.sql",
+                                "version": "1.0.0",
+                                "branch": "main"
+                            },
+                            "source_code": {
+                                "language": "sql",
+                                "source_code": sample_query
+                            },
+                            "job_type": {
+                                "processing_type": "BATCH",
+                                "integration": "SQL",
+                                "job_type": "QUERY"
+                            },
+                            "documentation": {
+                                "description": "This is a test query",
+                                "content_type": "text/plain"
+                            },
+                            "ownership": {
+                                "owners": [
+                                    {"name": "John Doe", "type": "INDIVIDUAL"}
+                                ]
+                            },
+                            "environment_variables": [
+                                {"name": "DB_HOST", "value": "localhost"},
+                                {"name": "DB_PORT", "value": "5432"},
+                                {"name": "DB_USER", "value": "postgres"},
+                                {"name": "DB_PASSWORD", "value": "password"}
+                            ]
+                        }
+                    }
+                }
+            }
         },
-        "input_ownership": [
-            {"name": "John Doe", "type": "individual"}
-        ],
-        "output_statistics": {
-            "count": 100,
-            "min": 1,
-            "max": 100,
-            "avg": 50
+        "job": {
+            "namespace": "test-namespace",
+            "name": "test-job",
+            "facets": {
+                "source_code_location": {
+                    "type": "file",
+                    "url": "https://github.com/your-repo/your-job/blob/main/source.sql",
+                    "repo_url": "https://github.com/your-repo/your-job",
+                    "path": "/path/to/source.sql",
+                    "version": "1.0.0",
+                    "branch": "main"
+                },
+                "source_code": {
+                    "language": "sql",
+                    "source_code": sample_query
+                },
+                "job_type": {
+                    "processing_type": "BATCH",
+                    "integration": "SQL",
+                    "job_type": "QUERY"
+                },
+                "documentation": {
+                    "description": "This is a test query",
+                    "content_type": "text/plain"
+                },
+                "ownership": {
+                    "owners": [
+                        {"name": "John Doe", "type": "INDIVIDUAL"}
+                    ]
+                },
+                "environment_variables": [
+                    {"name": "DB_HOST", "value": "localhost"},
+                    {"name": "DB_PORT", "value": "5432"},
+                    {"name": "DB_USER", "value": "postgres"},
+                    {"name": "DB_PASSWORD", "value": "password"}
+                ]
+            }
         },
-        "output_tags": [
-            {"name": "output", "value": "test"}
+        "inputs": [
+            {
+                "namespace": "customer_db",
+                "name": "customer_4",
+                "facets": {
+                    "schema": {
+                        "fields": [
+                            {"name": "customer_id", "type": "INTEGER", "description": "Customer ID", "version_id": "1.0"},
+                            {"name": "customer_name", "type": "VARCHAR", "description": "Customer name", "version_id": "1.0"},
+                            {"name": "email", "type": "VARCHAR", "description": "Customer email", "version_id": "1.0"},
+                            {"name": "region", "type": "VARCHAR", "description": "Customer region", "version_id": "1.0"},
+                            {"name": "status", "type": "VARCHAR", "description": "Customer status", "version_id": "1.0"}
+                        ]
+                    },
+                    "tags": [
+                        {"key": "input", "value": "test", "source": "manual"}
+                    ],
+                    "ownership": {
+                        "owners": [
+                            {"name": "John Doe", "type": "INDIVIDUAL"}
+                        ]
+                    },
+                    "input_statistics": {
+                        "row_count": 1000,
+                        "file_count": 1,
+                        "size": 50000
+                    }
+                }
+            },
+            {
+                "namespace": "order_db",
+                "name": "orders",
+                "facets": {
+                    "schema": {
+                        "fields": [
+                            {"name": "order_id", "type": "INTEGER", "description": "Order ID", "version_id": "1.0"},
+                            {"name": "customer_id", "type": "INTEGER", "description": "Customer ID", "version_id": "1.0"},
+                            {"name": "order_date", "type": "DATE", "description": "Order date", "version_id": "1.0"}
+                        ]
+                    },
+                    "tags": [
+                        {"key": "input", "value": "test", "source": "manual"}
+                    ],
+                    "ownership": {
+                        "owners": [
+                            {"name": "John Doe", "type": "INDIVIDUAL"}
+                        ]
+                    },
+                    "input_statistics": {
+                        "row_count": 5000,
+                        "file_count": 1,
+                        "size": 100000
+                    }
+                }
+            },
+            {
+                "namespace": "order_db",
+                "name": "order_items",
+                "facets": {
+                    "schema": {
+                        "fields": [
+                            {"name": "order_id", "type": "INTEGER", "description": "Order ID", "version_id": "1.0"},
+                            {"name": "item_total", "type": "DECIMAL", "description": "Item total", "version_id": "1.0"}
+                        ]
+                    },
+                    "tags": [
+                        {"key": "input", "value": "test", "source": "manual"}
+                    ],
+                    "ownership": {
+                        "owners": [
+                            {"name": "John Doe", "type": "INDIVIDUAL"}
+                        ]
+                    },
+                    "input_statistics": {
+                        "row_count": 15000,
+                        "file_count": 1,
+                        "size": 200000
+                    }
+                }
+            }
         ],
-        "output_ownership": [
-            {"name": "John Doe", "type": "individual"}
-        ],
-        "environment_variables": [
-            {"name": "DB_HOST", "value": "localhost"},
-            {"name": "DB_PORT", "value": "5432"},
-            {"name": "DB_USER", "value": "postgres"},
-            {"name": "DB_PASSWORD", "value": "password"}
+        "outputs": [
+            {
+                "namespace": "customer_db",
+                "name": "customer_5",
+                "facets": {
+                    "schema": {
+                        "fields": [
+                            {"name": "customer_id", "type": "INTEGER", "description": "Customer ID", "version_id": "1.0"},
+                            {"name": "customer_name", "type": "VARCHAR", "description": "Customer name", "version_id": "1.0"},
+                            {"name": "email", "type": "VARCHAR", "description": "Customer email", "version_id": "1.0"},
+                            {"name": "region", "type": "VARCHAR", "description": "Customer region", "version_id": "1.0"},
+                            {"name": "status", "type": "VARCHAR", "description": "Customer status", "version_id": "1.0"},
+                            {"name": "total_orders", "type": "INTEGER", "description": "Total orders", "version_id": "1.0"},
+                            {"name": "total_revenue", "type": "DECIMAL", "description": "Total revenue", "version_id": "1.0"},
+                            {"name": "avg_order_value", "type": "DECIMAL", "description": "Average order value", "version_id": "1.0"},
+                            {"name": "last_order_date", "type": "DATE", "description": "Last order date", "version_id": "1.0"},
+                            {"name": "processed_date", "type": "DATE", "description": "Processed date", "version_id": "1.0"}
+                        ]
+                    },
+                    "tags": [
+                        {"key": "output", "value": "test", "source": "manual"}
+                    ],
+                    "ownership": {
+                        "owners": [
+                            {"name": "John Doe", "type": "INDIVIDUAL"}
+                        ]
+                    },
+                    "output_statistics": {
+                        "row_count": 100,
+                        "file_count": 1,
+                        "size": 10000
+                    }
+                }
+            }
         ]
     }
-    lineage_result_minimal = client.analyze_query(
+    
+    lineage_result_proper = client.analyze_query(
         query=sample_query,
-        lineage_config=config
+        event_ingestion_request=event_ingestion_request
     )
-    print(f"SQL lineage agent result with minimal config: {json.dumps(lineage_result_minimal, indent=8)}")
+    print(f"SQL lineage agent result with proper EventIngestionRequest: {json.dumps(lineage_result_proper, indent=2)}")
     print()
 
 

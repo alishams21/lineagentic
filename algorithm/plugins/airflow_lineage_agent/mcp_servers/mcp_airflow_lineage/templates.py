@@ -724,58 +724,26 @@ def airflow_lineage_event_composer():
                 ---
 
                 ### Required Output Format (Example):
-
-                {
-                    "inputs": [
-                        {
-                            "namespace": "<INPUT_NAMESPACE>",
-                            "name": "<INPUT_NAME>",
-                            "facets": {
-                                "schema": {
-                                    "fields": [
-                                        {
-                                        "name": "<FIELD_NAME>",
-                                        "type": "<FIELD_TYPE>",
-                                        "description": "<FIELD_DESCRIPTION>"
-                                        }
-                                    ]
-                                },
-                                "tags": [
+           {
+                "inputs": [
+                    {
+                        "namespace": "<INPUT_NAMESPACE>",
+                        "name": "<INPUT_NAME>",
+                        "facets": {
+                            "schema": {
+                                "fields": [
                                     {
-                                        "name": "<TAG_NAME>",
-                                        "value": "<TAG_VALUE>"
-                                        "source": "<SOURCE>"
+                                    "name": "<FIELD_NAME>",
+                                    "type": "<FIELD_TYPE>",
+                                    "description": "<FIELD_DESCRIPTION>"
                                     }
-                                ],
-                                "inputStatistics": {
-                                    "rowCount": "<ROW_COUNT>",
-                                    "fileCount": "<FILE_COUNT>",
-                                    "size": "<SIZE>"
-                                },
-                                "storage": {
-                                    "storageLayer": "<STORAGE_LAYER>",
-                                    "fileFormat": "<FILE_FORMAT>"
-                                },
-                                "datasetType": {
-                                    "datasetType": "<DATASET_TYPE>",
-                                    "subType": "<SUB_TYPE>"
-                                },
-                                "lifecycle": {
-                                    "lifecycle": "<LIFECYCLE>"
-                                },
-                                "ownership": {
-                                    "owners": [ 
-                                        {
-                                            "name": "<OWNER_NAME>",
-                                            "type": "<OWNER_TYPE>"
-                                        }
-                                    ]
-                                }
+                                ]
                             }
                         }
-                    ],
-                    "outputs": [
-                        {
+                    }
+                ],
+                "outputs": [
+                    {
                         "namespace": "<OUTPUT_NAMESPACE>",
                         "name": "<OUTPUT_NAME>",
                         "facets": {
@@ -799,24 +767,11 @@ def airflow_lineage_event_composer():
                                     ]
                                     }
                                 }
-                            },
-                            "outputStatistics": {
-                                "rowCount": "<ROW_COUNT>",
-                                "fileCount": "<FILE_COUNT>",
-                                "size": "<SIZE>"
-                            },
-                            "ownership": {
-                                    "owners": [ 
-                                        {
-                                            "name": "<OWNER_NAME>",
-                                            "type": "<OWNER_TYPE>"
-                                        }
-                                    ]
                             }
                         }
-                        }
-                    ]
-                }
+                    }
+                ]
+            }
                 
         4. Return only results in above mentioned json schema format. do not add any text.
         """

@@ -1,0 +1,41 @@
+entities:
+  Dataset:
+    key: datasetKey
+    aspects:
+      datasetProperties: versioned
+      schemaMetadata: versioned
+      ownership: versioned
+      globalTags: versioned
+      datasetProfile: timeseries
+      columnLineage: versioned
+  DataFlow:
+    key: dataFlowKey
+    aspects:
+      dataFlowInfo: versioned
+  DataJob:
+    key: dataJobKey
+    aspects:
+      dataJobInfo: versioned
+      documentation: versioned
+      sourceCodeLocation: versioned
+      sourceCode: versioned
+      environmentProperties: versioned
+      ownership: versioned
+      dataJobInputOutput: versioned
+      dataJobRun: timeseries
+  CorpUser:
+    key: corpUserKey
+    aspects:
+      corpUserInfo: versioned
+  CorpGroup:
+    key: corpGroupKey
+    aspects:
+      corpGroupInfo: versioned
+  Tag:
+    key: tagKey
+    aspects: {}
+  Column:
+    key: columnKey
+    aspects:
+      columnProperties: versioned
+      transformation: versioned

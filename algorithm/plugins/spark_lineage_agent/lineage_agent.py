@@ -49,10 +49,10 @@ def get_model(model_name: str):
 class SparkLineageAgent:
     """Plugin agent for Spark lineage analysis"""
     
-    def __init__(self, agent_name: str, query: str, model_name: str = "gpt-4o-mini"):
+    def __init__(self, agent_name: str, source_code: str, model_name: str = "gpt-4o-mini"):
         self.agent_name = agent_name
         self.model_name = model_name
-        self.query = query
+        self.source_code = source_code
 
     async def create_agent(self, spark_mcp_servers) -> Agent:
         agent = Agent(
@@ -63,17 +63,17 @@ class SparkLineageAgent:
         )
         return agent
 
-    async def run_agent(self, spark_mcp_servers, query: str):
+    async def run_agent(self, spark_mcp_servers, source_code: str):
         # Create single agent for comprehensive analysis
         comprehensive_agent = await self.create_agent(spark_mcp_servers)
         
         # Run the complete analysis in one go
-        result = await Runner.run(comprehensive_agent, query, max_turns=MAX_TURNS)
+        result = await Runner.run(comprehensive_agent, source_code, max_turns=MAX_TURNS)
         
         # Return the final output
         return dump_json_record(self.agent_name, result.final_output)
 
-    async def run_with_mcp_servers(self, query: str):
+    async def run_with_mcp_servers(self, source_code: str):
         async with AsyncExitStack() as stack:
             spark_mcp_servers = [
                 await stack.enter_async_context(
@@ -81,26 +81,26 @@ class SparkLineageAgent:
                 )
                 for params in spark_mcp_server_params
             ]
-            return await self.run_agent(spark_mcp_servers, query=query)
+            return await self.run_agent(spark_mcp_servers, source_code=source_code)
 
-    async def run_with_trace(self, query: str):
+    async def run_with_trace(self, source_code: str):
         trace_name = f"{self.agent_name}-lineage-agent"
         trace_id = log_trace_id(f"{self.agent_name.lower()}")
         with trace(trace_name, trace_id=trace_id):
-            return await self.run_with_mcp_servers(query=query)
+            return await self.run_with_mcp_servers(source_code=source_code)
 
     async def run(self):
         try:
-            return await self.run_with_trace(self.query)
+            return await self.run_with_trace(self.source_code)
         except Exception as e:
             print(f"Error running {self.agent_name}: {e}")
             return {"error": str(e)}
 
 
 # Plugin interface functions
-def create_spark_lineage_agent(agent_name: str, query: str, model_name: str = "gpt-4o-mini") -> SparkLineageAgent:
+def create_spark_lineage_agent(agent_name: str, source_code: str, model_name: str = "gpt-4o-mini") -> SparkLineageAgent:
     """Factory function to create a SparkLineageAgent instance"""
-    return SparkLineageAgent(agent_name=agent_name, query=query, model_name=model_name)
+    return SparkLineageAgent(agent_name=agent_name, source_code=source_code, model_name=model_name)
 
 
 def get_plugin_info() -> Dict[str, Any]:

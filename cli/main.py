@@ -16,7 +16,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from backend.service_layer.lineage_service import LineageService
-from backend.restapi_layer.models import LineageConfigRequest, EnvironmentVariable
+from backend.models.models import EventIngestionRequest, EnvironmentVariable, Run, Job, JobFacets, SourceCodeLocation, SourceCode, JobType, Documentation, Ownership, Owner, RunFacets, RunParent, Input, InputFacets, Output, OutputFacets
 
 
 def create_parser():
@@ -250,36 +250,78 @@ def read_query_file(file_path: str) -> str:
         sys.exit(1)
 
 
-def create_lineage_config_from_args(args, query: str) -> LineageConfigRequest:
-    """Create LineageConfigRequest object from command line arguments."""
+def create_lineage_config_from_args(args, query: str) -> EventIngestionRequest:
+    """Create EventIngestionRequest object from command line arguments."""
     # Create environment variables list if provided
     env_vars = None
     if args.env_var:
         env_vars = [EnvironmentVariable(name=name, value=value) for name, value in args.env_var]
     
-    return LineageConfigRequest(
+    # Create owners if provided
+    owners = []
+    if args.owner_name and args.owner_type:
+        owners.append(Owner(name=args.owner_name, type=args.owner_type))
+    if args.job_owner_name and args.job_owner_type:
+        owners.append(Owner(name=args.job_owner_name, type=args.job_owner_type))
+    
+    # Create job facets
+    job_facets = JobFacets(
+        source_code_location=SourceCodeLocation(
+            type="git",
+            url=args.producer_url or "",
+            repo_url=args.producer_url or "",
+            path="",
+            version="",
+            branch=""
+        ) if args.producer_url else None,
+        source_code=SourceCode(
+            language=args.language or "sql",
+            source_code=query
+        ) if args.language else None,
+        job_type=JobType(
+            processing_type=args.processing_type or "BATCH",
+            integration=args.integration or "MANUAL",
+            job_type=args.job_type or "ETL"
+        ) if args.processing_type or args.integration or args.job_type else None,
+        documentation=Documentation(
+            description=args.description or "",
+            content_type="text/markdown"
+        ) if args.description else None,
+        ownership=Ownership(owners=owners) if owners else None,
+        environment_variables=env_vars
+    )
+    
+    # Create job
+    job = Job(
+        namespace=args.job_namespace,
+        name=args.job_name,
+        facets=job_facets
+    )
+    
+    # Create run facets with parent if provided
+    run_facets = None
+    if args.parent_run_id and args.parent_job_name and args.parent_namespace:
+        parent_job = Job(namespace=args.parent_namespace, name=args.parent_job_name)
+        run_parent = RunParent(job=parent_job)
+        run_facets = RunFacets(parent=run_parent)
+    
+    # Create run
+    run = Run(
+        run_id=args.run_id or str(uuid.uuid4()),
+        facets=run_facets
+    )
+    
+    # Create empty inputs and outputs (these would be populated by the agent)
+    inputs = []
+    outputs = []
+    
+    return EventIngestionRequest(
         event_type=args.event_type,
         event_time=args.event_time or datetime.utcnow().isoformat() + "Z",
-        run_id=args.run_id or str(uuid.uuid4()),
-        job_namespace=args.job_namespace,
-        job_name=args.job_name,
-        parent_run_id=args.parent_run_id,
-        parent_job_name=args.parent_job_name,
-        parent_namespace=args.parent_namespace,
-        producer_url=args.producer_url,
-        processing_type=args.processing_type,
-        integration=args.integration,
-        job_type=args.job_type,
-        language=args.language,
-        source_code=query,
-        storage_layer=args.storage_layer,
-        file_format=args.file_format,
-        owner_name=args.owner_name,
-        owner_type=args.owner_type,
-        job_owner_name=args.job_owner_name,
-        job_owner_type=args.job_owner_type,
-        description=args.description,
-        environment_variables=env_vars
+        run=run,
+        job=job,
+        inputs=inputs,
+        outputs=outputs
     )
 
 
