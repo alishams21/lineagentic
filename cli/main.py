@@ -354,20 +354,42 @@ async def run_analyze_query(service: LineageService, args):
     print(f"Running agent '{args.agent_name}' with query...")
     
     # Create lineage configuration if job namespace and name are provided
-    lineage_config = None
+    event_ingestion_request = None
     if args.job_namespace and args.job_name:
-        lineage_config = create_lineage_config_from_args(args, query)
+        event_ingestion_request = create_lineage_config_from_args(args, query)
         if args.verbose:
-            print(f"Using lineage configuration: {lineage_config}")
+            print(f"Using lineage configuration: {event_ingestion_request}")
+    else:
+        # Create minimal event ingestion request with just the source code
+        from backend.models.models import SourceCode, JobFacets, Job, Run, EventIngestionRequest
+        job_facets = JobFacets(
+            source_code=SourceCode(
+                language=args.language or "sql",
+                source_code=query
+            )
+        )
+        job = Job(
+            namespace="cli",
+            name="cli-query",
+            facets=job_facets
+        )
+        run = Run(run_id=str(uuid.uuid4()))
+        event_ingestion_request = EventIngestionRequest(
+            event_type="START",
+            event_time=datetime.utcnow().isoformat() + "Z",
+            run=run,
+            job=job,
+            inputs=[],
+            outputs=[]
+        )
     
     try:
         result = await service.analyze_query(
-            query=query,
             agent_name=args.agent_name,
             model_name=args.model_name,
             save_to_db=not args.no_save,
             save_to_neo4j=not args.no_neo4j,
-            lineage_config_request=lineage_config
+            event_ingestion_request=event_ingestion_request
         )
         
         save_output(result, args.output, args.pretty)
@@ -384,7 +406,7 @@ async def run_field_lineage(service: LineageService, args):
     try:
         result = await service.get_field_lineage(
             field_name=args.field_name,
-            dataset_name=args.dataset_name,
+            name=args.dataset_name,
             namespace=args.namespace,
             max_hops=args.max_hops
         )

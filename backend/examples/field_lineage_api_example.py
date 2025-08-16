@@ -156,9 +156,9 @@ def example_with_requests_directly():
     
     # Example payload
     payload = {
-        "field_name": "total_orders",
-        "dataset_name": "customer_5",
-        "namespace": "customer_5",
+        "field_name": "customer_id",
+        "name": "customers",
+        "namespace": "default",
         "max_hops": 10
     }
     
