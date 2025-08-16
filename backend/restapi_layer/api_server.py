@@ -109,7 +109,7 @@ async def get_field_lineage(request: FieldLineageRequest):
         result = await lineage_service.get_field_lineage(
             field_name=request.field_name,
             namespace=request.namespace,
-            dataset_name=request.dataset_name,
+            name=request.name,
             max_hops=request.max_hops
         )
         

@@ -10,16 +10,21 @@ import logging
 from pathlib import Path
 
 
-# Add the repository_layer directory to the Python path
-repo_layer_dir = Path(__file__).parent
-sys.path.insert(0, str(repo_layer_dir))
+# Add the project root to the Python path to handle imports properly
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
 
 # Now import from the correct path - handle both direct execution and module import
 try:
-    from .neo4j_ingestion import Neo4jIngestion
+    from backend.repository_layer.neo4j_ingestion_dao import Neo4jIngestion
 except ImportError:
-    # Fallback for direct execution
-    from neo4j_ingestion import Neo4jIngestion
+    # Fallback for relative import when run as module
+    try:
+        from .neo4j_ingestion_dao import Neo4jIngestion
+    except ImportError:
+        # Final fallback - try direct import
+        sys.path.insert(0, str(Path(__file__).parent))
+        from neo4j_ingestion_dao import Neo4jIngestion
 
 # Configure logging
 logging.basicConfig(

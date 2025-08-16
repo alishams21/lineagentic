@@ -211,7 +211,7 @@ class LineageRequest(BaseModel):
 class FieldLineageRequest(BaseModel):
     field_name: str = Field(..., description="Name of the field to trace lineage for")
     namespace: Optional[str] = Field(default=None, description="Optional namespace filter")
-    dataset_name: str = Field(..., description="Name of the dataset to trace lineage for")
+    name: str = Field(..., description="Name of the dataset to trace lineage for")
     max_hops: int = Field(default=10, description="Maximum number of hops to trace lineage for")
 
 

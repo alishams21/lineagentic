@@ -3,7 +3,7 @@ from typing import Dict, Any, List, Optional, Union
 from datetime import datetime
 import uuid
 from ..repository_layer.lineage_repository import LineageRepository
-from ..repository_layer.neo4j_ingestion import Neo4jIngestion
+from ..repository_layer.neo4j_ingestion_dao import Neo4jIngestion
 from algorithm.framework_agent import AgentFramework
 from ..models.models import EventIngestionRequest
 import asyncio
@@ -148,13 +148,13 @@ class LineageService:
             return error_response
    
 
-    async def get_field_lineage(self, field_name: str, dataset_name: str, namespace: Optional[str] = None, max_hops: int = 10) -> Dict[str, Any]:
+    async def get_field_lineage(self, field_name: str, name: str, namespace: Optional[str] = None, max_hops: int = 10) -> Dict[str, Any]:
         """
         Get complete lineage for a specific field.
         
         Args:
             field_name: Name of the field to trace lineage for
-            dataset_name: Name of the dataset to trace lineage for
+            name: Name of the dataset to trace lineage for
             namespace: Optional namespace filter
             max_hops: Maximum number of hops to trace lineage for
         Returns:
@@ -165,7 +165,7 @@ class LineageService:
             self._validate_field_lineage_request(field_name)
             
             # Call repository method
-            lineage_data = self.repository.get_field_lineage(field_name, dataset_name, namespace, max_hops)
+            lineage_data = self.repository.get_field_lineage(field_name, name, namespace, max_hops)
             
             # Ensure result is serializable
             serializable_result = self._ensure_serializable(lineage_data)

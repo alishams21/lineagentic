@@ -1,6 +1,6 @@
 from typing import Dict, Any, List, Optional
 from ..dbconnector_layer.database_factory import DatabaseConnector, DatabaseFactory
-from .neo4j_ingestion import Neo4jIngestion
+from .neo4j_ingestion_dao import Neo4jIngestion
 import json
 from datetime import datetime
 
@@ -119,13 +119,13 @@ class LineageRepository:
     
     
     # Field Lineage Methods
-    def get_field_lineage(self, field_name: str, dataset_name: str, namespace: Optional[str] = None, max_hops: int = 5) -> Dict[str, Any]:
+    def get_field_lineage(self, field_name: str, name: str, namespace: Optional[str] = None, max_hops: int = 5) -> Dict[str, Any]:
         """
         Get complete lineage for a specific field from Neo4j.
         
         Args:
             field_name: Name of the field to trace lineage for
-            dataset_name: Name of the dataset to trace lineage for
+            name: Name of the dataset to trace lineage for
             namespace: Optional namespace filter
             max_hops: Maximum number of hops to trace lineage (default: 5)
             
@@ -138,100 +138,56 @@ class LineageRepository:
         try:
             neo4j_connector.connect()
             
-            # Construct dataset key from namespace and dataset name
-            dataset_key = f"{namespace}:{dataset_name}" if namespace else dataset_name
-            
             # Use the parametrized field lineage query with both upstream and downstream
+            # Query to find lineage from transformation aspects
             query = """
-            // Lineage path that includes transformation nodes for both directions
-            WITH $datasetKey AS datasetKey, 
-                 $field AS field, 
-                 $maxHops AS maxHops
-
-            MATCH (startF:Field {datasetKey:datasetKey, name:field})-[:LATEST]->(startFS:FieldSnapshot)
-            OPTIONAL MATCH (startD:Dataset {key:datasetKey})-[:HAS_FIELD]->(startF)
-
-            // UPSTREAM: Find fields that this field derives from
-            MATCH p1 = (startFS)-[:DERIVES_FROM*1..]->(ufs:FieldSnapshot)<-[:LATEST]-(uf:Field)
-            WHERE length(p1) <= maxHops
-            OPTIONAL MATCH (uD:Dataset)-[:HAS_FIELD]->(uf)
-            OPTIONAL MATCH (startFS)-[:USING_TRANSFORMATION]->(tr:Transformation)
-            RETURN 'UPSTREAM' AS direction,
-                   'FIELD' AS level,
-                   p1 AS basePath,
-                   startF AS sourceNode,
-                   startD AS sourceDataset,
-                   uf AS targetNode,
-                   uD AS targetDataset,
-                   tr AS transformationNode,
-                   CASE 
-                     WHEN tr IS NOT NULL 
-                     THEN [uf, tr, startF]
-                     ELSE [uf, startF]
-                   END AS transformationPath,
-                   CASE 
-                     WHEN tr IS NOT NULL 
-                     THEN uf.name + ' → [' + tr.type + '] → ' + startF.name
-                     ELSE uf.name + ' → ' + startF.name
-                   END AS transformationDescription
-
-            UNION ALL
-
-            // DOWNSTREAM: Find fields that derive from this field
-            WITH $datasetKey AS datasetKey, 
-                 $field AS field, 
-                 $maxHops AS maxHops
-            MATCH (startF:Field {datasetKey:datasetKey, name:field})-[:LATEST]->(startFS:FieldSnapshot)
-            OPTIONAL MATCH (startD:Dataset {key:datasetKey})-[:HAS_FIELD]->(startF)
-            MATCH p2 = (dfs:FieldSnapshot)-[:DERIVES_FROM*1..]->(startFS)<-[:LATEST]-(df:Field)
-            WHERE length(p2) <= maxHops
-            OPTIONAL MATCH (dD:Dataset)-[:HAS_FIELD]->(df)
-            OPTIONAL MATCH (dfs)-[:USING_TRANSFORMATION]->(tr2:Transformation)
-            RETURN 'DOWNSTREAM' AS direction,
-                   'FIELD' AS level,
-                   p2 AS basePath,
-                   startF AS sourceNode,
-                   startD AS sourceDataset,
-                   df AS targetNode,
-                   dD AS targetDataset,
-                   tr2 AS transformationNode,
-                   CASE 
-                     WHEN tr2 IS NOT NULL 
-                     THEN [startF, tr2, df]
-                     ELSE [startF, df]
-                   END AS transformationPath,
-                   CASE 
-                     WHEN tr2 IS NOT NULL 
-                     THEN startF.name + ' → [' + tr2.type + '] → ' + df.name
-                     ELSE startF.name + ' → ' + df.name
-                   END AS transformationDescription
-
-            ORDER BY direction, length(basePath)
+            // Find the target dataset and column
+            MATCH (targetDataset:Dataset {name: $name})
+            MATCH (targetColumn:Column {fieldPath: $field})
+            MATCH (targetDataset)-[:HAS_COLUMN]->(targetColumn)
+            
+            // Optional namespace filter
+            WHERE ($namespace IS NULL OR targetDataset.platform = $namespace)
+            
+            // Find transformation aspects for this column
+            OPTIONAL MATCH (targetColumn)-[:HAS_ASPECT]->(transformationAspect:Aspect:Versioned {name: 'transformation'})
+            
+            // Return basic lineage information
+            RETURN {
+                targetField: {
+                    name: targetColumn.fieldPath,
+                    dataset: targetDataset.name,
+                    namespace: targetDataset.platform,
+                    urn: targetColumn.urn
+                },
+                transformation: CASE 
+                    WHEN transformationAspect IS NOT NULL 
+                    THEN transformationAspect.json
+                    ELSE null
+                END,
+                hasTransformation: transformationAspect IS NOT NULL,
+                lineageType: CASE 
+                    WHEN transformationAspect IS NOT NULL THEN 'transformation'
+                    ELSE 'no_lineage'
+                END
+            } as lineage
             """
             
-            if not dataset_name:
-                return {
-                    "field_name": field_name,
-                    "namespace": namespace,
-                    "message": "Could not determine dataset name for the field",
-                    "lineage": []
-                }
+   
             
             params = {
-                "datasetKey": dataset_key,
+                "name": name,
                 "field": field_name,
-                "maxHops": max_hops
+                "namespace": namespace
             }
             
             records = neo4j_connector.execute_query(query, params)
             
             if not records:
                 return {
-                    "field_name": field_name,
-                    "namespace": namespace,
-                    "dataset_name": dataset_name,
-                    "message": "No lineage found for this field",
-                    "lineage": []
+                    "success": False,
+                    "data": None,
+                    "error": "No lineage data found for the specified field"
                 }
             
             # Helper function to convert Neo4j values to JSON-serializable format
@@ -271,31 +227,51 @@ class LineageRepository:
                 except (TypeError, OverflowError):
                     return str(value)
             
-            # Process results with the new query structure
-            lineage_data = []
+            # Convert Neo4j records to JSON-serializable format and process lineage
+            processed_records = []
             for record in records:
-                lineage_record = {
-                    "direction": convert_neo4j_value(record["direction"]),
-                    "level": convert_neo4j_value(record["level"]),
-                    "base_path": convert_neo4j_value(record["basePath"]),
-                    "source_node": convert_neo4j_value(record["sourceNode"]),
-                    "source_dataset": convert_neo4j_value(record["sourceDataset"]),
-                    "target_node": convert_neo4j_value(record["targetNode"]),
-                    "target_dataset": convert_neo4j_value(record["targetDataset"]),
-                    "transformation_node": convert_neo4j_value(record["transformationNode"]),
-                    "transformation_path": convert_neo4j_value(record["transformationPath"]),
-                    "transformation_description": convert_neo4j_value(record["transformationDescription"])
-                }
+                processed_record = {}
+                for key, value in record.items():
+                    processed_record[key] = convert_neo4j_value(value)
                 
-                lineage_data.append(lineage_record)
+                # Process lineage information if transformation data exists
+                if 'lineage' in processed_record and processed_record['lineage'].get('transformation'):
+                    import json
+                    try:
+                        transformation_data = json.loads(processed_record['lineage']['transformation'])
+                        
+                        # Extract upstream lineage information
+                        upstream_lineage = []
+                        if 'inputColumns' in transformation_data:
+                            for input_col in transformation_data['inputColumns']:
+                                # Extract dataset name from URN
+                                dataset_urn = input_col.get('datasetUrn', '')
+                                dataset_name = dataset_urn.split(',')[1] if ',' in dataset_urn else 'unknown'
+                                
+                                upstream_lineage.append({
+                                    'field': input_col.get('fieldPath', ''),
+                                    'dataset': dataset_name,
+                                    'datasetUrn': dataset_urn,
+                                    'steps': input_col.get('steps', [])
+                                })
+                        
+                        # Add processed lineage information
+                        processed_record['lineage']['upstream'] = upstream_lineage
+                        processed_record['lineage']['transformationDetails'] = transformation_data
+                        
+                    except json.JSONDecodeError:
+                        processed_record['lineage']['upstream'] = []
+                        processed_record['lineage']['transformationDetails'] = None
+                else:
+                    processed_record['lineage']['upstream'] = []
+                    processed_record['lineage']['transformationDetails'] = None
+                
+                processed_records.append(processed_record)
             
             return {
-                "field_name": field_name,
-                "namespace": namespace,
-                "dataset_name": dataset_name,
-                "max_hops": max_hops,
-                "lineage_count": len(lineage_data),
-                "lineage": lineage_data
+                "success": True,
+                "data": processed_records,
+                "error": None
             }
             
         except Exception as e:
