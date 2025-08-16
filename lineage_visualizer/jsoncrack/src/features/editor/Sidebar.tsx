@@ -52,9 +52,9 @@ const StyledButton = styled(Button)`
 
 export const Sidebar = () => {
   const [namespace, setNamespace] = useState("");
-  const [datasetName, setDatasetName] = useState("");
+  const [name, setName] = useState("");
   const [fieldName, setFieldName] = useState("");
-  const [maxHops, setMaxHops] = useState("");
+  const [maxHops, setMaxHops] = useState("10");
   const [isLoading, setIsLoading] = useState(false);
   
   const setContents = useFile(state => state.setContents);
@@ -65,14 +65,25 @@ export const Sidebar = () => {
       return;
     }
 
+    if (!name.trim()) {
+      alert("Dataset Name is required");
+      return;
+    }
+
+    const hops = parseInt(maxHops.trim());
+    if (isNaN(hops) || hops < 1 || hops > 50) {
+      alert("Max Hops must be a number between 1 and 50");
+      return;
+    }
+
     setIsLoading(true);
     
     try {
       const requestBody = {
         field_name: fieldName.trim(),
         namespace: namespace.trim() || undefined,
-        dataset_name: datasetName.trim() || undefined,
-        max_hops: maxHops.trim() ? parseInt(maxHops.trim()) : undefined
+        name: name.trim(),
+        max_hops: hops
       };
 
       console.log("Sending request to API:", requestBody);
@@ -127,8 +138,8 @@ export const Sidebar = () => {
           <div>
             <StyledLabel>Dataset Name</StyledLabel>
             <StyledInput
-              value={datasetName}
-              onChange={(e) => setDatasetName(e.target.value)}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               placeholder="Enter dataset name"
               size="sm"
             />
@@ -145,23 +156,30 @@ export const Sidebar = () => {
           </div>
           
           <div>
-            <StyledLabel>Max Hops</StyledLabel>
+            <StyledLabel>Max Hops (1-50)</StyledLabel>
             <StyledInput
               value={maxHops}
               onChange={(e) => setMaxHops(e.target.value)}
-              placeholder="Enter max hops"
+              placeholder="10"
               size="sm"
+              type="number"
+              min="1"
+              max="50"
             />
           </div>
           
-          <StyledButton 
+          <Button 
             onClick={handleSubmit} 
             loading={isLoading}
-            disabled={isLoading || !fieldName.trim()}
+            disabled={isLoading || !fieldName.trim() || !name.trim()}
             fullWidth
+            style={{
+              background: "var(--interactive-active)",
+              color: "var(--background-primary)"
+            }}
           >
-            {isLoading ? "Loading..." : "Submit"}
-          </StyledButton>
+            {isLoading ? "Loading..." : "Get Field Lineage"}
+          </Button>
         </Stack>
       </StyledCard>
     </StyledSidebar>
