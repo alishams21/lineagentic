@@ -88,10 +88,9 @@ Lineagentic-flow provides a powerful CLI tool for quick analysis:
 lineagentic analyze --agent-name sql-lineage-agent --query "SELECT user_id, name FROM users WHERE active = true"
 
 # Analyze with lineage configuration
-lineagentic analyze --agent-name sql-lineage-agent --query "SELECT a, b FROM table1" --job-namespace "my-namespace" --job-name "my-job"
+lineagentic analyze --agent-name python-lineage-agent --query-file "my_script.py"
 
 # Get field lineage
-lineagentic field-lineage --field-name "user_id" --dataset-name "users" --namespace "default"
 ```
 
 For more CLI options and detailed documentation, see the [CLI documentation](cli/README.md).

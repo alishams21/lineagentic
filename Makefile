@@ -1,10 +1,10 @@
 # LineAgent Project Makefile
 # Centralized build and development commands
 
-.PHONY: help start-all-services stop-all-services stop-all-services-and-clean-data clean-all-stack test test-tracers test-database test-api-server test-verbose test-module gradio-deploy generate-mermaid-diagram change-mysql-passwords reset-mysql-passwords stop-mysql restart-mysql mysql-status mysql-logs test-mysql-connection
+.PHONY: help start-all-services stop-all-services stop-all-services-and-clean-data clean-all-stack test test-tracers test-api-server test-verbose test-module gradio-deploy start-api-server stop-api-server start-demo-server stop-demo-server
 
 help:
-	@echo "🚀 Lineagentic Project"
+	@echo "🚀 Lineagentic-Flow Project"
 	@echo ""
 	@echo "🚀 Available commands:"
 	@echo "  - start-all-services: Start all services"
@@ -13,19 +13,11 @@ help:
 	@echo "  - clean-all-stack: Clean all stack"
 	@echo "  - test: Run all tests"
 	@echo "  - test-tracers: Run tracers tests"
-	@echo "  - test-database: Run database tests"
 	@echo "  - test-api-server: Run API server tests"
 	@echo "  - test-verbose: Run all tests with verbose output"
 	@echo "  - test-module: Run specific test module"
 	@echo "  - gradio-deploy: Deploy to Hugging Face Spaces using Gradio"
-	@echo "  - generate-mermaid-diagram: Generate Mermaid diagram"
-	@echo "  - change-mysql-passwords: Change MySQL passwords"
-	@echo "  - reset-mysql-passwords: Reset MySQL passwords to defaults"
-	@echo "  - stop-mysql: Stop MySQL database"
-	@echo "  - restart-mysql: Restart MySQL database"
-	@echo "  - mysql-status: Check MySQL status"
-	@echo "  - mysql-logs: View MySQL logs"
-	@echo "  - test-mysql-connection: Test MySQL connection"
+
 # Load environment variables from .env file
 ifneq (,$(wildcard .env))
     include .env
@@ -47,18 +39,12 @@ start-all-services:
 	@$(MAKE) start-demo-server
 	@sleep 5
 	@echo "  - Demo Server: http://localhost:7860"
-	@echo "🚀 Starting databases..."
-	@$(MAKE) start-databases
-	@sleep 5
-	@echo "  - MySQL Database: localhost:3306"
-	@echo "  - Neo4j Database: localhost:7474 (HTTP) / localhost:7687 (Bolt)"
 	@echo "✅ All services started!"
 
 stop-all-services:
 	@echo "🛑 Stopping all services..."
 	@$(MAKE) stop-api-server
 	@$(MAKE) stop-demo-server
-	@$(MAKE) stop-databases
 	@$(MAKE) clean-all-stack
 
 
@@ -66,7 +52,6 @@ stop-all-services-and-clean-data:
 	@echo "🚀 stopping services and cleaning database data..."
 	@$(MAKE) stop-api-server
 	@$(MAKE) stop-demo-server
-	@$(MAKE) stop-databases-and-clean-data
 	@$(MAKE) clean-all-stack
 
 # =============================================================================
@@ -128,42 +113,6 @@ stop-demo-server:
 	@echo "✅ Demo server stopped"
 
 # =============================================================================
-# DATABASES SERVERS
-
-# Start all databases with docker-compose
-start-databases:
-	@echo "🚀 Starting databases with docker-compose..."
-	@docker-compose up -d
-	@echo "✅ Databases started!"
-	@echo " Databases available at:"
-	@echo "  - MySQL Database: localhost:3306"
-	@echo "  - Neo4j Database: localhost:7474 (HTTP) / localhost:7687 (Bolt)"
-	@echo "  - Redis Database: localhost:6379"
-	@echo ""
-	@echo "⏳ Waiting for Neo4j to be ready..."
-	@until docker exec neo4j-lineage cypher-shell -u neo4j -p password "RETURN 1" > /dev/null 2>&1; do \
-		echo "   Waiting for Neo4j to be ready..."; \
-		sleep 3; \
-	done
-	@echo "✅ Neo4j is ready!"
-	@echo ""
-	@echo "🔧 Setting up Neo4j constraints..."
-	@python backend/repository_layer/constraints_startup.py
-
-# Stop all databases with docker-compose
-stop-databases:
-	@echo "🛑 Stopping all services with docker-compose..."
-	@docker-compose down
-	@echo "✅ All services stopped!"
-
-# Stop all databases with docker-compose and remove volumes (CLEANS DATA)
-stop-databases-and-clean-data:
-	@echo "🛑 Stopping all databases and removing volumes (WILL DELETE ALL DATA)..."
-	@docker-compose down -v
-	@echo "✅ All databases stopped and data cleaned!"
-
-
-# =============================================================================
 # CLEANUP COMMANDS ############################################################
 # =============================================================================
 
@@ -197,79 +146,12 @@ clean-all-stack:
 	@rm -rf lineage_extraction_dumps 2>/dev/null || echo "No lineage_extraction_dumps folder found"
 	@rm -rf .venv 2>/dev/null || echo "No .venv folder found"
 	@rm -rf demo-deploy 2>/dev/null || echo "No demo-deploy folder found"
-	@rm -rf lineagentic-flow.egg-info 2>/dev/null || echo "No lineagentic-flow.egg-info folder found"
+	@rm -rf lineagentic_flow.egg-info 2>/dev/null || echo "No lineagentic_flow.egg-info folder found"
 	@rm -rf .pytest_cache 2>/dev/null || echo "No .pytest_cache folder found"
 	@rm -rf .mypy_cache 2>/dev/null || echo "No .mypy_cache folder found"
-	@rm -rf mysql 2>/dev/null || echo "No mysql folder found"
-	@rm -rf lineage.db 2>/dev/null || echo "No lineage.db file found"
 	@$(MAKE) clean-pycache
 	@echo "✅ Cleanup completed!"
 
-
-
-
-# =============================================================================
-# MySQL COMMANDS ##############################################################
-# =============================================================================
-
-# Change MySQL passwords
-change-mysql-passwords:
-	@echo "🔐 Changing MySQL passwords..."
-	@if [ ! -f .env ]; then \
-		echo "❌ .env file not found. Please create it first."; \
-		exit 1; \
-	fi
-	@echo "Please enter the new root password:"
-	@read -s new_root_pass; \
-	echo "Please enter the new user password:"; \
-	read -s new_user_pass; \
-	docker exec -i lineagentic-mysql mysql -u root -p$(MYSQL_ROOT_PASSWORD) -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '$${new_root_pass}'; ALTER USER 'root'@'%' IDENTIFIED BY '$${new_root_pass}'; ALTER USER '$(MYSQL_USER)@'%' IDENTIFIED BY '$${new_user_pass}'; FLUSH PRIVILEGES;"
-	@echo "✅ Passwords changed successfully!"
-	@echo "📝 Don't forget to update your .env file with the new passwords!"
-
-# Reset MySQL passwords to defaults (for development)
-reset-mysql-passwords:
-	@echo "🔄 Resetting MySQL passwords to defaults..."
-	@if [ ! -f .env ]; then \
-		echo "❌ .env file not found. Please create it first."; \
-		exit 1; \
-	fi
-	@docker exec -i lineagentic-mysql mysql -u root -p$(MYSQL_ROOT_PASSWORD) -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '$(MYSQL_ROOT_PASSWORD)'; ALTER USER 'root'@'%' IDENTIFIED BY '$(MYSQL_ROOT_PASSWORD)'; ALTER USER '$(MYSQL_USER)@'%' IDENTIFIED BY '$(MYSQL_PASSWORD)'; FLUSH PRIVILEGES;"
-	@echo "✅ Passwords reset to defaults!"
-
-# Stop MySQL database
-stop-mysql:
-	@echo "🛑 Stopping MySQL database..."
-	@docker-compose stop mysql
-	@echo "✅ MySQL stopped"
-
-# Restart MySQL database
-restart-mysql:
-	@echo "🔄 Restarting MySQL database..."
-	@docker-compose restart mysql
-	@echo "✅ MySQL restarted"
-
-# Check MySQL status
-mysql-status:
-	@echo "📊 MySQL Status:"
-	@docker-compose ps mysql
-	@echo ""
-	@echo "🔍 Health check:"
-	@docker-compose exec mysql mysqladmin ping -h localhost -u root -plineagentic_root_password 2>/dev/null || echo "❌ MySQL not responding"
-
-# View MySQL logs
-mysql-logs:
-	@echo "📝 MySQL logs:"
-	@docker-compose logs mysql
-
-# Test MySQL connection using .env credentials
-test-mysql-connection:
-	@echo "🔍 Testing MySQL connection..."
-	@if [ ! -f .env ]; then \
-		echo "❌ .env file not found. Please create it first."; \
-		exit 1; \
-	fi
-	@docker exec -i lineagentic-mysql mysql -u $(MYSQL_USER) -p$(MYSQL_PASSWORD) -h localhost -e "SELECT 'Connection successful!' as status;" 2>/dev/null || echo "❌ Connection failed. Check your credentials in .env file."
 
 # =============================================================================
 # TESTING COMMANDS ############################################################
@@ -288,12 +170,6 @@ test-tracers:
 	@echo "🧪 Running tracers tests..."
 	@python run_tests.py test_tracers
 	@echo "✅ Tracers tests completed!"
-
-# Run database tests only
-test-database:
-	@echo "🧪 Running database tests..."
-	@python run_tests.py test_database
-	@echo "✅ Database tests completed!"
 
 # Run API server tests only
 test-api-server:
@@ -343,24 +219,3 @@ gradio-deploy:
 	@cd demo-deploy && @. .venv/bin/activate && gradio deploy
 	@echo "✅ Gradio deployment completed!"
 
-# =============================================================================
-# MERMAID COMMANDS ############################################################
-# =============================================================================
-
-# Generate Mermaid diagram
-generate-mermaid-diagram:
-	@echo "🚀 Generating Mermaid diagram..."
-	@if command -v mmdc >/dev/null 2>&1; then \
-		if [ -f "images/mermaid_model.mmd" ]; then \
-			mmdc -i images/mermaid_model.mmd -o images/diagram.png -w 8000 -H 6000 --scale 2; \
-			echo "✅ Mermaid diagram generated successfully!"; \
-			echo "📁 Output saved to: images/diagram.png"; \
-		else \
-			echo "❌ Mermaid file not found: images/mermaid_model.mmd"; \
-			echo "   Make sure the mermaid_model.mmd file exists in the images directory."; \
-		fi; \
-	else \
-		echo "❌ mmdc command not found!"; \
-		echo "   Please install @mermaid-js/mermaid-cli:"; \
-		echo "   npm install -g @mermaid-js/mermaid-cli"; \
-	fi 

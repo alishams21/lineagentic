@@ -40,7 +40,7 @@ class SQLLineageFrontend:
             # Get the aggregation data - now it's directly the current_results
             aggregation_data = self.current_results
             
-            # If it's a string, try to parse it as JSON, otherwise wrap it in a dict
+            # Handle different result types
             if isinstance(aggregation_data, str):
                 try:
                     # Try to parse as JSON first
@@ -49,8 +49,14 @@ class SQLLineageFrontend:
                 except json.JSONDecodeError:
                     # If it's not valid JSON, wrap it in a dict
                     data_to_encode = {"aggregation_output": aggregation_data}
-            else:
+            elif hasattr(aggregation_data, 'to_dict'):
+                # Handle AgentResult objects
+                data_to_encode = aggregation_data.to_dict()
+            elif isinstance(aggregation_data, dict):
                 data_to_encode = aggregation_data
+            else:
+                # Fallback for other object types
+                data_to_encode = {"aggregation_output": str(aggregation_data)}
             
             # Format JSON for display
             formatted_json = json.dumps(data_to_encode, indent=2)
@@ -127,20 +133,46 @@ class SQLLineageFrontend:
         else:
             return "Please initialize an agent first"
 
+    def get_results_info(self) -> str:
+        """Get information about the current results"""
+        if self.current_results is None:
+            return "No results available yet"
+        
+        if isinstance(self.current_results, dict) and "error" in self.current_results:
+            return f"Error in results: {self.current_results['error']}"
+        
+        if hasattr(self.current_results, 'to_dict'):
+            # AgentResult object
+            result_dict = self.current_results.to_dict()
+            return f"Structured results with {len(result_dict.get('inputs', []))} inputs and {len(result_dict.get('outputs', []))} outputs"
+        
+        if isinstance(self.current_results, dict):
+            return f"Dictionary results with {len(self.current_results)} keys"
+        
+        return f"Results type: {type(self.current_results).__name__}"
+
     async def run_analysis(self, agent_name: str, model_name: str, query: str):
         """Run SQL lineage analysis"""
         try:
+            # Validate input
+            if not query or not query.strip():
+                return "❌ Error: Query cannot be empty. Please provide a valid query for analysis."
+            
             # Initialize the agent framework with simplified constructor
             self.agent_framework = AgentFramework(
                 agent_name=agent_name, 
                 model_name=model_name,
-                source_code=query
+                source_code=query.strip()
             )
             self.current_agent_name = agent_name
             
-            # Run the analysis using the correct framework method
-            results = await self.agent_framework.run_agent_plugin()
+            # Run the analysis using the structured results method
+            results = await self.agent_framework.run_agent_plugin_with_objects()
             self.current_results = results
+            
+            # Check if we got an error response
+            if isinstance(results, dict) and "error" in results:
+                return f"❌ Analysis failed: {results['error']}"
             
             return f"""✅ Analysis completed successfully! Results are now available in the visualization section. 
             Click 'Open JSONCrack Editor' to visualize your data lineage.
@@ -148,6 +180,8 @@ class SQLLineageFrontend:
             If you want to set up your own local development environment or deploy this in production, 
             please refer to the GitHub repository mentioned above."""
             
+        except ValueError as ve:
+            return f"❌ Validation error: {str(ve)}"
         except Exception as e:
             return f"❌ Error running analysis: {str(e)}"
 
@@ -161,8 +195,8 @@ class SQLLineageFrontend:
             
             gr.Markdown('<div style="text-align: center;font-size:24px">🔍 Demo Lineage Analysis Framework</div>')
             gr.Markdown('<div style="text-align: center;font-size:14px">Analyze and visualize data lineage with AI-powered agents</div>')
-            gr.Markdown('<div style="text-align: center;font-size:14px">Currently supports SQL queries, coming soon for Python and other languages</div>')
-            gr.Markdown('<div style="text-align: center;font-size:14px">For local and production runs, check out the repo: <a href="https://github.com/alishams21/lineagentic" target="_blank" style="color: #007bff; text-decoration: none; font-weight: bold;">🔗 https://github.com/alishams21/lineagentic</a></div>')
+            gr.Markdown('<div style="text-align: center;font-size:14px">Check out agent types for supporting script types</div>')
+            gr.Markdown('<div style="text-align: center;font-size:14px">For local and production runs, check out the repo: <a href="https://github.com/lineagentic" target="_blank" style="color: #007bff; text-decoration: none; font-weight: bold;">🔗 https://github.com/lineagentic</a></div>')
 
             with gr.Row():
                 # Left column - Configuration and Query
@@ -204,31 +238,40 @@ class SQLLineageFrontend:
                 
                 # Right column - Visualization and Logs
                 with gr.Column(scale=1):
-                    gr.Markdown("### 3. Visualize Results")
+                    gr.Markdown("### 3. Results Information")
+                    results_info = gr.Textbox(
+                        label="Results Status", 
+                        value=self.get_results_info(),
+                        interactive=False
+                    )
+                    
+                    gr.Markdown("### 4. Visualize Results")
                     gr.Markdown("📊 **JSONCrack Integration**: After successful analysis, visualize your results using the JSONCrack editor")
                     visualize_html = gr.HTML(self.get_visualize_link())
                     
-                    gr.Markdown("### 4. Live Logs")
+                    gr.Markdown("### 5. Live Logs")
                     logs_html = gr.HTML(self.get_logs_html())
                     test_log_button = gr.Button("Test Log Writing", variant="secondary", size="sm")
                     
                     # Auto-refresh logs every 5 seconds
                     refresh_logs = gr.Button("🔄 Refresh Logs", variant="secondary", size="sm")
+                    refresh_results = gr.Button("🔄 Refresh Results Info", variant="secondary", size="sm")
             
             # Event handlers
             def run_analysis_and_update(agent_name, model_name, query):
                 """Run analysis and update visualization"""
                 # Run the analysis
                 status_result = self.run_analysis_sync(agent_name, model_name, query)
-                # Update visualization and logs
+                # Update visualization, logs, and results info
                 viz_html = self.get_visualize_link()
                 logs_html = self.get_logs_html()
-                return status_result, viz_html, logs_html
+                results_info = self.get_results_info()
+                return status_result, results_info, viz_html, logs_html
             
             analyze_button.click(
                 fn=run_analysis_and_update,
                 inputs=[agent_dropdown, model_dropdown, query_input],
-                outputs=[status_output, visualize_html, logs_html]
+                outputs=[status_output, results_info, visualize_html, logs_html]
             )
             
             test_log_button.click(
@@ -241,6 +284,12 @@ class SQLLineageFrontend:
                 fn=self.get_logs_html,
                 inputs=[],
                 outputs=[logs_html]
+            )
+            
+            refresh_results.click(
+                fn=self.get_results_info,
+                inputs=[],
+                outputs=[results_info]
             )
         
         return ui

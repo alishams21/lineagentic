@@ -18,64 +18,24 @@ class PythonLineageAPIClient:
             response.raise_for_status()
         return response.json()
     
-    def analyze_query(self, query: str, model_name: str = "gpt-4o-mini", 
-                     agent_name: str = "python-lineage-agent", save_to_db: bool = True,
-                     save_to_neo4j: bool = True, event_ingestion_request: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def analyze_query(self, source_code: str, model_name: str = "gpt-4o-mini", 
+                     agent_name: str = "python") -> Dict[str, Any]:
         """
         Analyze a single Python query using the python_lineage_agent plugin
         
         Args:
-            query: Python query to analyze
+            source_code: Python query to analyze
             model_name: Model to use for analysis
             agent_name: Name of the agent
-            save_to_db: Whether to save results to database
-            save_to_neo4j: Whether to save lineage data to Neo4j
-            event_ingestion_request: Optional EventIngestionRequest configuration
             
         Returns:
             Analysis results
         """
-        # If no event_ingestion_request provided, create a basic one with the query
-        if event_ingestion_request is None:
-            event_ingestion_request = {
-                "event_type": "START",
-                "event_time": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-                "run": {
-                    "run_id": str(uuid.uuid4()),
-                    "facets": {}
-                },
-                "job": {
-                    "namespace": "default",
-                    "name": "python-query-analysis",
-                    "facets": {
-                        "source_code": {
-                            "language": "python",
-                            "source_code": query
-                        }
-                    }
-                },
-                "inputs": [],
-                "outputs": []
-            }
-        else:
-            # Ensure the query is set in the event_ingestion_request
-            if "job" not in event_ingestion_request:
-                event_ingestion_request["job"] = {}
-            if "facets" not in event_ingestion_request["job"]:
-                event_ingestion_request["job"]["facets"] = {}
-            if "source_code" not in event_ingestion_request["job"]["facets"]:
-                event_ingestion_request["job"]["facets"]["source_code"] = {}
-            
-            # Set the query in the source_code
-            event_ingestion_request["job"]["facets"]["source_code"]["source_code"] = query
-            event_ingestion_request["job"]["facets"]["source_code"]["language"] = "python"
         
         payload = {
             "model_name": model_name,
             "agent_name": agent_name,
-            "save_to_db": save_to_db,
-            "save_to_neo4j": save_to_neo4j,
-            "event_ingestion_request": event_ingestion_request
+            "source_code": source_code
         }
         
         response = requests.post(f"{self.base_url}/analyze", json=payload)
@@ -174,161 +134,13 @@ def main():
         conn.close()
     """
 
-    # Create the event ingestion request with proper structure
-    event_ingestion_request = {
-        "event_type": "START",
-        "event_time": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-        "run": {
-            "run_id": str(uuid.uuid4()),
-            "facets": {
-                "parent": {
-                    "job": {
-                        "namespace": "test-namespace",
-                        "name": "test-python-job",
-                        "facets": {
-                            "source_code_location": {
-                                "type": "file",
-                                "url": "https://github.com/your-repo/your-python-job/blob/main/source.py",
-                                "repo_url": "https://github.com/your-repo/your-python-job",
-                                "path": "/path/to/source.py",
-                                "version": "1.0.0",
-                                "branch": "main"
-                            },
-                            "source_code": {
-                                "language": "python",
-                                "source_code": sample_query
-                            },
-                            "job_type": {
-                                "processing_type": "BATCH",
-                                "integration": "PYTHON",
-                                "job_type": "PANDAS"
-                            },
-                            "documentation": {
-                                "description": "This is a test Python job",
-                                "content_type": "text/plain"
-                            },
-                            "ownership": {
-                                "owners": [
-                                    {"name": "John Doe", "type": "INDIVIDUAL"}
-                                ]
-                            },
-                            "environment_variables": [
-                                {"name": "PYTHONPATH", "value": "/app"},
-                                {"name": "DATA_PATH", "value": "/data"},
-                                {"name": "DB_PATH", "value": "/data/database.db"}
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "job": {
-            "namespace": "test-namespace",
-            "name": "test-python-job",
-            "facets": {
-                "source_code_location": {
-                    "type": "file",
-                    "url": "https://github.com/your-repo/your-python-job/blob/main/source.py",
-                    "repo_url": "https://github.com/your-repo/your-python-job",
-                    "path": "/path/to/source.py",
-                    "version": "1.0.0",
-                    "branch": "main"
-                },
-                "source_code": {
-                    "language": "python",
-                    "source_code": sample_query
-                },
-                "job_type": {
-                    "processing_type": "BATCH",
-                    "integration": "PYTHON",
-                    "job_type": "PANDAS"
-                },
-                "documentation": {
-                    "description": "This is a test Python job",
-                    "content_type": "text/plain"
-                },
-                "ownership": {
-                    "owners": [
-                        {"name": "John Doe", "type": "INDIVIDUAL"}
-                    ]
-                },
-                "environment_variables": [
-                    {"name": "PYTHONPATH", "value": "/app"},
-                    {"name": "DATA_PATH", "value": "/data"},
-                    {"name": "DB_PATH", "value": "/data/database.db"}
-                ]
-            }
-        },
-        "inputs": [
-            {
-                "namespace": "customer_db",
-                "name": "customer_2",
-                "facets": {
-                    "schema": {
-                        "fields": [
-                            {"name": "customer_id", "type": "INTEGER", "description": "Customer ID", "version_id": "1.0"},
-                            {"name": "first_name", "type": "VARCHAR", "description": "First name", "version_id": "1.0"},
-                            {"name": "last_name", "type": "VARCHAR", "description": "Last name", "version_id": "1.0"},
-                            {"name": "email", "type": "VARCHAR", "description": "Customer email", "version_id": "1.0"},
-                            {"name": "birthdate", "type": "DATE", "description": "Birth date", "version_id": "1.0"}
-                        ]
-                    },
-                    "tags": [
-                        {"key": "input", "value": "test", "source": "manual"}
-                    ],
-                    "ownership": {
-                        "owners": [
-                            {"name": "John Doe", "type": "INDIVIDUAL"}
-                        ]
-                    },
-                    "input_statistics": {
-                        "row_count": 1000,
-                        "file_count": 1,
-                        "size": 50000
-                    }
-                }
-            }
-        ],
-        "outputs": [
-            {
-                "namespace": "customer_db",
-                "name": "customer_3",
-                "facets": {
-                    "schema": {
-                        "fields": [
-                            {"name": "customer_id", "type": "INTEGER", "description": "Customer ID", "version_id": "1.0"},
-                            {"name": "first_name", "type": "VARCHAR", "description": "First name", "version_id": "1.0"},
-                            {"name": "last_name", "type": "VARCHAR", "description": "Last name", "version_id": "1.0"},
-                            {"name": "full_name", "type": "VARCHAR", "description": "Full name", "version_id": "1.0"},
-                            {"name": "email", "type": "VARCHAR", "description": "Customer email", "version_id": "1.0"},
-                            {"name": "birthdate", "type": "DATE", "description": "Birth date", "version_id": "1.0"},
-                            {"name": "age", "type": "INTEGER", "description": "Calculated age", "version_id": "1.0"},
-                            {"name": "age_group", "type": "VARCHAR", "description": "Age group category", "version_id": "1.0"}
-                        ]
-                    },
-                    "tags": [
-                        {"key": "output", "value": "test", "source": "manual"}
-                    ],
-                    "ownership": {
-                        "owners": [
-                            {"name": "John Doe", "type": "INDIVIDUAL"}
-                        ]
-                    },
-                    "output_statistics": {
-                        "row_count": 950,
-                        "file_count": 1,
-                        "size": 45000
-                    }
-                }
-            }
-        ]
-    }
-    
-    lineage_result_proper = client.analyze_query(
-        query=sample_query,
-        event_ingestion_request=event_ingestion_request
+    # Analyze the query with the simplified API
+    print("Analyzing Python query...")
+    lineage_result = client.analyze_query(
+        source_code=sample_query,
+        agent_name="python-lineage-agent"
     )
-    print(f"Python lineage agent result with proper EventIngestionRequest: {json.dumps(lineage_result_proper, indent=2)}")
+    print(f"Python lineage agent result: {json.dumps(lineage_result, indent=2)}")
     print()
 
 if __name__ == "__main__":

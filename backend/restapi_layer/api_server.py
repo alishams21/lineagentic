@@ -9,9 +9,6 @@ from ..models.models import (
     QueryRequest,
     QueryResponse,
     HealthResponse,
-    FieldLineageRequest,
-    FieldLineageResponse,
-    EventIngestionRequest,
 )
 from ..service_layer.lineage_service import LineageService
 
@@ -21,8 +18,8 @@ logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="Lineage Analysis API",
-    description="REST API for lineage analysis using Agent Framework with Clean Architecture",
+    title="Lineagentic-Flow Analysis API",
+    description="REST API for lineage analysis using Agent Framework with clean architecture",
     version="2.0.0"
 )
 
@@ -72,9 +69,7 @@ async def analyze_query(request: QueryRequest):
         result = await lineage_service.analyze_query(
             agent_name=request.agent_name,
             model_name=request.model_name,
-            save_to_db=request.save_to_db,
-            save_to_neo4j=request.save_to_neo4j,
-            event_ingestion_request=request.event_ingestion_request
+            source_code=request.source_code
         )
         
         return QueryResponse(
@@ -93,43 +88,6 @@ async def analyze_query(request: QueryRequest):
             status_code=500,
             detail=f"Error analyzing query: {str(e)}"
         )
-
-@app.post("/field-lineage", response_model=FieldLineageResponse)
-async def get_field_lineage(request: FieldLineageRequest):
-    """
-    Get complete lineage for a specific field.
-    
-    Args:
-        request: FieldLineageRequest containing the field name and optional namespace
-        
-    Returns:
-        FieldLineageResponse with field lineage data
-    """
-    try:
-        result = await lineage_service.get_field_lineage(
-            field_name=request.field_name,
-            namespace=request.namespace,
-            name=request.name,
-            max_hops=request.max_hops
-        )
-        
-        return FieldLineageResponse(
-            success=True,
-            data=result
-        )
-        
-    except ValueError as e:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Validation error: {str(e)}"
-        )
-    except Exception as e:
-        logger.error(f"Error getting field lineage: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error getting field lineage: {str(e)}"
-        )
-
 
 
 if __name__ == "__main__":
