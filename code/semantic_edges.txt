@@ -1,4 +1,0 @@
-MATCH (out:Column)-[d:DERIVES_FROM]->(in:Column),
-      (out)-[h:HAS_ASPECT {name:'transformation', latest:true}]->(a:Aspect:Versioned)
-RETURN out,d,in,h,a
-LIMIT 100;

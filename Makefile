@@ -47,10 +47,6 @@ start-all-services:
 	@$(MAKE) start-demo-server
 	@sleep 5
 	@echo "  - Demo Server: http://localhost:7860"
-	@echo "🚀 Starting lineage visualizer..."
-	@$(MAKE) start-lineage-visualizer
-	@sleep 5
-	@echo "  - Lineage Visualizer: http://localhost:3000/editor"
 	@echo "🚀 Starting databases..."
 	@$(MAKE) start-databases
 	@sleep 5
@@ -62,7 +58,6 @@ stop-all-services:
 	@echo "🛑 Stopping all services..."
 	@$(MAKE) stop-api-server
 	@$(MAKE) stop-demo-server
-	@$(MAKE) stop-lineage-visualizer
 	@$(MAKE) stop-databases
 	@$(MAKE) clean-all-stack
 
@@ -71,7 +66,6 @@ stop-all-services-and-clean-data:
 	@echo "🚀 stopping services and cleaning database data..."
 	@$(MAKE) stop-api-server
 	@$(MAKE) stop-demo-server
-	@$(MAKE) stop-lineage-visualizer
 	@$(MAKE) stop-databases-and-clean-data
 	@$(MAKE) clean-all-stack
 
@@ -134,34 +128,6 @@ stop-demo-server:
 	@echo "✅ Demo server stopped"
 
 # =============================================================================
-# LINEAGE VISUALIZER SERVER
-
-# Install dependencies
-install-lineage-visualizer-dependencies:
-	@echo "📦 Installing lineage visualizer dependencies..."
-	@cd lineage_visualizer/jsoncrack && pnpm install
-	@echo "✅ Dependencies installed successfully!"
-
-# Start lineage visualizer in background
-start-lineage-visualizer:
-	@echo "🚀 Starting lineage visualizer in background..."
-	@if pgrep -f "pnpm.*run.*dev" > /dev/null; then \
-		echo "⚠️  Lineage visualizer is already running!"; \
-		echo "   Use 'make stop-lineage-visualizer' to stop it first"; \
-	else \
-		cd lineage_visualizer/jsoncrack && pnpm run dev > /dev/null 2>&1 & \
-		echo "✅ Lineage visualizer started in background"; \
-		echo "🌐 Server should be available at http://localhost:3000/editor"; \
-		echo "🛑 Use 'make stop-lineage-visualizer' to stop the lineage visualizer"; \
-	fi
-
-# Stop lineage visualizer
-stop-lineage-visualizer:
-	@echo "🛑 Stopping lineage visualizer..."
-	@pkill -f "pnpm.*run.*dev" || echo "No lineage visualizer process found"
-	@echo "✅ Lineage visualizer stopped"
-
-# =============================================================================
 # DATABASES SERVERS
 
 # Start all databases with docker-compose
@@ -219,9 +185,8 @@ clean-pycache:
 # Clean up temporary files and kill processes
 clean-all-stack:
 	@echo "🧹 Cleaning up temporary files and processes..."
-	@echo "🛑 Killing processes on ports 8000, 3000, 7860..."
+	@echo "🛑 Killing processes on ports 8000, 7860..."
 	@lsof -ti:8000 | xargs kill -9 2>/dev/null || echo "No process on port 8000"
-	@lsof -ti:3000 | xargs kill -9 2>/dev/null || echo "No process on port 3000"
 	@lsof -ti:7860 | xargs kill -9 2>/dev/null || echo "No process on port 7860"
 	@echo "🗑️  Cleaning up temporary files..."
 	@find . -name "*.log" -type f -delete
@@ -232,12 +197,11 @@ clean-all-stack:
 	@rm -rf lineage_extraction_dumps 2>/dev/null || echo "No lineage_extraction_dumps folder found"
 	@rm -rf .venv 2>/dev/null || echo "No .venv folder found"
 	@rm -rf demo-deploy 2>/dev/null || echo "No demo-deploy folder found"
-	@rm -rf lineagent.egg-info 2>/dev/null || echo "No lineagent.egg-info folder found"
+	@rm -rf lineagentic-flow.egg-info 2>/dev/null || echo "No lineagentic-flow.egg-info folder found"
 	@rm -rf .pytest_cache 2>/dev/null || echo "No .pytest_cache folder found"
 	@rm -rf .mypy_cache 2>/dev/null || echo "No .mypy_cache folder found"
 	@rm -rf mysql 2>/dev/null || echo "No mysql folder found"
 	@rm -rf lineage.db 2>/dev/null || echo "No lineage.db file found"
-	@rm -rf lineagentic.egg-info 2>/dev/null || echo "No lineagentic.egg-info folder found"
 	@$(MAKE) clean-pycache
 	@echo "✅ Cleanup completed!"
 
