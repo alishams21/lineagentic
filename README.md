@@ -3,9 +3,9 @@
   <img src="images/logo.svg" alt="Lineagentic Logo" width="880" height="300">
 </div>
 
-## Lineagentic
+## Lineagentic-flow
 
-Lineagentic is an agentic ai solution for building end-to-end data lineage across diverse types of data processing scripts across different platforms. It is designed to be modular and customizable, and can be extended to support new data processing script types.
+Lineagentic-flow is an agentic ai solution for building end-to-end data lineage across diverse types of data processing scripts across different platforms. It is designed to be modular and customizable, and can be extended to support new data processing script types.
 
 ### Features
 
@@ -20,7 +20,7 @@ Lineagentic is an agentic ai solution for building end-to-end data lineage acros
 
 ## Agent Status Table
 
-Following table shows the current development agents in Lineagentic algorithm:
+Following table shows the current development agents in Lineagentic-flow algorithm:
 
 
 | **Agent Name**       | **Done** | **Under Development** | **In Backlog** | **Comment**                          |
@@ -37,7 +37,7 @@ Following table shows the current development agents in Lineagentic algorithm:
 | dbt_lineage_agent         |          |                        | ✓              |            |
 
 
-### What are the components of Lineagentic?
+### What are the components of Lineagentic-flow?
 
 - Algorithm module: This is the brain of the Lineagentic. It contains agents, which are implemented as plugins and acting as chain of thought process to extract lineage from different types of data processing scripts. The module is built using a plugin-based design pattern, allowing you to easily develop and integrate your own custom agents. Once added to the algorithm module, all other components of the platform will be available to support your agents
 
@@ -50,12 +50,12 @@ Following table shows the current development agents in Lineagentic algorithm:
 
 - CLI module: is for command line around algorithm API and connect to unified service layer
 
-- Demo module: is for teams who want to demo Lineagentic in fast and simple way deployable into huggingface spaces.
+- Demo module: is for teams who want to demo Lineagentic-flow in fast and simple way deployable into huggingface spaces.
 
 
 ### Activation and Deployment
 
-To simplify the usage of Lineagentic, a Makefile has been created to manage various activation and deployment tasks. You can explore the available targets directly within the Makefile. Here you can find different strategies but for more details look into Makefile.
+To simplify the usage of Lineagentic-flow, a Makefile has been created to manage various activation and deployment tasks. You can explore the available targets directly within the Makefile. Here you can find different strategies but for more details look into Makefile.
 
 1- to start the services:
 
@@ -73,7 +73,7 @@ make stop-all-services
 make start-all-services-and-clean-data
 ```
 
-4- In order to deploy Lineagentic to Hugging Face Spaces, run the following command ( you need to have huggingface account and put secret keys there if you are going to use paid models):
+4- In order to deploy Lineagentic-flow to Hugging Face Spaces, run the following command ( you need to have huggingface account and put secret keys there if you are going to use paid models):
 
 ```bash
 make gradio-deploy
@@ -81,7 +81,7 @@ make gradio-deploy
 
 #### Command Line Interface (CLI)
 
-Lineagentic provides a powerful CLI tool for quick analysis:
+Lineagentic-flow provides a powerful CLI tool for quick analysis:
 
 ```bash
 # Basic SQL query analysis
@@ -104,12 +104,12 @@ For more CLI options and detailed documentation, see the [CLI documentation](cli
 
 ### Architecture
 
-The following figure illustrates the architecture behind the Lineagentic, which is essentially a multi-layer architecture front-end, backend and agentic AI algorithm that leverages a chain-of-thought process to construct lineage across various script types.
+The following figure illustrates the architecture behind the Lineagentic-flow, which is essentially a multi-layer architecture front-end, backend and agentic AI algorithm that leverages a chain-of-thought process to construct lineage across various script types.
 
 ![Architecture Diagram](images/architecture.png)
 
 ## Graph data model
-Lineagentic uses a graph data model to store lineage data. using graph data model  will help a lot for visulization and querying. Also can be simply extended to support new data models requirements.
+Lineagentic-flow uses a graph data model to store lineage data. using graph data model  will help a lot for visulization and querying. Also can be simply extended to support new data models requirements.
 
 ![Graph data model](images/model.png)
 
