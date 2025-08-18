@@ -79,7 +79,7 @@ export OPENAI_API_KEY="your-openai-api-key"
 export HF_TOKEN="your-huggingface-token"  # Optional
 ```
 
-### What are the components of Lineagentic-flow?
+## What are the components of Lineagentic-flow?
 
 - Algorithm module: This is the brain of the Lineagentic-flow. It contains agents, which are implemented as plugins and acting as chain of thought process to extract lineage from different types of data processing scripts. The module is built using a plugin-based design pattern, allowing you to easily develop and integrate your own custom agents.
 
@@ -113,7 +113,7 @@ The following figure illustrates the architecture behind the Lineagentic-flow, w
 ![Architecture Diagram](images/architecture.png)
 
 
-### Mathematic behind algorithm 
+## Mathematic behind algorithm 
 
 Following shows mathematic behind each layer of algorithm.
 
@@ -163,7 +163,7 @@ $$
 
 
 
-### Activation and Deployment
+## Activation and Deployment
 
 To simplify the usage of Lineagentic-flow, a Makefile has been created to manage various activation and deployment tasks. You can explore the available targets directly within the Makefile. Here you can find different strategies but for more details look into Makefile.
 
