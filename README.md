@@ -89,33 +89,6 @@ export HF_TOKEN="your-huggingface-token"  # Optional
 
 - Demo module: is for teams who want to demo Lineagentic-flow in fast and simple way deployable into huggingface spaces.
 
-
-### Activation and Deployment
-
-To simplify the usage of Lineagentic-flow, a Makefile has been created to manage various activation and deployment tasks. You can explore the available targets directly within the Makefile. Here you can find different strategies but for more details look into Makefile.
-
-1- to start the services:
-
-```bash
-make start-all-services
-```
-2- to stop the services:
-
-```bash
-make stop-all-services
-```
-3- to start the services and clean database data:
-
-```bash
-make start-all-services-and-clean-data
-```
-
-4- In order to deploy Lineagentic-flow to Hugging Face Spaces, run the following command ( you need to have huggingface account and put secret keys there if you are going to use paid models):
-
-```bash
-make gradio-deploy
-```
-
 #### Command Line Interface (CLI)
 
 Lineagentic-flow provides a powerful CLI tool for quick analysis:
@@ -191,3 +164,34 @@ $$
 $$
 
 
+
+### Activation and Deployment
+
+To simplify the usage of Lineagentic-flow, a Makefile has been created to manage various activation and deployment tasks. You can explore the available targets directly within the Makefile. Here you can find different strategies but for more details look into Makefile.
+
+1- to start demo server:
+
+```bash
+make start-demo-server
+```
+2- to do all tests:
+
+```bash
+make test
+```
+3- to build package:
+
+```bash
+make build-package
+```
+4- to clean all stack:
+
+```bash
+make clean-all-stack
+```
+
+5- In order to deploy Lineagentic-flow to Hugging Face Spaces, run the following command ( you need to have huggingface account and put secret keys there if you are going to use paid models):
+
+```bash
+make gradio-deploy
+```
