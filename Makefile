@@ -47,8 +47,13 @@ start-demo-server:
 		echo "   Use 'make stop-demo-server' to stop it first"; \
 	else \
 		. .venv/bin/activate && python start_demo_server.py > /dev/null 2>&1 & \
-		echo " Demo server started in background"; \
-		echo " Server should be available at http://localhost:7860"; \
+		echo " Demo server starting in background..."; \
+		echo " Waiting for server to be ready..."; \
+		while ! curl -s http://localhost:7860 > /dev/null 2>&1; do \
+			echo "   Waiting for server to start..."; \
+			sleep 2; \
+		done; \
+		echo "✅ Server is now running and available at http://localhost:7860"; \
 		echo " Use 'make stop-demo-server' to stop the demo server"; \
 	fi
 
@@ -95,6 +100,9 @@ clean-all:
 	@rm -rf lineagentic_flow.egg-info 2>/dev/null || echo "No lineagentic_flow.egg-info folder found"
 	@rm -rf .pytest_cache 2>/dev/null || echo "No .pytest_cache folder found"
 	@rm -rf .mypy_cache 2>/dev/null || echo "No .mypy_cache folder found"
+	@rm -rf logs 2>/dev/null || echo "No logs folder found"
+	@rm -rf .ruff_cache 2>/dev/null || echo "No .ruff_cache folder found"
+	@rm -rf dist 2>/dev/null || echo "No dist folder found"
 	@$(MAKE) clean-pycache
 	@echo " Cleanup completed!"
 

@@ -2,7 +2,7 @@ from agents import TracingProcessor, Trace, Span
 import sys
 import os
 
-from .database import write_lineage_log
+from .logging_config import write_lineage_log
 import secrets
 import string
 

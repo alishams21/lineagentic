@@ -5,11 +5,19 @@ import threading
 import time
 import sys
 import os
+import logging
 from typing import Optional, Dict, Any
 from datetime import datetime
 
-from lf_algorithm.framework_agent import FrameworkAgent
-from lf_algorithm.utils.database import read_lineage_log, write_lineage_log
+from lf_algorithm import FrameworkAgent
+from lf_algorithm.utils import write_lineage_log
+
+# Configure logging for the demo server
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 class SQLLineageFrontend:
     def __init__(self):
@@ -18,6 +26,7 @@ class SQLLineageFrontend:
         self.current_agent_name = None
         self.log_thread = None
         self.should_stop_logging = False
+        self.logger = logging.getLogger(__name__)
 
     def get_visualize_link(self) -> str:
         """Generate JSONCrack visualization interface for aggregation data"""
@@ -93,45 +102,43 @@ class SQLLineageFrontend:
         if self.current_agent_name is None:
             return "<div style='color: #868e96;'>No agent initialized yet</div>"
         
-        try:
-            logs = read_lineage_log(self.current_agent_name, last_n=20)
-            if not logs:
-                return "<div style='color: #868e96;'>No logs available yet</div>"
-            
-            log_html = "<div style='background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 5px; padding: 10px; max-height: 300px; overflow-y: auto;'>"
-            log_html += "<div style='font-family: monospace; font-size: 12px;'>"
-            
-            for datetime_str, log_type, message in logs:
-                # Color coding based on log type
-                color_map = {
-                    "trace": "#007bff",
-                    "agent": "#28a745", 
-                    "function": "#ffc107",
-                    "generation": "#17a2b8",
-                    "response": "#6f42c1",
-                    "span": "#6c757d"
-                }
-                color = color_map.get(log_type.lower(), "#000000")
+        return f"""<div style='background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 5px; padding: 15px;'>
+            <div style='color: #28a745; font-weight: bold; margin-bottom: 10px;'>
+                📝 Logging Status for Agent: {self.current_agent_name}
+            </div>
+            <div style='color: #6c757d; font-size: 14px; line-height: 1.5;'>
+                ✅ <strong>Standard Python Logging Active</strong><br>
+                • All logs are being captured by the application's logging system<br>
+                • Check your console/terminal for real-time log output<br>
+                • Logs include detailed information about agent execution<br>
+                • Structured logging with timestamps and log levels<br><br>
                 
-                log_html += f"<div style='margin: 2px 0;'>"
-                log_html += f"<span style='color: {color}; font-weight: bold;'>[{log_type.upper()}]</span> "
-                log_html += f"<span style='color: #6c757d;'>{datetime_str}</span> "
-                log_html += f"<span style='color: #000000;'>{message}</span>"
-                log_html += "</div>"
-            
-            log_html += "</div></div>"
-            return log_html
-            
-        except Exception as e:
-            return f"<div style='color: #ff6b6b;'>❌ Error reading logs: {str(e)}</div>"
+                📋 <strong>Log Types Available:</strong><br>
+                • <span style='color: #007bff;'>INFO</span> - General information and progress<br>
+                • <span style='color: #28a745;'>DEBUG</span> - Detailed debugging information<br>
+                • <span style='color: #ffc107;'>WARNING</span> - Warning messages<br>
+                • <span style='color: #dc3545;'>ERROR</span> - Error messages<br><br>
+                
+                🔍 <strong>What You'll See:</strong><br>
+                • Agent initialization and configuration<br>
+                • MCP tool interactions and responses<br>
+                • Analysis progress and completion status<br>
+                • Any errors or warnings during execution
+            </div>
+        </div>"""
 
     def test_log_writing(self):
         """Test function to write a sample log entry"""
         if self.current_agent_name:
-            write_lineage_log(self.current_agent_name, "test", "Test log entry from frontend")
-            return "Test log written successfully!"
+            try:
+                write_lineage_log(self.current_agent_name, "test", "Test log entry from frontend")
+                self.logger.info(f"Test log written successfully for agent: {self.current_agent_name}")
+                return f"✅ Test log written successfully for agent: {self.current_agent_name}! Check your console output."
+            except Exception as e:
+                self.logger.error(f"Failed to write test log: {e}")
+                return f"❌ Failed to write test log: {e}"
         else:
-            return "Please initialize an agent first"
+            return "⚠️ Please initialize an agent first by running an analysis"
 
     def get_results_info(self) -> str:
         """Get information about the current results"""
@@ -144,12 +151,14 @@ class SQLLineageFrontend:
         if hasattr(self.current_results, 'to_dict'):
             # AgentResult object
             result_dict = self.current_results.to_dict()
-            return f"Structured results with {len(result_dict.get('inputs', []))} inputs and {len(result_dict.get('outputs', []))} outputs"
+            inputs_count = len(result_dict.get('inputs', []))
+            outputs_count = len(result_dict.get('outputs', []))
+            return f"✅ Structured results with {inputs_count} input(s) and {outputs_count} output(s)"
         
         if isinstance(self.current_results, dict):
-            return f"Dictionary results with {len(self.current_results)} keys"
+            return f"✅ Dictionary results with {len(self.current_results)} keys"
         
-        return f"Results type: {type(self.current_results).__name__}"
+        return f"✅ Results type: {type(self.current_results).__name__}"
 
     async def run_analysis(self, agent_name: str, model_name: str, query: str):
         """Run SQL lineage analysis"""
@@ -157,6 +166,8 @@ class SQLLineageFrontend:
             # Validate input
             if not query or not query.strip():
                 return "❌ Error: Query cannot be empty. Please provide a valid query for analysis."
+            
+            self.logger.info(f"Starting analysis with agent: {agent_name}, model: {model_name}")
             
             # Initialize the agent framework with simplified constructor
             self.agent_framework = FrameworkAgent(
@@ -166,13 +177,18 @@ class SQLLineageFrontend:
             )
             self.current_agent_name = agent_name
             
+            self.logger.info(f"Agent framework initialized. Running analysis...")
+            
             # Run the analysis using the structured results method
-            results = await self.agent_framework.run_agent_plugin_with_objects()
+            results = await self.agent_framework.run_agent()
             self.current_results = results
             
             # Check if we got an error response
             if isinstance(results, dict) and "error" in results:
+                self.logger.error(f"Analysis failed: {results['error']}")
                 return f"❌ Analysis failed: {results['error']}"
+            
+            self.logger.info(f"Analysis completed successfully for agent: {agent_name}")
             
             return f"""✅ Analysis completed successfully! Results are now available in the visualization section. 
             Click 'Open JSONCrack Editor' to visualize your data lineage.
@@ -181,8 +197,10 @@ class SQLLineageFrontend:
             please refer to the GitHub repository mentioned above."""
             
         except ValueError as ve:
+            self.logger.error(f"Validation error: {ve}")
             return f"❌ Validation error: {str(ve)}"
         except Exception as e:
+            self.logger.error(f"Error running analysis: {e}")
             return f"❌ Error running analysis: {str(e)}"
 
     def run_analysis_sync(self, agent_name: str, model_name: str, query: str):
@@ -249,7 +267,7 @@ class SQLLineageFrontend:
                     gr.Markdown("📊 **JSONCrack Integration**: After successful analysis, visualize your results using the JSONCrack editor")
                     visualize_html = gr.HTML(self.get_visualize_link())
                     
-                    gr.Markdown("### 5. Live Logs")
+                    gr.Markdown("### 5. Logging Information")
                     logs_html = gr.HTML(self.get_logs_html())
                     test_log_button = gr.Button("Test Log Writing", variant="secondary", size="sm")
                     
