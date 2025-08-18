@@ -8,11 +8,17 @@
 Lineagentic-flow is an agentic ai solution for building end-to-end data lineage across diverse types of data processing scripts across different platforms. It is designed to be modular and customizable, and can be extended to support new data processing script types. In a nutshell this is what it does:
 
 ```
-┌─────────────┐    ┌─────────────┐    ┌───────────────────────────────┐    ┌─────────────┐
-│ source-code │───▶│  rest api   │───▶│   lineagentic-flow-algorithm  │───▶│  lineage    │
-│             │    │             │    │                               │    │             │
-└─────────────┘    └─────────────┘    └───────────────────────────────┘    └─────────────┘
+┌─────────────┐    ┌───────────────────────────────┐    ┌────────────---───┐
+│ source-code │───▶│   lineagentic-flow-algorithm  │───▶│  lineage output  │
+│             │    │                               │    │                  │
+└─────────────┘    └───────────────────────────────┘    └──────────────---─┘
 ```
+### Features
+
+- Plugin based architecture, simple to extend and customize.
+- Command line interface for quick analysis.
+- Rest API for integration with other systems.
+- Support for multiple data processing script types (SQL, Python, Airflow Spark, etc.)
 
 ## Quick Start
 
@@ -72,13 +78,6 @@ Set your API keys:
 export OPENAI_API_KEY="your-openai-api-key"
 export HF_TOKEN="your-huggingface-token"  # Optional
 ```
-
-### Features
-
-- Plugin based architecture, simple to extend and customize.
-- Command line interface for quick analysis.
-- Rest API for integration with other systems.
-- Support for multiple data processing script types (SQL, Python, Airflow Spark, etc.)
 
 ### What are the components of Lineagentic-flow?
 
