@@ -93,10 +93,10 @@ Lineagentic-flow provides a powerful CLI tool for quick analysis:
 
 ```bash
 # Basic SQL query analysis
-lineagentic analyze --agent-name sql-lineage-agent --query "SELECT user_id, name FROM users WHERE active = true"
+lineagentic analyze --agent-name sql-lineage-agent --query "SELECT user_id, name FROM users WHERE active = true" --verbose
 
 # Analyze with lineage configuration
-lineagentic analyze --agent-name python-lineage-agent --query-file "my_script.py"
+lineagentic analyze --agent-name python-lineage-agent --query-file "my_script.py" --verbose
 
 ```
 for more details see [CLI documentation](cli/README.md).

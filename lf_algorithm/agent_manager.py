@@ -1,8 +1,9 @@
 import importlib.metadata
 from typing import Dict, Any, Optional, Type, Callable
-import logging
 
-logger = logging.getLogger(__name__)
+from .utils import get_logger
+
+logger = get_logger(__name__)
 
 
 class AgentManager:

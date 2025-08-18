@@ -5,19 +5,10 @@ from typing import Dict, Any, List, Optional, Union
 import json
 from datetime import datetime
 import uuid
-import logging
 
-# Configure logging if not already configured
-if not logging.getLogger().handlers:
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.StreamHandler(sys.stdout)
-        ]
-    )
+from .utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 from .utils.tracers import LogTracer
 from .agent_manager import agent_manager

@@ -1,7 +1,7 @@
 # LineAgent Project Makefile
 # Centralized build and development commands
 
-.PHONY: help clean-all-stack test test-verbose test-module gradio-deploy start-demo-server stop-demo-server build-package publish-pypi publish-testpypi
+.PHONY: help clean-all test test-verbose test-module gradio-deploy start-demo-server stop-demo-server build-package publish-pypi publish-testpypi
 
 help:
 	@echo "Lineagentic-Flow Project"
@@ -79,7 +79,7 @@ clean-pycache:
 	fi
 
 # Clean up temporary files and kill processes
-clean-all-stack:
+clean-all:
 	@echo "🧹 Cleaning up temporary files and processes..."
 	@echo " Killing processes on ports 8000, 7860..."
 	@lsof -ti:7860 | xargs kill -9 2>/dev/null || echo "No process on port 7860"

@@ -1,5 +1,6 @@
 import os
 import sys
+import logging
 from contextlib import AsyncExitStack
 from agents import Agent, Tool, Runner, OpenAIChatCompletionsModel, trace
 from openai import AsyncOpenAI
@@ -11,6 +12,9 @@ from ...utils.tracers import log_trace_id
 from ...plugins.sql_lineage_agent.sql_instructions import comprehensive_analysis_instructions
 from ...plugins.sql_lineage_agent.mcp_servers.mcp_params import sql_mcp_server_params
 from ...utils.file_utils import dump_json_record
+
+# Get logger for this module
+logger = logging.getLogger(__name__)
 
 
 load_dotenv(override=True)
@@ -91,9 +95,12 @@ class SqlLineageAgent:
 
     async def run(self):
         try:
-            return await self.run_with_trace(self.source_code)
+            logger.info(f"Starting SQL lineage analysis for {self.agent_name}")
+            result = await self.run_with_trace(self.source_code)
+            logger.info(f"Completed SQL lineage analysis for {self.agent_name}")
+            return result
         except Exception as e:
-            print(f"Error running {self.agent_name}: {e}")
+            logger.error(f"Error running {self.agent_name}: {e}")
             return {"error": str(e)}
 
 

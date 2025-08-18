@@ -7,6 +7,7 @@ import asyncio
 import argparse
 import sys
 import os
+import logging
 from pathlib import Path
 
 # Add the project root to the Python path
@@ -15,6 +16,54 @@ sys.path.insert(0, str(project_root))
 
 from lf_algorithm.framework_agent import FrameworkAgent
 
+
+def configure_logging(verbose: bool = False, quiet: bool = False):
+    """Configure logging for the CLI application."""
+    if quiet:
+        # Quiet mode: only show errors
+        logging.basicConfig(
+            level=logging.ERROR,
+            format='%(levelname)s: %(message)s'
+        )
+    elif verbose:
+        # Verbose mode: show all logs with detailed format
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S'
+        )
+    else:
+        # Normal mode: show only important logs with clean format
+        logging.basicConfig(
+            level=logging.WARNING,  # Only show warnings and errors by default
+            format='%(levelname)s: %(message)s'
+        )
+        
+        # Set specific loggers to INFO level for better user experience
+        logging.getLogger('lf_algorithm').setLevel(logging.INFO)
+        logging.getLogger('lf_algorithm.framework_agent').setLevel(logging.INFO)
+        logging.getLogger('lf_algorithm.agent_manager').setLevel(logging.INFO)
+    
+    # Suppress noisy server logs from MCP tools
+    logging.getLogger('mcp').setLevel(logging.WARNING)
+    logging.getLogger('agents.mcp').setLevel(logging.WARNING)
+    logging.getLogger('agents.mcp.server').setLevel(logging.WARNING)
+    logging.getLogger('agents.mcp.server.stdio').setLevel(logging.WARNING)
+    logging.getLogger('agents.mcp.server.stdio.stdio').setLevel(logging.WARNING)
+    
+    # Suppress MCP library logs specifically
+    logging.getLogger('mcp.server').setLevel(logging.WARNING)
+    logging.getLogger('mcp.server.fastmcp').setLevel(logging.WARNING)
+    logging.getLogger('mcp.server.stdio').setLevel(logging.WARNING)
+    
+    # Suppress any logger that contains 'server' in the name
+    for logger_name in logging.root.manager.loggerDict:
+        if 'server' in logger_name.lower():
+            logging.getLogger(logger_name).setLevel(logging.WARNING)
+    
+    # Additional MCP-specific suppressions
+    logging.getLogger('mcp.server.stdio.stdio').setLevel(logging.WARNING)
+    logging.getLogger('mcp.server.stdio.stdio.stdio').setLevel(logging.WARNING)
 
 def create_parser():
     """Create and configure the argument parser."""
@@ -71,7 +120,12 @@ Examples:
     analyze_parser.add_argument(
         "--verbose",
         action="store_true",
-        help="Enable verbose output"
+        help="Enable verbose output with detailed logging"
+    )
+    analyze_parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Suppress all output except errors"
     )
     
     return parser
@@ -109,23 +163,29 @@ def save_output(result, output_file: str = None, pretty: bool = False):
     else:
         if pretty:
             import json
+            print("\n" + "="*50)
+            print("ANALYSIS RESULTS")
+            print("="*50)
             print(json.dumps(result_dict, indent=2))
+            print("="*50)
         else:
-            print("Results:", result_dict)
+            print("\nResults:", result_dict)
 
 
 async def run_analyze_query(args):
     """Run analyze_query operation."""
+    logger = logging.getLogger(__name__)
+    
     # Get the query
     query = args.query
     if args.query_file:
         query = read_query_file(args.query_file)
     
     if not query:
-        print("Error: Either --query or --query-file must be specified.")
+        logger.error("Either --query or --query-file must be specified.")
         sys.exit(1)
     
-    print(f"Running agent '{args.agent_name}' with query...")
+    logger.info(f"Running agent '{args.agent_name}' with query...")
     
     try:
         # Create FrameworkAgent instance
@@ -141,7 +201,7 @@ async def run_analyze_query(args):
         save_output(result, args.output, args.pretty)
         
     except Exception as e:
-        print(f"Error running agent '{args.agent_name}': {e}")
+        logger.error(f"Error running agent '{args.agent_name}': {e}")
         sys.exit(1)
 
 
@@ -157,6 +217,9 @@ async def main_async():
     if not args.command:
         parser.print_help()
         sys.exit(1)
+    
+    # Configure logging based on verbosity
+    configure_logging(verbose=args.verbose, quiet=args.quiet)
     
     # Run the appropriate command
     if args.command == 'analyze':

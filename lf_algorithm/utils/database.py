@@ -1,17 +1,14 @@
 import json
 import os
+import logging
 from datetime import datetime
 from dotenv import load_dotenv
 from enum import Enum
 
 load_dotenv(override=True)
 
-# Create the agents_log directory if it doesn't exist
-agents_log_dir = "agents_log"
-os.makedirs(agents_log_dir, exist_ok=True)
-
-# Set the log file path inside the agents_log folder
-LOG_FILE = os.path.join(agents_log_dir, "lineage_logs.jsonl")
+# Get logger for this module
+logger = logging.getLogger(__name__)
 
 # Color enum for console output
 class Color(Enum):
@@ -37,65 +34,65 @@ color_mapper = {
 
 def write_lineage_log(name: str, type: str, message: str):
     """
-    Write a log entry to the log file and console with colors.
+    Write a log entry using standard logging.
+    
+    This function now uses standard logging instead of writing to files directly.
+    The application is responsible for configuring where logs go (console, files, etc.).
     
     Args:
         name (str): The name associated with the log
         type (str): The type of log entry
         message (str): The log message
     """
-    now = datetime.now().isoformat()
-    
-    # Get color for the log type, default to white if not found
-    color = color_mapper.get(type.lower(), Color.WHITE)
-    
-    # Console logging with colors
-    print(f"{color.value}[{now}] {name.upper()}: {type} - {message}{Color.RESET.value}")
-    
-    # File logging - write as JSON Lines format
-    log_entry = {
-        "datetime": now,
-        "name": name.lower(),
-        "type": type,
-        "message": message
+    # Map log types to standard logging levels
+    type_to_level = {
+        "trace": logging.INFO,
+        "agent": logging.INFO,
+        "function": logging.DEBUG,
+        "generation": logging.INFO,
+        "response": logging.INFO,
+        "account": logging.WARNING,
+        "span": logging.DEBUG,
+        "error": logging.ERROR,
+        "warning": logging.WARNING,
+        "info": logging.INFO,
+        "debug": logging.DEBUG
     }
     
-    with open(LOG_FILE, 'a', encoding='utf-8') as f:
-        f.write(json.dumps(log_entry) + '\n')
+    level = type_to_level.get(type.lower(), logging.INFO)
+    
+    # Use the lineage logger with structured data
+    lineage_logger = logging.getLogger(f"lf_algorithm.lineage.{name}")
+    
+    # Log with structured context
+    lineage_logger.log(
+        level, 
+        f"{type}: {message}",
+        extra={
+            "lineage_name": name,
+            "lineage_type": type,
+            "lineage_datetime": datetime.now().isoformat()
+        }
+    )
 
 
 def read_lineage_log(name: str, last_n=10):
     """
     Read the most recent log entries for a given name.
     
+    Note: This function is deprecated in library mode. Applications should
+    configure their own logging handlers to capture and store logs as needed.
+    
     Args:
         name (str): The name to retrieve logs for
         last_n (int): Number of most recent entries to retrieve
         
     Returns:
-        list: A list of tuples containing (datetime, type, message)
+        list: Empty list (deprecated functionality)
     """
-    if not os.path.exists(LOG_FILE):
-        return []
-    
-    entries = []
-    name_lower = name.lower()
-    
-    # Read all lines and filter by name
-    with open(LOG_FILE, 'r', encoding='utf-8') as f:
-        for line in f:
-            try:
-                entry = json.loads(line.strip())
-                if entry.get('name') == name_lower:
-                    entries.append((
-                        entry.get('datetime'),
-                        entry.get('type'),
-                        entry.get('message')
-                    ))
-            except json.JSONDecodeError:
-                # Skip malformed lines
-                continue
-    
-    # Return the last N entries
-    return entries[-last_n:] if entries else []
+    logger.warning(
+        "read_lineage_log is deprecated in library mode. "
+        "Applications should configure their own logging handlers."
+    )
+    return []
 

@@ -37,11 +37,11 @@ def dump_json_record(filename: str, record: Union[Dict[str, Any], str], lineage_
         dumped_data = dump_json_record("outputs", "This is a string output")
     """
     # Create the lineagedb folder if it doesn't exist
-    folder_path = Path(lineage_extraction_dumps_folder)
-    folder_path.mkdir(exist_ok=True)
+    # folder_path = Path(lineage_extraction_dumps_folder)
+    # folder_path.mkdir(exist_ok=True)
     
     # Create the full file path with .json extension
-    file_path = folder_path / f"{filename}.json"
+    # file_path = folder_path / f"{filename}.json"
     
     # Handle different input types
     if isinstance(record, str):
@@ -76,8 +76,8 @@ def dump_json_record(filename: str, record: Union[Dict[str, Any], str], lineage_
             processed_record = cleaned_record
     
     # Append the JSON record as a new line to the file
-    with open(file_path, "a", encoding="utf-8") as f:
-        f.write(json_line + "\n")
+    # with open(file_path, "a", encoding="utf-8") as f:
+    #     f.write(json_line + "\n")
     
     return processed_record
 

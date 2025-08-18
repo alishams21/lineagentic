@@ -1,4 +1,10 @@
 # lf_algorithm/__init__.py
+import logging
+
+# Add NullHandler to prevent "No handler could be found" warnings
+# This is the only logging configuration the library should do
+logging.getLogger(__name__).addHandler(logging.NullHandler())
+
 from .framework_agent import FrameworkAgent
 from .utils.database import write_lineage_log, read_lineage_log
 from .utils.file_utils import dump_json_record, read_json_records, clear_json_file, get_file_stats

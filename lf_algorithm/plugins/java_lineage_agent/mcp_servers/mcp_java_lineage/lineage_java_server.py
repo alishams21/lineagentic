@@ -1,3 +1,10 @@
+import logging
+
+# Configure logging to suppress verbose output
+logging.basicConfig(level=logging.WARNING)
+logging.getLogger('mcp').setLevel(logging.WARNING)
+logging.getLogger('mcp.server').setLevel(logging.WARNING)
+
 from mcp.server.fastmcp import FastMCP
 from typing import Dict, Any
 
