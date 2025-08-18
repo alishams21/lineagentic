@@ -83,8 +83,6 @@ export HF_TOKEN="your-huggingface-token"  # Optional
 
 - Algorithm module: This is the brain of the Lineagentic-flow. It contains agents, which are implemented as plugins and acting as chain of thought process to extract lineage from different types of data processing scripts. The module is built using a plugin-based design pattern, allowing you to easily develop and integrate your own custom agents. Once added to the algorithm module, all other components of the platform will be available to support your agents
 
-- Backend module: This module provides a REST API interface around the Algorithm Module. It contains generic graph model with can be extended to support new data models. It exposes several REST endpoints, each tailored to specific tasks. Depending on the job requested, different agents within the Algorithm Module are activated accordingly.  Also through GET APIs you can get the lineage data from the graph model. The backend module also contains a mysql database for operation tracing.
-
 - CLI module: is for command line around algorithm API and connect to unified service layer
 
 - Demo module: is for teams who want to demo Lineagentic-flow in fast and simple way deployable into huggingface spaces.
