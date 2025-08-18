@@ -15,10 +15,10 @@ Lineagentic-flow is an agentic ai solution for building end-to-end data lineage 
 ```
 ### Features
 
-- Plugin based architecture, simple to extend and customize.
+- Plugin based design pattern, simple to extend and customize.
 - Command line interface for quick analysis.
-- Rest API for integration with other systems.
 - Support for multiple data processing script types (SQL, Python, Airflow Spark, etc.)
+- Simple demo server to run locally and in huggingface spaces.
 
 ## Quick Start
 
