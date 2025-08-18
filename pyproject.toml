@@ -1,6 +1,6 @@
 [project]
 name = "lineagentic-flow"
-version = "0.1.0"
+version = "1.0.2"
 description = "Lineagentic-flow is agentic ai approach for building data lineage across diverse data processing scripts including python, sql, java, airflow, spark, etc."
 readme = "README.md"
 requires-python = ">=3.13"
@@ -20,8 +20,8 @@ classifiers = [
 ]
 dependencies = [
     "anthropic>=0.49.0",
-    "autogen-agentchat>=0.4.9.2",
-    "autogen-ext[grpc,mcp,ollama,openai]>=0.4.9.2",
+    "autogen-agentchat==0.6.1",
+    "autogen-ext[grpc,mcp,ollama,openai]==0.6.1",
     "bs4>=0.0.2",
     "fastapi>=0.115.0",
     "gradio>=5.22.0",
@@ -43,8 +43,8 @@ dependencies = [
     "mysql-connector-python>=8.0.0",
     "nbformat>=4.2.0",
     "neo4j>=5.20.0",
-    "openai>=1.68.2",
-    "openai-agents>=0.0.15",
+    "openai==1.91.0",
+    "openai-agents==0.0.19",
     "playwright>=1.51.0",
     "plotly>=6.0.1",
     "polygon-api-client>=1.14.5",
@@ -70,10 +70,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/your-org/lineagentic-flow"
+Homepage = "https://github.com/lineagentic/lineagentic-flow"
 Documentation = "https://lineagentic-flow.readthedocs.io"
-Repository = "https://github.com/your-org/lineagentic-flow"
-Issues = "https://github.com/your-org/lineagentic-flow/issues"
+Repository = "https://github.com/lineagentic/lineagentic-flow"
+Issues = "https://github.com/lineagentic/lineagentic-flow/issues"
 
 [project.entry-points."lineagentic.lf_algorithm.plugins"]
 sql-lineage-agent = "lf_algorithm.plugins.sql_lineage_agent.lineage_agent:get_plugin_info"

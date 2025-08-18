@@ -3,6 +3,9 @@ include LICENSE
 include pyproject.toml
 include MANIFEST.in
 
+# Include images directory for README.md
+recursive-include images *
+
 # Include package data
 recursive-include algorithm *.json
 recursive-include algorithm *.yaml
@@ -14,11 +17,7 @@ recursive-include cli *.yaml
 recursive-include cli *.yml
 recursive-include cli *.txt
 recursive-include cli *.md
-recursive-include backend *.json
-recursive-include backend *.yaml
-recursive-include backend *.yml
-recursive-include backend *.txt
-recursive-include backend *.md
+
 
 # Include templates and configuration files
 recursive-include lf_algorithm/plugins/*/mcp_servers/*/templates.py
@@ -36,3 +35,5 @@ global-exclude .venv
 global-exclude venv
 global-exclude env
 global-exclude .env
+global-exclude .pypirc
+global-exclude .ruff_cache

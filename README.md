@@ -1,6 +1,6 @@
 
 <div align="center">
-  <img src="images/logo.jpg" alt="Lineagentic Logo" width="880" height="300">
+  <img src="https://raw.githubusercontent.com/lineagentic/lineagentic-flow/main/images/logo.jpg" alt="Lineagentic Logo" width="880" height="300">
 </div>
 
 ## Lineagentic-flow
@@ -35,6 +35,12 @@ pip install lineagentic-flow
 ```python
 import asyncio
 from lf_algorithm.framework_agent import FrameworkAgent
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
 async def main():
     # Create an agent for SQL lineage extraction
@@ -110,7 +116,7 @@ for more details see [CLI documentation](cli/README.md).
 
 The following figure illustrates the architecture behind the Lineagentic-flow, which is essentially a multi-layer architecture of backend and agentic AI algorithm that leverages a chain-of-thought process to construct lineage across various script types.
 
-![Architecture Diagram](images/architecture.png)
+![Architecture Diagram](https://raw.githubusercontent.com/lineagentic/lineagentic-flow/main/images/architecture.png)
 
 
 ## Mathematic behind algorithm 

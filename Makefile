@@ -86,7 +86,7 @@ clean-pycache:
 # Clean up temporary files and kill processes
 clean-all:
 	@echo "🧹 Cleaning up temporary files and processes..."
-	@echo " Killing processes on ports 8000, 7860..."
+	@echo " Killing processes on ports 7860..."
 	@lsof -ti:7860 | xargs kill -9 2>/dev/null || echo "No process on port 7860"
 	@echo " Cleaning up temporary files..."
 	@find . -name "*.log" -type f -delete
@@ -105,6 +105,7 @@ clean-all:
 	@rm -rf dist 2>/dev/null || echo "No dist folder found"
 	@rm -rf logs 2>/dev/null || echo "No logs folder found"
 	@$(MAKE) clean-pycache
+	@rm -rf venv 2>/dev/null || echo "No venv folder found"
 	@echo " Cleanup completed!"
 
 
@@ -191,33 +192,19 @@ build-package:
 	@echo "  - Publish to TestPyPI: make publish-testpypi"
 	@echo "  - Publish to PyPI: make publish-pypi"
 
-# Publish to TestPyPI (sandbox environment)
-publish-testpypi:
-	@echo "🚀 Publishing to TestPyPI (sandbox)..."
-	@if [ ! -d "dist" ]; then \
-		echo "❌ No dist/ directory found. Run 'make build-package' first."; \
-		exit 1; \
-	fi
-	@echo "Checking package..."
-	@python -m twine check dist/*
-	@echo "Uploading to TestPyPI..."
-	@python -m twine upload --repository testpypi dist/*
-	@echo "Package published to TestPyPI!"
-	@echo "View at: https://test.pypi.org/project/lineagentic-flow/"
-
 # Publish to PyPI (production)
 publish-pypi:
 	@echo "Publishing to PyPI (production)..."
 	@if [ ! -d "dist" ]; then \
-		echo "❌ No dist/ directory found. Run 'make build-package' first."; \
+		echo " No dist/ directory found. Run 'make build-package' first."; \
 		exit 1; \
 	fi
 	@echo "WARNING: This will publish to production PyPI!"
 	@echo "   Make sure you have tested on TestPyPI first."
 	@read -p "Continue? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
-	@echo "📦 Checking package..."
+	@echo " Checking package..."
 	@python -m twine check dist/*
-	@echo "🚀 Uploading to PyPI..."
+	@echo " Uploading to PyPI..."
 	@python -m twine upload dist/*
 	@echo "Package published to PyPI!"
 	@echo "View at: https://pypi.org/project/lineagentic-flow/"
