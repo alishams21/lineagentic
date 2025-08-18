@@ -8,8 +8,25 @@ import sys
 import gradio as gr
 from pathlib import Path
 
+
+
 def main():
     """Start the demo server with configuration"""
+
+    # Run deployment setup if needed
+    if os.path.exists("deploy_setup.py"):
+        print("🔧 Running deployment setup...")
+        try:
+            import deploy_setup
+            success = deploy_setup.install_local_package()
+            if success:
+                print("✅ Package installation completed successfully")
+            else:
+                print("❌ Package installation failed")
+        except Exception as e:
+            print(f"⚠️ Deployment setup failed: {e}")
+    else:
+        print("⚠️ deploy_setup.py not found, skipping package installation")
 
     # Configuration
     host = os.getenv("DEMO_HOST", "0.0.0.0")
@@ -30,7 +47,7 @@ def main():
     try:
        
         # Import and run the demo server
-        from demo.demo_server import SQLLineageFrontend
+        from demo_server import SQLLineageFrontend
         
         frontend = SQLLineageFrontend()
         ui = frontend.create_ui()

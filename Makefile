@@ -38,15 +38,22 @@ create-venv:
 # =============================================================================
 # DEMO SERVER
 
+create-demo-venv:
+	@echo " Creating virtual environment..."
+	@python -m venv demo-venv
+	@echo " Installing package in editable mode..."
+	@demo-venv/bin/pip install -e .
+	@echo " Virtual environment created successfully!"
+
 # Start demo server
 start-demo-server:
 	@echo "🚀 Running python start_demo_server.py with virtual environment activated..."
-	@$(MAKE) create-venv
+	@$(MAKE) create-demo-venv
 	@if pgrep -f "python.*start_demo_server.py" > /dev/null; then \
 		echo "  Demo server is already running!"; \
 		echo "   Use 'make stop-demo-server' to stop it first"; \
 	else \
-		. .venv/bin/activate && python start_demo_server.py > /dev/null 2>&1 & \
+		. demo-venv/bin/activate && python demo/start_demo_server.py > /dev/null 2>&1 & \
 		echo " Demo server starting in background..."; \
 		echo " Waiting for server to be ready..."; \
 		while ! curl -s http://localhost:7860 > /dev/null 2>&1; do \
@@ -98,6 +105,8 @@ clean-all:
 	@rm -rf .venv 2>/dev/null || echo "No .venv folder found"
 	@rm -rf demo-deploy 2>/dev/null || echo "No demo-deploy folder found"
 	@rm -rf lineagentic_flow.egg-info 2>/dev/null || echo "No lineagentic_flow.egg-info folder found"
+	@rm -rf demo-venv 2>/dev/null || echo "No demo-venv folder found"
+	@rm -rf demo-venv 2>/dev/null || echo "No demo-venv folder found"
 	@rm -rf .pytest_cache 2>/dev/null || echo "No .pytest_cache folder found"
 	@rm -rf .mypy_cache 2>/dev/null || echo "No .mypy_cache folder found"
 	@rm -rf logs 2>/dev/null || echo "No logs folder found"
@@ -154,24 +163,27 @@ test-module:
 
 # Deploy to Hugging Face Spaces using Gradio
 gradio-deploy:
-	@echo " Preparing Gradio deployment..."
+	@echo "🚀 Preparing Gradio deployment..."
 	@sleep 2
-	@echo " Creating demo-deploy directory..."
+	@echo "📁 Creating demo-deploy directory..."
 	@rm -rf demo-deploy
 	@mkdir demo-deploy
 	@echo "📦 Copying necessary files..."
-	@cp start_demo_server.py demo-deploy/
-	@cp -r lf_algorithm demo-deploy/
-	@cp -r demo demo-deploy/
-	@cp uv.lock demo-deploy/
+	@cp demo/demo_server.py demo-deploy/
+	@cp demo/start_demo_server.py demo-deploy/
+	@cp demo/deploy_setup.py demo-deploy/
+	@cp demo/requirements-deploy.txt demo-deploy/requirements.txt
+	@echo "📁 Copying package files for local installation..."
 	@cp pyproject.toml demo-deploy/
-	@cp .gitignore demo-deploy/
 	@cp README.md demo-deploy/
+	@cp MANIFEST.in demo-deploy/
 	@cp LICENSE demo-deploy/
-	@echo "Files copied to demo-deploy/"
-	@echo "Deploying with Gradio..."
-	@cd demo-deploy && @. .venv/bin/activate && gradio deploy
-	@echo "Gradio deployment completed!"
+	@cp -r lf_algorithm demo-deploy/
+	@cp -r cli demo-deploy/
+	@echo "✅ Files copied to demo-deploy/"
+	@echo "🌐 Deploying with Gradio..."
+	@cd demo-deploy && gradio deploy --app-file start_demo_server.py
+	@echo "✅ Gradio deployment completed!"
 
 
 # =============================================================================

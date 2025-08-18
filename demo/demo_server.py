@@ -9,6 +9,7 @@ import logging
 from typing import Optional, Dict, Any
 from datetime import datetime
 
+# Import from the published package
 from lf_algorithm import FrameworkAgent
 from lf_algorithm.utils import write_lineage_log
 
@@ -35,12 +36,10 @@ class SQLLineageFrontend:
             <div style='text-align: center; padding: 20px; color: #868e96;'>
                 <div style='font-size: 16px; margin-bottom: 15px;'>📊 Visualization Ready</div>
                 <div style='font-size: 14px; margin-bottom: 20px;'>
-                    After you run analysis and succeed, you need to:<br>
-                    1. Go to the JSONCrack website<br>
-                    2. Paste the analysis results there for visualization
+                    After you run analysis and succeed, you need to got to the following link:<br>
                 </div>
                 <a href='https://jsoncrack.com/editor' target='_blank' style='color: #007bff; text-decoration: none; font-weight: bold; font-size: 16px;'>
-                    🔗 Open JSONCrack Editor
+                    🔗 Open editor for simple check and paste the results there
                 </a>
             </div>
             """
@@ -211,10 +210,10 @@ class SQLLineageFrontend:
         """Create the Gradio interface"""
         with gr.Blocks(title="SQL Lineage Analysis", fill_width=True) as ui:
             
-            gr.Markdown('<div style="text-align: center;font-size:24px">🔍 Demo Lineage Analysis Framework</div>')
-            gr.Markdown('<div style="text-align: center;font-size:14px">Analyze and visualize data lineage with AI-powered agents</div>')
+            gr.Markdown('<div style="text-align: center;font-size:24px">🔍 Demo Lineagentic-Flow</div>')
+            gr.Markdown('<div style="text-align: center;font-size:14px">Analyze data lineage with AI-powered agents</div>')
             gr.Markdown('<div style="text-align: center;font-size:14px">Check out agent types for supporting script types</div>')
-            gr.Markdown('<div style="text-align: center;font-size:14px">For local and production runs, check out the repo: <a href="https://github.com/lineagentic" target="_blank" style="color: #007bff; text-decoration: none; font-weight: bold;">🔗 https://github.com/lineagentic</a></div>')
+            gr.Markdown('<div style="text-align: center;font-size:14px">For local and production runs, check out the repo: <a href="https://github.com/lineagentic/lineagentic-flow" target="_blank" style="color: #007bff; text-decoration: none; font-weight: bold;">🔗 https://github.com/lineagentic/lineagentic-flow</a></div>')
 
             with gr.Row():
                 # Left column - Configuration and Query
@@ -264,7 +263,7 @@ class SQLLineageFrontend:
                     )
                     
                     gr.Markdown("### 4. Visualize Results")
-                    gr.Markdown("📊 **JSONCrack Integration**: After successful analysis, visualize your results using the JSONCrack editor")
+                    gr.Markdown("📊 After successful analysis, visualize your results in demo editor")
                     visualize_html = gr.HTML(self.get_visualize_link())
                     
                     gr.Markdown("### 5. Logging Information")
