@@ -2,9 +2,7 @@ import os
 import sys
 import logging
 from contextlib import AsyncExitStack
-from agents import Agent, Tool, Runner, OpenAIChatCompletionsModel, trace
-from openai import AsyncOpenAI
-from dotenv import load_dotenv
+from agents import Agent, Tool, Runner, trace
 from agents.mcp.server import MCPServerStdio
 from typing import Dict, Any, Optional
 
@@ -16,53 +14,30 @@ from ...utils.file_utils import dump_json_record
 # Get logger for this module
 logger = logging.getLogger(__name__)
 
-
-load_dotenv(override=True)
-
-deepseek_api_key = os.getenv("DEEPSEEK_API_KEY")
-google_api_key = os.getenv("GOOGLE_API_KEY")
-grok_api_key = os.getenv("GROK_API_KEY")
-openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
-
-DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1"
-GROK_BASE_URL = "https://api.x.ai/v1"
-GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
-OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-
 MAX_TURNS = 30  # Increased for comprehensive analysis
-
-openrouter_client = AsyncOpenAI(base_url=OPENROUTER_BASE_URL, api_key=openrouter_api_key)
-deepseek_client = AsyncOpenAI(base_url=DEEPSEEK_BASE_URL, api_key=deepseek_api_key)
-grok_client = AsyncOpenAI(base_url=GROK_BASE_URL, api_key=grok_api_key)
-gemini_client = AsyncOpenAI(base_url=GEMINI_BASE_URL, api_key=google_api_key)
-
-
-def get_model(model_name: str):
-    if "/" in model_name:
-        return OpenAIChatCompletionsModel(model=model_name, openai_client=openrouter_client)
-    elif "deepseek" in model_name:
-        return OpenAIChatCompletionsModel(model=model_name, openai_client=deepseek_client)
-    elif "grok" in model_name:
-        return OpenAIChatCompletionsModel(model=model_name, openai_client=grok_client)
-    elif "gemini" in model_name:
-        return OpenAIChatCompletionsModel(model=model_name, openai_client=gemini_client)
-    else:
-        return model_name
 
 
 class SparkLineageAgent:
     """Plugin agent for Spark lineage analysis"""
     
-    def __init__(self, agent_name: str, source_code: str, model_name: str = "gpt-4o-mini"):
+    def __init__(self, agent_name: str, source_code: str, model_name: str = "gpt-4o-mini", get_model_func=None):
         self.agent_name = agent_name
         self.model_name = model_name
         self.source_code = source_code
+        self.get_model_func = get_model_func
 
     async def create_agent(self, spark_mcp_servers) -> Agent:
+        # Use the passed get_model_func or fall back to the centralized one
+        if self.get_model_func:
+            model = self.get_model_func(self.model_name)
+        else:
+            from ...utils import get_model
+            model = get_model(self.model_name)
+            
         agent = Agent(
             name=self.agent_name,
             instructions=comprehensive_analysis_instructions(self.agent_name),
-            model=get_model(self.model_name),
+            model=model,
             mcp_servers=spark_mcp_servers,
         )
         return agent
@@ -105,9 +80,9 @@ class SparkLineageAgent:
 
 
 # Plugin interface functions
-def create_spark_lineage_agent(agent_name: str, source_code: str, model_name: str = "gpt-4o-mini") -> SparkLineageAgent:
+def create_spark_lineage_agent(agent_name: str, source_code: str, model_name: str = "gpt-4o-mini", get_model_func=None) -> SparkLineageAgent:
     """Factory function to create a SparkLineageAgent instance"""
-    return SparkLineageAgent(agent_name=agent_name, source_code=source_code, model_name=model_name)
+    return SparkLineageAgent(agent_name=agent_name, source_code=source_code, model_name=model_name, get_model_func=get_model_func)
 
 
 def get_plugin_info() -> Dict[str, Any]:

@@ -103,6 +103,7 @@ clean-all:
 	@rm -rf logs 2>/dev/null || echo "No logs folder found"
 	@rm -rf .ruff_cache 2>/dev/null || echo "No .ruff_cache folder found"
 	@rm -rf dist 2>/dev/null || echo "No dist folder found"
+	@rm -rf logs 2>/dev/null || echo "No logs folder found"
 	@$(MAKE) clean-pycache
 	@echo " Cleanup completed!"
 

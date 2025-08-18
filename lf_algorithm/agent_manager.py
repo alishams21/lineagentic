@@ -1,7 +1,7 @@
 import importlib.metadata
 from typing import Dict, Any, Optional, Type, Callable
 
-from .utils import get_logger
+from .utils import get_logger, get_model, validate_api_keys
 
 logger = get_logger(__name__)
 
@@ -13,6 +13,8 @@ class AgentManager:
         self.agents: Dict[str, Dict[str, Any]] = {}
         self.agent_factories: Dict[str, Callable] = {}
         self._load_plugins()
+        # Validate API keys on initialization
+        validate_api_keys()
     
     def _load_plugins(self):
         """Load all available agents plugins using entry points"""
@@ -57,6 +59,8 @@ class AgentManager:
             raise ValueError(f"Agent '{agent_name}' not found or has no factory function")
         
         factory = self.agent_factories[agent_name]
+        # Pass the get_model function to the agent factory
+        kwargs['get_model_func'] = get_model
         return factory(agent_name=agent_name, **kwargs)
     
     def get_supported_operations(self) -> Dict[str, list]:

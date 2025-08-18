@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 import uuid
 
-from .utils import get_logger
+from .utils import get_logger, get_model, validate_api_keys
 
 logger = get_logger(__name__)
 
@@ -38,6 +38,9 @@ class FrameworkAgent:
         self.model_name = model_name
         self.source_code = source_code
         self.agent_manager = agent_manager
+        
+        # Validate API keys on initialization
+        validate_api_keys()
         
         logger.info(f"FrameworkAgent initialized: agent_name={agent_name}, model_name={model_name}")
 
