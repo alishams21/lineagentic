@@ -1,7 +1,7 @@
 # LineAgent Project Makefile
 # Centralized build and development commands
 
-.PHONY: help start-all-services stop-all-services stop-all-services-and-clean-data clean-all-stack test test-verbose test-module gradio-deploy start-demo-server stop-demo-server build-package publish-pypi publish-testpypi
+.PHONY: help clean-all-stack test test-verbose test-module gradio-deploy start-demo-server stop-demo-server build-package publish-pypi publish-testpypi
 
 help:
 	@echo "Lineagentic-Flow Project"
@@ -83,11 +83,11 @@ clean-all-stack:
 	@echo "🧹 Cleaning up temporary files and processes..."
 	@echo " Killing processes on ports 8000, 7860..."
 	@lsof -ti:7860 | xargs kill -9 2>/dev/null || echo "No process on port 7860"
-	@echo "🗑️  Cleaning up temporary files..."
+	@echo " Cleaning up temporary files..."
 	@find . -name "*.log" -type f -delete
 	@find . -name "temp_*.json" -type f -delete
 	@find . -name "generated-*.json" -type f -delete
-	@echo "🗑️  Removing data folders..."
+	@echo " Removing data folders..."
 	@rm -rf agents_log 2>/dev/null || echo "No agents_log folder found"
 	@rm -rf lineage_extraction_dumps 2>/dev/null || echo "No lineage_extraction_dumps folder found"
 	@rm -rf .venv 2>/dev/null || echo "No .venv folder found"
