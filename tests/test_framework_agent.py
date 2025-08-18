@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Tests for algorithm.framework_agent module.
+Tests for lf_algorithm.framework_agent module.
 Run with: python -m pytest tests/test_framework_agent.py -v
 """
 
@@ -15,16 +15,16 @@ from typing import Dict, Any
 # Add the project root to the path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from algorithm.framework_agent import AgentFramework
+from lf_algorithm.framework_agent import FrameworkAgent
 
 
-class TestAgentFramework:
-    """Test AgentFramework class functionality"""
+class TestFrameworkAgent:
+    """Test FrameworkAgent class functionality"""
     
     @pytest.fixture
     def framework(self):
         """Create a test framework instance"""
-        return AgentFramework(agent_name="python-lineage-agent", model_name="gpt-4o-mini")
+        return FrameworkAgent(agent_name="python-lineage-agent", model_name="gpt-4o-mini")
     
     @pytest.fixture
     def mock_agent_manager(self):
@@ -94,14 +94,14 @@ class TestAgentFramework:
         return mock_manager
     
     def test_framework_initialization(self, framework):
-        """Test AgentFramework initialization"""
+        """Test FrameworkAgent initialization"""
         assert framework.agent_name == "python-lineage-agent"
         assert framework.model_name == "gpt-4o-mini"
         assert framework.agent_manager is not None
     
     def test_framework_initialization_with_custom_model(self):
-        """Test AgentFramework initialization with custom model"""
-        framework = AgentFramework(agent_name="sql-lineage-agent", model_name="gpt-4o")
+        """Test FrameworkAgent initialization with custom model"""
+        framework = FrameworkAgent(agent_name="sql-lineage-agent", model_name="gpt-4o")
         assert framework.agent_name == "sql-lineage-agent"
         assert framework.model_name == "gpt-4o"
     
@@ -187,7 +187,7 @@ class TestAgentFramework:
             assert "No agents available" in str(e)
     
     @pytest.mark.asyncio
-    @patch('algorithm.framework_agent.agent_manager')
+    @patch('lf_algorithm.framework_agent.agent_manager')
     async def test_run_operation_no_agents_available(self, mock_agent_manager, framework):
         """Test running an operation when no agents are available"""
         # Setup mock
@@ -198,13 +198,13 @@ class TestAgentFramework:
             await framework.run_operation("invalid_operation", "test query")
 
 
-class TestAgentFrameworkIntegration:
-    """Integration tests for AgentFramework with real agent manager"""
+class TestFrameworkAgentIntegration:
+    """Integration tests for FrameworkAgent with real agent manager"""
     
     @pytest.fixture
     def framework(self):
         """Create a test framework instance"""
-        return AgentFramework(agent_name="python-lineage-agent", model_name="gpt-4o-mini")
+        return FrameworkAgent(agent_name="python-lineage-agent", model_name="gpt-4o-mini")
     
     def test_framework_agent_listing_integration(self, framework):
         """Test that framework can list agents (integration test)"""
@@ -220,7 +220,7 @@ class TestAgentFrameworkIntegration:
         # Check that operations is returned (may be empty in test environment)
 
 
-class TestAgentFrameworkExampleUsage:
+class TestFrameworkAgentExampleUsage:
     """Test the example usage pattern from the main function"""
     
     @pytest.fixture
@@ -274,7 +274,7 @@ class TestAgentFrameworkExampleUsage:
     async def test_example_usage_pattern(self):
         """Test the complete example usage pattern from the main function"""
         # Setup framework
-        framework = AgentFramework(agent_name="python-lineage-agent", model_name="gpt-4o-mini")
+        framework = FrameworkAgent(agent_name="python-lineage-agent", model_name="gpt-4o-mini")
         
         # Test the complete pattern
         # 1. List available agents

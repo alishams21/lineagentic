@@ -5,6 +5,19 @@ from typing import Dict, Any, List, Optional, Union
 import json
 from datetime import datetime
 import uuid
+import logging
+
+# Configure logging if not already configured
+if not logging.getLogger().handlers:
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler(sys.stdout)
+        ]
+    )
+
+logger = logging.getLogger(__name__)
 
 from .utils.tracers import LogTracer
 from .agent_manager import agent_manager
@@ -12,7 +25,7 @@ from agents import add_trace_processor
 from .models.models import AgentResult
 
 
-class AgentFramework:
+class FrameworkAgent:
     
     def __init__(self, agent_name: str, model_name: str = "gpt-4o-mini", 
                  source_code: str = None):
@@ -34,6 +47,8 @@ class AgentFramework:
         self.model_name = model_name
         self.source_code = source_code
         self.agent_manager = agent_manager
+        
+        logger.info(f"FrameworkAgent initialized: agent_name={agent_name}, model_name={model_name}")
 
     
     
@@ -47,10 +62,12 @@ class AgentFramework:
         Returns:
             Dict[str, Any]: The results from the agent with merged OpenLineage metadata
         """
+        logger.info(f"Starting agent: {self.agent_name} with model: {self.model_name}")
         add_trace_processor(LogTracer())
         
         try:
             # Create the agent using the plugin's factory function
+            logger.info(f"Creating agent instance for: {self.agent_name}")
             agent = self.agent_manager.create_agent(
                 agent_name=self.agent_name, 
                 source_code=self.source_code, 
@@ -59,12 +76,14 @@ class AgentFramework:
             )
             
             # Run the agent
+            logger.info(f"Running agent: {self.agent_name}")
             results = await agent.run()
+            logger.info(f"Agent {self.agent_name} completed successfully")
                                   
             return results
             
         except Exception as e:
-            print(f"Error running agent {self.agent_name}: {e}")
+            logger.error(f"Error running agent {self.agent_name}: {e}")
             return {"error": str(e)}
 
     def map_results_to_objects(self, results: Dict[str, Any]) -> Union[AgentResult, Dict[str, Any]]:
@@ -91,10 +110,10 @@ class AgentFramework:
             return results
             
         except Exception as e:
-            print(f"Error mapping results to objects: {e}")
+            logger.error(f"Error mapping results to objects: {e}")
             return results
 
-    async def run_agent_plugin_with_objects(self, **kwargs) -> Union[AgentResult, Dict[str, Any]]:
+    async def run_agent(self, **kwargs) -> Union[AgentResult, Dict[str, Any]]:
         """
         Run a specific agent and return structured objects instead of raw dictionaries.
         
@@ -104,7 +123,14 @@ class AgentFramework:
         Returns:
             Union[AgentResult, Dict[str, Any]]: Structured AgentResult object or error dict
         """
+        logger.info(f"Starting run_agent for {self.agent_name}")
         raw_results = await self.run_agent_plugin(**kwargs)
-        return self.map_results_to_objects(raw_results)
+        mapped_results = self.map_results_to_objects(raw_results)
+        logger.info(f"Agent {self.agent_name} completed. Results type: {type(mapped_results)}")
+        if hasattr(mapped_results, 'to_dict'):
+            logger.info(f"Mapped results: {mapped_results.to_dict()}")
+        else:
+            logger.info(f"Raw results: {mapped_results}")
+        return mapped_results
 
 

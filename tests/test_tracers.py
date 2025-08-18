@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Tests for algorithm.utils.tracers module.
+Tests for lf_algorithm.utils.tracers module.
 Run with: python -m tests.test_tracers
 """
 
@@ -12,7 +12,7 @@ from unittest.mock import Mock, patch
 # Add the project root to the path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from algorithm.utils.tracers import LogTracer, log_trace_id
+from lf_algorithm.utils.tracers import LogTracer, log_trace_id
 
 
 class TestLogTracer(unittest.TestCase):
@@ -62,7 +62,7 @@ class TestLogTracer(unittest.TestCase):
         name = self.tracer.get_name(mock_trace)
         self.assertEqual(name, "abc")
     
-    @patch('algorithm.utils.tracers.write_lineage_log')
+    @patch('lf_algorithm.utils.tracers.write_lineage_log')
     def test_on_trace_start(self, mock_write_log):
         """Test on_trace_start method"""
         mock_trace = Mock()
@@ -74,7 +74,7 @@ class TestLogTracer(unittest.TestCase):
         # Verify write_lineage_log was called
         mock_write_log.assert_called_once_with("test", "trace", "Started: test_trace")
     
-    @patch('algorithm.utils.tracers.write_lineage_log')
+    @patch('lf_algorithm.utils.tracers.write_lineage_log')
     def test_on_trace_end(self, mock_write_log):
         """Test on_trace_end method"""
         mock_trace = Mock()
@@ -86,7 +86,7 @@ class TestLogTracer(unittest.TestCase):
         # Verify write_lineage_log was called
         mock_write_log.assert_called_once_with("test", "trace", "Ended: test_trace")
     
-    @patch('algorithm.utils.tracers.write_lineage_log')
+    @patch('lf_algorithm.utils.tracers.write_lineage_log')
     def test_on_span_start(self, mock_write_log):
         """Test on_span_start method"""
         mock_span = Mock()
@@ -102,7 +102,7 @@ class TestLogTracer(unittest.TestCase):
         # Verify write_lineage_log was called
         mock_write_log.assert_called_once_with("test", "function", "Started function")
     
-    @patch('algorithm.utils.tracers.write_lineage_log')
+    @patch('lf_algorithm.utils.tracers.write_lineage_log')
     def test_on_span_end(self, mock_write_log):
         """Test on_span_end method"""
         mock_span = Mock()

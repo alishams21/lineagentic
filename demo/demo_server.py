@@ -8,8 +8,8 @@ import os
 from typing import Optional, Dict, Any
 from datetime import datetime
 
-from algorithm.framework_agent import AgentFramework
-from algorithm.utils.database import read_lineage_log, write_lineage_log
+from lf_algorithm.framework_agent import FrameworkAgent
+from lf_algorithm.utils.database import read_lineage_log, write_lineage_log
 
 class SQLLineageFrontend:
     def __init__(self):
@@ -159,7 +159,7 @@ class SQLLineageFrontend:
                 return "❌ Error: Query cannot be empty. Please provide a valid query for analysis."
             
             # Initialize the agent framework with simplified constructor
-            self.agent_framework = AgentFramework(
+            self.agent_framework = FrameworkAgent(
                 agent_name=agent_name, 
                 model_name=model_name,
                 source_code=query.strip()

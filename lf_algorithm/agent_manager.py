@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 
 class AgentManager:
-    """Manages plugin discovery and loading for the AgentFramework"""
+    """Manages plugin discovery and loading for the FrameworkAgent"""
     
     def __init__(self):
         self.agents: Dict[str, Dict[str, Any]] = {}
@@ -16,8 +16,8 @@ class AgentManager:
     def _load_plugins(self):
         """Load all available agents plugins using entry points"""
         try:
-            # Load plugins from the 'lineagent.algorithm.plugins' entry point group
-            for entry_point in importlib.metadata.entry_points(group='lineagent.algorithm.plugins'):
+            # Load plugins from the 'lineagentic.lf_algorithm.plugins' entry point group
+            for entry_point in importlib.metadata.entry_points(group='lineagentic.lf_algorithm.plugins'):
                 try:
                     agent_info = entry_point.load()
                     if callable(agent_info):

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Tests for algorithm.utils.database module.
+Tests for lf_algorithm.utils.database module.
 Run with: python -m tests.test_database
 """
 
@@ -14,7 +14,7 @@ from unittest.mock import patch, MagicMock
 # Add the project root to the path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from algorithm.utils.database import write_lineage_log, read_lineage_log, Color, color_mapper
+from lf_algorithm.utils.database import write_lineage_log, read_lineage_log, Color, color_mapper
 
 
 class TestDatabase(unittest.TestCase):

@@ -1,7 +1,7 @@
 # LineAgent Project Makefile
 # Centralized build and development commands
 
-.PHONY: help start-all-services stop-all-services stop-all-services-and-clean-data clean-all-stack test test-tracers test-api-server test-verbose test-module gradio-deploy start-api-server stop-api-server start-demo-server stop-demo-server
+.PHONY: help start-all-services stop-all-services stop-all-services-and-clean-data clean-all-stack test test-tracers test-api-server test-verbose test-module gradio-deploy start-api-server stop-api-server start-demo-server stop-demo-server build-package publish-pypi publish-testpypi
 
 help:
 	@echo "🚀 Lineagentic-Flow Project"
@@ -17,6 +17,9 @@ help:
 	@echo "  - test-verbose: Run all tests with verbose output"
 	@echo "  - test-module: Run specific test module"
 	@echo "  - gradio-deploy: Deploy to Hugging Face Spaces using Gradio"
+	@echo "  - build-package: Build the PyPI package"
+	@echo "  - publish-testpypi: Publish to TestPyPI (sandbox)"
+	@echo "  - publish-pypi: Publish to PyPI (production)"
 
 # Load environment variables from .env file
 ifneq (,$(wildcard .env))
@@ -218,4 +221,55 @@ gradio-deploy:
 	@echo "🚀 Deploying with Gradio..."
 	@cd demo-deploy && @. .venv/bin/activate && gradio deploy
 	@echo "✅ Gradio deployment completed!"
+
+
+# =============================================================================
+# PYPI PACKAGE COMMANDS ######################################################
+# =============================================================================
+
+# Build the PyPI package
+build-package:
+	@echo "📦 Building PyPI package..."
+	@echo "🧹 Cleaning previous builds..."
+	@rm -rf dist build *.egg-info
+	@echo "🔨 Building package..."
+	@python -m build
+	@echo "✅ Package built successfully!"
+	@echo "📁 Package files created in dist/ directory"
+	@echo "📋 Next steps:"
+	@echo "  - Test locally: pip install dist/lineagentic_flow-0.1.0.tar.gz"
+	@echo "  - Publish to TestPyPI: make publish-testpypi"
+	@echo "  - Publish to PyPI: make publish-pypi"
+
+# Publish to TestPyPI (sandbox environment)
+publish-testpypi:
+	@echo "🚀 Publishing to TestPyPI (sandbox)..."
+	@if [ ! -d "dist" ]; then \
+		echo "❌ No dist/ directory found. Run 'make build-package' first."; \
+		exit 1; \
+	fi
+	@echo "📦 Checking package..."
+	@python -m twine check dist/*
+	@echo "🚀 Uploading to TestPyPI..."
+	@python -m twine upload --repository testpypi dist/*
+	@echo "✅ Package published to TestPyPI!"
+	@echo "🌐 View at: https://test.pypi.org/project/lineagentic-flow/"
+
+# Publish to PyPI (production)
+publish-pypi:
+	@echo "🚀 Publishing to PyPI (production)..."
+	@if [ ! -d "dist" ]; then \
+		echo "❌ No dist/ directory found. Run 'make build-package' first."; \
+		exit 1; \
+	fi
+	@echo "⚠️  WARNING: This will publish to production PyPI!"
+	@echo "   Make sure you have tested on TestPyPI first."
+	@read -p "Continue? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
+	@echo "📦 Checking package..."
+	@python -m twine check dist/*
+	@echo "🚀 Uploading to PyPI..."
+	@python -m twine upload dist/*
+	@echo "✅ Package published to PyPI!"
+	@echo "🌐 View at: https://pypi.org/project/lineagentic-flow/"
+	@echo "📦 Install with: pip install lineagentic-flow"
 

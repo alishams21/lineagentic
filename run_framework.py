@@ -5,7 +5,7 @@ This script demonstrates how to use the refactored package structure.
 """
 
 import asyncio
-from algorithm import AgentFramework, main
+from lf_algorithm import main
 
 if __name__ == "__main__":
     # Run the main function from the framework

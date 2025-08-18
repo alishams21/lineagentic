@@ -14,15 +14,38 @@ Lineagentic-flow is an agentic ai solution for building end-to-end data lineage 
 └─────────────┘    └─────────────┘    └───────────────────────────────┘    └─────────────┘
 ```
 
-### Features
+## Quick Start
 
-- Plugin based architecture, simple to extend and customize.
-- Command line interface for quick analysis.
-- Rest API for integration with other systems.
-- Support for multiple data processing script types (SQL, Python, Airflow Spark, etc.)
+### Installation
 
+Install the package from PyPI:
 
-## Agent Status Table
+```bash
+pip install lineagentic-flow
+```
+
+### Basic Usage
+
+```python
+import asyncio
+from lf_algorithm.framework_agent import FrameworkAgent
+
+async def main():
+    # Create an agent for SQL lineage extraction
+    agent = FrameworkAgent(
+        agent_name="sql-lineage-agent",
+        model_name="gpt-4o-mini",
+        source_code="SELECT * FROM users WHERE active = true"
+    )
+    
+    # Run the agent to extract lineage
+    result = await agent.run_agent()
+    print(result)
+
+# Run the example
+asyncio.run(main())
+```
+### Supported Agents
 
 Following table shows the current development agents in Lineagentic-flow algorithm:
 
@@ -40,6 +63,22 @@ Following table shows the current development agents in Lineagentic-flow algorit
 | scala_lineage_agent         |          |                        | ✓              |            |
 | dbt_lineage_agent         |          |                        | ✓              |            |
 
+
+### Environment Variables
+
+Set your API keys:
+
+```bash
+export OPENAI_API_KEY="your-openai-api-key"
+export HF_TOKEN="your-huggingface-token"  # Optional
+```
+
+### Features
+
+- Plugin based architecture, simple to extend and customize.
+- Command line interface for quick analysis.
+- Rest API for integration with other systems.
+- Support for multiple data processing script types (SQL, Python, Airflow Spark, etc.)
 
 ### What are the components of Lineagentic-flow?
 

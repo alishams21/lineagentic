@@ -2,7 +2,7 @@ import json
 from typing import Dict, Any, List, Optional, Union
 from datetime import datetime
 import uuid
-from algorithm.framework_agent import AgentFramework
+from lf_algorithm.framework_agent import FrameworkAgent
 import asyncio
 import logging
 
@@ -59,7 +59,7 @@ class LineageService:
         try:
         
             # Create framework instance
-            framework = AgentFramework(
+            framework = FrameworkAgent(
                 agent_name=agent_name,
                 model_name=model_name,
                 source_code=source_code

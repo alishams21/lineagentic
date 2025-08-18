@@ -138,7 +138,7 @@ class TestAPIServerEndpoints:
         assert data["status"] == "healthy"
         assert data["message"] == "Lineage Analysis API is running"
     
-    @patch('backend.api_server.AgentFramework')
+    @patch('backend.api_server.FrameworkAgent')
     def test_analyze_endpoint_success(self, mock_framework_class, client):
         """Test analyze endpoint with successful response"""
         # Mock the framework
@@ -167,7 +167,7 @@ class TestAPIServerEndpoints:
         )
         mock_framework.run_agent_plugin.assert_called_once_with("sql", "SELECT * FROM users")
     
-    @patch('backend.api_server.AgentFramework')
+    @patch('backend.api_server.FrameworkAgent')
     def test_analyze_endpoint_defaults(self, mock_framework_class, client):
         """Test analyze endpoint with default parameters"""
         # Mock the framework
@@ -190,7 +190,7 @@ class TestAPIServerEndpoints:
             model_name="gpt-4o-mini"
         )
     
-    @patch('backend.api_server.AgentFramework')
+    @patch('backend.api_server.FrameworkAgent')
     def test_analyze_endpoint_error(self, mock_framework_class, client):
         """Test analyze endpoint with error"""
         # Mock the framework to raise an exception
@@ -205,7 +205,7 @@ class TestAPIServerEndpoints:
         data = response.json()
         assert "Error analyzing query" in data["detail"]
     
-    @patch('backend.api_server.AgentFramework')
+    @patch('backend.api_server.FrameworkAgent')
     def test_analyze_batch_endpoint_success(self, mock_framework_class, client):
         """Test analyze batch endpoint with successful response"""
         # Mock the framework
@@ -241,7 +241,7 @@ class TestAPIServerEndpoints:
         )
         assert mock_framework.run_agent_plugin.call_count == 2
     
-    @patch('backend.api_server.AgentFramework')
+    @patch('backend.api_server.FrameworkAgent')
     def test_analyze_batch_endpoint_error(self, mock_framework_class, client):
         """Test analyze batch endpoint with error"""
         # Mock the framework to raise an exception
@@ -256,7 +256,7 @@ class TestAPIServerEndpoints:
         data = response.json()
         assert "Error analyzing queries in batch" in data["detail"]
     
-    @patch('backend.api_server.AgentFramework')
+    @patch('backend.api_server.FrameworkAgent')
     def test_run_operation_endpoint_success(self, mock_framework_class, client):
         """Test run operation endpoint with successful response"""
         # Mock the framework
@@ -285,7 +285,7 @@ class TestAPIServerEndpoints:
         )
         mock_framework.run_operation.assert_called_once_with("sql_lineage_analysis", "SELECT * FROM users")
     
-    @patch('backend.api_server.AgentFramework')
+    @patch('backend.api_server.FrameworkAgent')
     def test_run_operation_endpoint_error(self, mock_framework_class, client):
         """Test run operation endpoint with error"""
         # Mock the framework to raise an exception
@@ -391,16 +391,16 @@ class TestAPIServerEdgeCases:
         """Create test client"""
         return TestClient(app)
     
-    @patch('backend.api_server.AgentFramework')
+    @patch('backend.api_server.FrameworkAgent')
     def test_framework_initialization_error(self, mock_framework_class, client):
-        """Test when AgentFramework initialization fails"""
+        """Test when FrameworkAgent initialization fails"""
         mock_framework_class.side_effect = Exception("Framework init error")
         
         request_data = {"query": "SELECT * FROM users"}
         response = client.post("/analyze", json=request_data)
         assert response.status_code == 500
     
-    @patch('backend.api_server.AgentFramework')
+    @patch('backend.api_server.FrameworkAgent')
     def test_async_operation_timeout(self, mock_framework_class, client):
         """Test when async operations timeout"""
         mock_framework = MagicMock()

@@ -1,0 +1,38 @@
+include README.md
+include LICENSE
+include pyproject.toml
+include MANIFEST.in
+
+# Include package data
+recursive-include algorithm *.json
+recursive-include algorithm *.yaml
+recursive-include algorithm *.yml
+recursive-include algorithm *.txt
+recursive-include algorithm *.md
+recursive-include cli *.json
+recursive-include cli *.yaml
+recursive-include cli *.yml
+recursive-include cli *.txt
+recursive-include cli *.md
+recursive-include backend *.json
+recursive-include backend *.yaml
+recursive-include backend *.yml
+recursive-include backend *.txt
+recursive-include backend *.md
+
+# Include templates and configuration files
+recursive-include lf_algorithm/plugins/*/mcp_servers/*/templates.py
+recursive-include lf_algorithm/plugins/*/mcp_servers/*/mcp_params.py
+
+# Exclude development files
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude __pycache__
+global-exclude .DS_Store
+global-exclude *.log
+global-exclude .pytest_cache
+global-exclude .mypy_cache
+global-exclude .venv
+global-exclude venv
+global-exclude env
+global-exclude .env

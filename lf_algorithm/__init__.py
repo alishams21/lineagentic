@@ -1,5 +1,5 @@
-# algorithm/__init__.py
-from .framework_agent import AgentFramework
+# lf_algorithm/__init__.py
+from .framework_agent import FrameworkAgent
 from .utils.database import write_lineage_log, read_lineage_log
 from .utils.file_utils import dump_json_record, read_json_records, clear_json_file, get_file_stats
 from .utils.tracers import LogTracer, log_trace_id
@@ -10,7 +10,7 @@ from .plugins.java_lineage_agent.lineage_agent import JavaLineageAgent, create_j
 from .plugins.spark_lineage_agent.lineage_agent import SparkLineageAgent, create_spark_lineage_agent, get_plugin_info as get_spark_plugin_info
 
 __all__ = [
-    'AgentFramework',
+    'FrameworkAgent',
     'write_lineage_log',
     'read_lineage_log',
     'dump_json_record',
