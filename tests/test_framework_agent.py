@@ -7,297 +7,408 @@ Run with: python -m pytest tests/test_framework_agent.py -v
 import pytest
 import sys
 import os
-import json
-import asyncio
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import patch, MagicMock, AsyncMock, Mock
 from typing import Dict, Any
 
 # Add the project root to the path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from lf_algorithm.framework_agent import FrameworkAgent
+from lf_algorithm.models.models import AgentResult
 
 
 class TestFrameworkAgent:
-    """Test FrameworkAgent class functionality"""
-    
-    @pytest.fixture
-    def framework(self):
-        """Create a test framework instance"""
-        return FrameworkAgent(agent_name="python-lineage-agent", model_name="gpt-4o-mini")
+    """Test cases for FrameworkAgent class"""
     
     @pytest.fixture
     def mock_agent_manager(self):
         """Mock agent manager for testing"""
         mock_manager = MagicMock()
         
-        # Mock list_agents method
-        mock_manager.list_agents.return_value = {
-            "python-lineage-agent": {
-                "description": "Python code lineage analysis agent",
-                "operations": ["lineage_analysis", "code_analysis"]
-            },
-            "sql-lineage-agent": {
-                "description": "SQL query lineage analysis agent", 
-                "operations": ["lineage_analysis", "query_analysis"]
-            },
-            "airflow-lineage-agent": {
-                "description": "Airflow DAG lineage analysis agent",
-                "operations": ["lineage_analysis", "workflow_analysis"]
-            }
-        }
-        
-        # Mock get_supported_operations method
-        mock_manager.get_supported_operations.return_value = {
-            "lineage_analysis": ["python-lineage-agent", "sql-lineage-agent", "airflow-lineage-agent"],
-            "code_analysis": ["python-lineage-agent"],
-            "query_analysis": ["sql-lineage-agent"],
-            "workflow_analysis": ["airflow-lineage-agent"]
-        }
-        
-        # Mock get_agents_for_operation method
-        mock_manager.get_agents_for_operation.side_effect = lambda op: {
-            "lineage_analysis": ["python-lineage-agent", "sql-lineage-agent", "airflow-lineage-agent"],
-            "code_analysis": ["python-lineage-agent"],
-            "query_analysis": ["sql-lineage-agent"],
-            "workflow_analysis": ["airflow-lineage-agent"]
-        }.get(op, [])
-        
         # Mock create_agent method
         mock_agent = AsyncMock()
         mock_agent.run.return_value = {
-            "lineage": {
-                "nodes": [
-                    {"id": "orders", "type": "source", "name": "orders.csv"},
-                    {"id": "products", "type": "source", "name": "products.csv"},
-                    {"id": "filtered_orders", "type": "transformation", "name": "Filtered orders"},
-                    {"id": "merged", "type": "transformation", "name": "Merged data"},
-                    {"id": "summary", "type": "transformation", "name": "Customer summary"},
-                    {"id": "top_spenders", "type": "output", "name": "top_customers.csv"}
-                ],
-                "edges": [
-                    {"from": "orders", "to": "filtered_orders"},
-                    {"from": "products", "to": "merged"},
-                    {"from": "filtered_orders", "to": "merged"},
-                    {"from": "merged", "to": "summary"},
-                    {"from": "summary", "to": "top_spenders"}
-                ]
-            },
-            "metadata": {
-                "total_nodes": 6,
-                "total_edges": 5,
-                "analysis_time": "0.5s"
-            }
+            "inputs": [
+                {
+                    "namespace": "default",
+                    "name": "test_table",
+                    "facets": {"schema": {"fields": []}}
+                }
+            ],
+            "outputs": [
+                {
+                    "namespace": "default", 
+                    "name": "test_table",
+                    "facets": {"columnLineage": {"fields": {}}}
+                }
+            ]
         }
         mock_manager.create_agent.return_value = mock_agent
         
         return mock_manager
     
-    def test_framework_initialization(self, framework):
+    @pytest.fixture
+    def framework_agent(self, mock_agent_manager):
+        """Create a FrameworkAgent instance for testing"""
+        with patch('lf_algorithm.framework_agent.agent_manager', mock_agent_manager):
+            return FrameworkAgent(
+                agent_name="test-agent",
+                model_name="gpt-4o-mini",
+                source_code="SELECT * FROM test_table"
+            )
+    
+    def test_framework_agent_initialization(self, mock_agent_manager):
         """Test FrameworkAgent initialization"""
-        assert framework.agent_name == "python-lineage-agent"
-        assert framework.model_name == "gpt-4o-mini"
-        assert framework.agent_manager is not None
+        with patch('lf_algorithm.framework_agent.agent_manager', mock_agent_manager):
+            agent = FrameworkAgent(
+                agent_name="test-agent",
+                model_name="gpt-4o-mini",
+                source_code="SELECT * FROM test_table"
+            )
+            
+            assert agent.agent_name == "test-agent"
+            assert agent.model_name == "gpt-4o-mini"
+            assert agent.source_code == "SELECT * FROM test_table"
+            assert agent.agent_manager == mock_agent_manager
     
-    def test_framework_initialization_with_custom_model(self):
-        """Test FrameworkAgent initialization with custom model"""
-        framework = FrameworkAgent(agent_name="sql-lineage-agent", model_name="gpt-4o")
-        assert framework.agent_name == "sql-lineage-agent"
-        assert framework.model_name == "gpt-4o"
+    def test_framework_agent_initialization_without_source_code(self):
+        """Test FrameworkAgent initialization without source_code"""
+        with pytest.raises(ValueError, match="source_code is required and cannot be None"):
+            FrameworkAgent(
+                agent_name="test-agent",
+                model_name="gpt-4o-mini",
+                source_code=None
+            )
     
-    def test_list_available_agents(self, framework):
-        """Test listing available agents"""
-        # Test
-        agents = framework.list_available_agents()
-        
-        # Verify
-        assert isinstance(agents, dict)
-        # Check that we get a dictionary of agents (actual content may vary)
-        assert len(agents) >= 0
-    
-    def test_get_supported_operations(self, framework):
-        """Test getting supported operations"""
-        # Test
-        operations = framework.get_supported_operations()
-        
-        # Verify
-        assert isinstance(operations, dict)
-        # Check that operations is returned (actual content may vary)
-    
-    def test_get_agents_for_operation(self, framework):
-        """Test getting agents for a specific operation"""
-        # Test
-        agents = framework.get_agents_for_operation("lineage_analysis")
-        
-        # Verify
-        assert isinstance(agents, list)
-        # Check that we get a list of agents (actual content may vary)
+    def test_framework_agent_initialization_with_empty_source_code(self):
+        """Test FrameworkAgent initialization with empty source_code"""
+        with pytest.raises(ValueError, match="source_code is required and cannot be None"):
+            FrameworkAgent(
+                agent_name="test-agent",
+                model_name="gpt-4o-mini",
+                source_code=""
+            )
     
     @pytest.mark.asyncio
-    async def test_run_agent_plugin_success(self, framework):
-        """Test running an agent plugin successfully"""
-        # Test query
-        test_query = """
-        import pandas as pd
-        orders = pd.read_csv("orders.csv")
-        filtered_orders = orders[orders['year'] == 2024]
-        """
+    async def test_run_agent_plugin_success(self, framework_agent, mock_agent_manager):
+        """Test successful run_agent_plugin execution"""
+        result = await framework_agent.run_agent_plugin()
         
-        # Test
-        result = await framework.run_agent_plugin("python-lineage-agent", test_query)
+        # Verify agent manager was called correctly
+        mock_agent_manager.create_agent.assert_called_once_with(
+            agent_name="test-agent",
+            source_code="SELECT * FROM test_table",
+            model_name="gpt-4o-mini"
+        )
         
-        # Verify
+        # Verify the mock agent's run method was called
+        mock_agent = mock_agent_manager.create_agent.return_value
+        mock_agent.run.assert_called_once()
+        
+        # Verify result structure
         assert isinstance(result, dict)
-        # Check that we get a result (actual content may vary based on real agent behavior)
-        assert len(result) > 0
+        assert "inputs" in result
+        assert "outputs" in result
     
     @pytest.mark.asyncio
-    async def test_run_agent_plugin_error(self, framework):
-        """Test running an agent plugin with error"""
-        # Test with invalid agent name
-        result = await framework.run_agent_plugin("invalid-agent", "test query")
+    async def test_run_agent_plugin_with_additional_kwargs(self, framework_agent, mock_agent_manager):
+        """Test run_agent_plugin with additional keyword arguments"""
+        result = await framework_agent.run_agent_plugin(extra_param="value", timeout=30)
         
-        # Verify
-        assert isinstance(result, dict)
-        # Should handle error gracefully
-        assert len(result) > 0
+        # Verify agent manager was called with additional kwargs
+        mock_agent_manager.create_agent.assert_called_once_with(
+            agent_name="test-agent",
+            source_code="SELECT * FROM test_table",
+            model_name="gpt-4o-mini",
+            extra_param="value",
+            timeout=30
+        )
     
     @pytest.mark.asyncio
-    async def test_run_operation_with_specific_agent(self, framework):
-        """Test running an operation with a specific agent"""
-        # Test
-        result = await framework.run_operation("lineage_analysis", "test query", "python-lineage-agent")
+    async def test_run_agent_plugin_with_exception(self, mock_agent_manager):
+        """Test run_agent_plugin when agent creation fails"""
+        mock_agent_manager.create_agent.side_effect = Exception("Agent creation failed")
         
-        # Verify
-        assert isinstance(result, dict)
-        # Check that we get a result (actual content may vary)
-        assert len(result) > 0
-    
-    @pytest.mark.asyncio
-    async def test_run_operation_without_specific_agent(self, framework):
-        """Test running an operation without specifying an agent"""
-        # Test with a valid operation that should have agents available
-        try:
-            result = await framework.run_operation("lineage_analysis", "test query")
-            # Verify
+        with patch('lf_algorithm.framework_agent.agent_manager', mock_agent_manager):
+            agent = FrameworkAgent(
+                agent_name="test-agent",
+                model_name="gpt-4o-mini",
+                source_code="SELECT * FROM test_table"
+            )
+            
+            result = await agent.run_agent_plugin()
+            
             assert isinstance(result, dict)
-            assert len(result) > 0
-        except ValueError as e:
-            # If no agents available, that's also a valid test outcome
-            assert "No agents available" in str(e)
+            assert "error" in result
+            assert "Agent creation failed" in result["error"]
     
     @pytest.mark.asyncio
-    @patch('lf_algorithm.framework_agent.agent_manager')
-    async def test_run_operation_no_agents_available(self, mock_agent_manager, framework):
-        """Test running an operation when no agents are available"""
-        # Setup mock
-        mock_agent_manager.get_agents_for_operation.return_value = []
+    async def test_run_agent_plugin_with_agent_run_exception(self, mock_agent_manager):
+        """Test run_agent_plugin when agent.run() fails"""
+        mock_agent = AsyncMock()
+        mock_agent.run.side_effect = Exception("Agent run failed")
+        mock_agent_manager.create_agent.return_value = mock_agent
         
-        # Test and verify exception
-        with pytest.raises(ValueError, match="No agents available for operation: invalid_operation"):
-            await framework.run_operation("invalid_operation", "test query")
+        with patch('lf_algorithm.framework_agent.agent_manager', mock_agent_manager):
+            agent = FrameworkAgent(
+                agent_name="test-agent",
+                model_name="gpt-4o-mini",
+                source_code="SELECT * FROM test_table"
+            )
+            
+            result = await agent.run_agent_plugin()
+            
+            assert isinstance(result, dict)
+            assert "error" in result
+            assert "Agent run failed" in result["error"]
+    
+    def test_map_results_to_objects_with_valid_data(self, framework_agent):
+        """Test map_results_to_objects with valid AgentResult data"""
+        test_data = {
+            "inputs": [
+                {
+                    "namespace": "default",
+                    "name": "test_table",
+                    "facets": {"schema": {"fields": []}}
+                }
+            ],
+            "outputs": [
+                {
+                    "namespace": "default",
+                    "name": "test_table", 
+                    "facets": {"columnLineage": {"fields": {}}}
+                }
+            ]
+        }
+        
+        result = framework_agent.map_results_to_objects(test_data)
+        
+        assert isinstance(result, AgentResult)
+        # Check that the result has the expected structure
+        assert len(result.inputs) == 1
+        assert len(result.outputs) == 1
+        assert result.inputs[0].namespace == "default"
+        assert result.inputs[0].name == "test_table"
+        assert result.outputs[0].namespace == "default"
+        assert result.outputs[0].name == "test_table"
+    
+    def test_map_results_to_objects_with_error_data(self, framework_agent):
+        """Test map_results_to_objects with error data"""
+        error_data = {"error": "Something went wrong"}
+        
+        result = framework_agent.map_results_to_objects(error_data)
+        
+        assert result == error_data
+    
+    def test_map_results_to_objects_with_invalid_structure(self, framework_agent):
+        """Test map_results_to_objects with invalid data structure"""
+        invalid_data = {"some": "data", "without": "expected_structure"}
+        
+        result = framework_agent.map_results_to_objects(invalid_data)
+        
+        assert result == invalid_data
+    
+    def test_map_results_to_objects_with_exception(self, framework_agent):
+        """Test map_results_to_objects when AgentResult.from_dict fails"""
+        # Mock AgentResult.from_dict to raise an exception
+        with patch('lf_algorithm.models.models.AgentResult.from_dict') as mock_from_dict:
+            mock_from_dict.side_effect = Exception("Mapping failed")
+            
+            test_data = {
+                "inputs": [{"namespace": "default", "name": "test"}],
+                "outputs": [{"namespace": "default", "name": "test"}]
+            }
+            
+            result = framework_agent.map_results_to_objects(test_data)
+            
+            assert result == test_data
+    
+    @pytest.mark.asyncio
+    async def test_run_agent_success(self, framework_agent, mock_agent_manager):
+        """Test successful run_agent execution"""
+        result = await framework_agent.run_agent()
+        
+        # Verify the complete flow
+        mock_agent_manager.create_agent.assert_called_once()
+        mock_agent = mock_agent_manager.create_agent.return_value
+        mock_agent.run.assert_called_once()
+        
+        # Verify result is an AgentResult object
+        assert isinstance(result, AgentResult)
+        assert hasattr(result, 'inputs')
+        assert hasattr(result, 'outputs')
+    
+    @pytest.mark.asyncio
+    async def test_run_agent_with_error_result(self, mock_agent_manager):
+        """Test run_agent when agent returns error"""
+        mock_agent = AsyncMock()
+        mock_agent.run.return_value = {"error": "Agent failed"}
+        mock_agent_manager.create_agent.return_value = mock_agent
+        
+        with patch('lf_algorithm.framework_agent.agent_manager', mock_agent_manager):
+            agent = FrameworkAgent(
+                agent_name="test-agent",
+                model_name="gpt-4o-mini",
+                source_code="SELECT * FROM test_table"
+            )
+            
+            result = await agent.run_agent()
+            
+            assert isinstance(result, dict)
+            assert "error" in result
+            assert result["error"] == "Agent failed"
+    
+    @pytest.mark.asyncio
+    async def test_run_agent_with_additional_kwargs(self, framework_agent, mock_agent_manager):
+        """Test run_agent with additional keyword arguments"""
+        result = await framework_agent.run_agent(extra_param="value", timeout=30)
+        
+        # Verify kwargs were passed through
+        mock_agent_manager.create_agent.assert_called_once_with(
+            agent_name="test-agent",
+            source_code="SELECT * FROM test_table",
+            model_name="gpt-4o-mini",
+            extra_param="value",
+            timeout=30
+        )
+        
+        assert isinstance(result, AgentResult)
+    
+    def test_framework_agent_repr(self, framework_agent):
+        """Test FrameworkAgent string representation"""
+        repr_str = repr(framework_agent)
+        
+        assert "FrameworkAgent" in repr_str
+        # Default repr doesn't include custom attributes, so just check class name
+    
+    def test_framework_agent_str(self, framework_agent):
+        """Test FrameworkAgent string representation"""
+        str_repr = str(framework_agent)
+        
+        assert "FrameworkAgent" in str_repr
+        # Default str doesn't include custom attributes, so just check class name
 
 
 class TestFrameworkAgentIntegration:
-    """Integration tests for FrameworkAgent with real agent manager"""
-    
-    @pytest.fixture
-    def framework(self):
-        """Create a test framework instance"""
-        return FrameworkAgent(agent_name="python-lineage-agent", model_name="gpt-4o-mini")
-    
-    def test_framework_agent_listing_integration(self, framework):
-        """Test that framework can list agents (integration test)"""
-        agents = framework.list_available_agents()
-        assert isinstance(agents, dict)
-        # Should have at least some agents available
-        assert len(agents) > 0
-    
-    def test_framework_operations_integration(self, framework):
-        """Test that framework can list operations (integration test)"""
-        operations = framework.get_supported_operations()
-        assert isinstance(operations, dict)
-        # Check that operations is returned (may be empty in test environment)
-
-
-class TestFrameworkAgentExampleUsage:
-    """Test the example usage pattern from the main function"""
-    
-    @pytest.fixture
-    def test_query(self):
-        """Sample test query for lineage analysis"""
-        return """
-        import pandas as pd
-        import numpy as np
-
-        # Load source data
-        orders = pd.read_csv("orders.csv")
-        products = pd.read_csv("products.csv")
-
-        # Filter orders to last year
-        orders['order_date'] = pd.to_datetime(orders['order_date'])
-        filtered_orders = orders[orders['order_date'].dt.year == 2024]
-
-        # Join with product data
-        merged = filtered_orders.merge(products, how='left', on='product_id')
-
-        # Add computed columns
-        merged['total_price'] = merged['quantity'] * merged['unit_price']
-        merged['discounted_price'] = merged['total_price'] * (1 - merged['discount'])
-
-        # Create customer full name
-        merged['customer_full_name'] = merged['first_name'].str.strip().str.title() + " " + merged['last_name'].str.strip().str.title()
-
-        # Categorize high value orders
-        merged['order_segment'] = np.where(merged['discounted_price'] > 1000, 'High', 'Standard')
-
-        # Group by customer and summarize
-        summary = (
-            merged.groupby('customer_id')
-            .agg(
-                total_spent=('discounted_price', 'sum'),
-                num_orders=('order_id', 'nunique'),
-                max_order_value=('discounted_price', 'max')
-            )
-            .reset_index()
-        )
-
-        # Filter top spenders
-        top_spenders = summary[summary['total_spent'] > 5000]
-
-        # Sort and save
-        top_spenders_sorted = top_spenders.sort_values(by='total_spent', ascending=False)
-        top_spenders_sorted.to_csv("top_customers.csv", index=False)
-        """
+    """Integration tests for FrameworkAgent"""
     
     @pytest.mark.asyncio
-    async def test_example_usage_pattern(self):
-        """Test the complete example usage pattern from the main function"""
-        # Setup framework
-        framework = FrameworkAgent(agent_name="python-lineage-agent", model_name="gpt-4o-mini")
+    async def test_framework_agent_with_real_agent_manager(self):
+        """Test FrameworkAgent with the real agent manager"""
+        # This test will work if plugins are properly configured
+        agent = FrameworkAgent(
+            agent_name="sql-lineage-agent",
+            model_name="gpt-4o-mini",
+            source_code="SELECT * FROM users"
+        )
         
-        # Test the complete pattern
-        # 1. List available agents
-        agents = framework.list_available_agents()
+        # Test that the agent was initialized correctly
+        assert agent.agent_name == "sql-lineage-agent"
+        assert agent.model_name == "gpt-4o-mini"
+        assert agent.source_code == "SELECT * FROM users"
+        assert agent.agent_manager is not None
+        
+        # Test that we can access agent manager methods
+        agents = agent.agent_manager.list_agents()
         assert isinstance(agents, dict)
-        assert len(agents) >= 0
+    
+    @pytest.mark.asyncio
+    async def test_framework_agent_logging(self, caplog):
+        """Test that FrameworkAgent logs appropriately"""
+        with patch('lf_algorithm.framework_agent.agent_manager') as mock_manager:
+            mock_agent = AsyncMock()
+            mock_agent.run.return_value = {
+                "inputs": [{"namespace": "default", "name": "test"}],
+                "outputs": [{"namespace": "default", "name": "test"}]
+            }
+            mock_manager.create_agent.return_value = mock_agent
+            
+            # Set log level to capture all logs
+            caplog.set_level("INFO")
+            
+            agent = FrameworkAgent(
+                agent_name="test-agent",
+                model_name="gpt-4o-mini",
+                source_code="SELECT * FROM test_table"
+            )
+            
+            # Check initialization logging
+            assert "FrameworkAgent initialized" in caplog.text
+            assert "test-agent" in caplog.text
+            assert "gpt-4o-mini" in caplog.text
+            
+            # Clear logs and test run_agent logging
+            caplog.clear()
+            await agent.run_agent()
+            
+            # Check run_agent logging
+            assert "Starting run_agent" in caplog.text
+            assert "Starting agent" in caplog.text
+            assert "Creating agent instance" in caplog.text
+            assert "Running agent" in caplog.text
+            assert "completed successfully" in caplog.text
+
+
+class TestFrameworkAgentEdgeCases:
+    """Test edge cases for FrameworkAgent"""
+    
+    def test_framework_agent_with_special_characters_in_source_code(self):
+        """Test FrameworkAgent with special characters in source code"""
+        special_code = "SELECT * FROM users WHERE name = 'John O'Connor' AND age > 25"
         
-        # 2. List supported operations
-        operations = framework.get_supported_operations()
-        assert isinstance(operations, dict)
-        assert len(operations) >= 0
+        agent = FrameworkAgent(
+            agent_name="test-agent",
+            model_name="gpt-4o-mini",
+            source_code=special_code
+        )
         
-        # 3. Run lineage analysis
-        lineage_result = await framework.run_agent_plugin("python-lineage-agent", self.test_query)
+        assert agent.source_code == special_code
+    
+    def test_framework_agent_with_very_long_source_code(self):
+        """Test FrameworkAgent with very long source code"""
+        long_code = "SELECT * FROM " + "very_long_table_name " * 1000
         
-        # 4. Verify results
-        assert isinstance(lineage_result, dict)
-        assert len(lineage_result) > 0
+        agent = FrameworkAgent(
+            agent_name="test-agent",
+            model_name="gpt-4o-mini",
+            source_code=long_code
+        )
         
-        # Verify the result structure (actual content may vary)
-        result_keys = list(lineage_result.keys())
-        assert len(result_keys) > 0
+        assert len(agent.source_code) > 1000
+        assert agent.source_code == long_code
+    
+    def test_framework_agent_with_unicode_source_code(self):
+        """Test FrameworkAgent with unicode characters in source code"""
+        unicode_code = "SELECT * FROM users WHERE name = 'José María' AND city = 'São Paulo'"
+        
+        agent = FrameworkAgent(
+            agent_name="test-agent",
+            model_name="gpt-4o-mini",
+            source_code=unicode_code
+        )
+        
+        assert agent.source_code == unicode_code
+    
+    @pytest.mark.asyncio
+    async def test_framework_agent_with_empty_result(self):
+        """Test FrameworkAgent with empty result from agent"""
+        mock_agent_manager = MagicMock()
+        mock_agent = AsyncMock()
+        mock_agent.run.return_value = {}
+        mock_agent_manager.create_agent.return_value = mock_agent
+        
+        with patch('lf_algorithm.framework_agent.agent_manager', mock_agent_manager):
+            agent = FrameworkAgent(
+                agent_name="test-agent",
+                model_name="gpt-4o-mini",
+                source_code="SELECT * FROM test_table"
+            )
+            
+            result = await agent.run_agent()
+            
+            # Should return the empty dict as-is
+            assert result == {}
 
 
 if __name__ == "__main__":
-    pytest.main([__file__, "-v"]) 
+    pytest.main([__file__, "-v"])

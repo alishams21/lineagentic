@@ -1,21 +1,21 @@
 # LineAgent Project Makefile
 # Centralized build and development commands
 
-.PHONY: help start-all-services stop-all-services stop-all-services-and-clean-data clean-all-stack test test-tracers test-api-server test-verbose test-module gradio-deploy start-api-server stop-api-server start-demo-server stop-demo-server build-package publish-pypi publish-testpypi
+.PHONY: help start-all-services stop-all-services stop-all-services-and-clean-data clean-all-stack test test-verbose test-module gradio-deploy start-demo-server stop-demo-server build-package publish-pypi publish-testpypi
 
 help:
-	@echo "🚀 Lineagentic-Flow Project"
+	@echo "Lineagentic-Flow Project"
 	@echo ""
-	@echo "🚀 Available commands:"
+	@echo "Available commands:"
 	@echo "  - start-all-services: Start all services"
 	@echo "  - stop-all-services: Stop all services"
 	@echo "  - stop-all-services-and-clean-data: Stop all services and clean data"
 	@echo "  - clean-all-stack: Clean all stack"
 	@echo "  - test: Run all tests"
-	@echo "  - test-tracers: Run tracers tests"
-	@echo "  - test-api-server: Run API server tests"
+	@echo "  - test-agent-manager: Run agent manager tests"
+	@echo "  - test-framework-agent: Run framework agent tests"
 	@echo "  - test-verbose: Run all tests with verbose output"
-	@echo "  - test-module: Run specific test module"
+	@echo "  - test-module: Run specific test module (e.g., make test-module MODULE=test_agent_manager)"
 	@echo "  - gradio-deploy: Deploy to Hugging Face Spaces using Gradio"
 	@echo "  - build-package: Build the PyPI package"
 	@echo "  - publish-testpypi: Publish to TestPyPI (sandbox)"
@@ -27,69 +27,13 @@ ifneq (,$(wildcard .env))
     export
 endif
 
-# =============================================================================
-# RUN COMMANDS ################################################################
-# =============================================================================
-
-# Start all services
-start-all-services:
-	@echo "🚀 Starting all services..."
-	@echo "🚀 Starting API server..."
-	@$(MAKE) start-api-server
-	@sleep 5
-	@echo "  - API Server: http://localhost:8000"
-	@echo "🚀 Starting demo server..."
-	@$(MAKE) start-demo-server
-	@sleep 5
-	@echo "  - Demo Server: http://localhost:7860"
-	@echo "✅ All services started!"
-
-stop-all-services:
-	@echo "🛑 Stopping all services..."
-	@$(MAKE) stop-api-server
-	@$(MAKE) stop-demo-server
-	@$(MAKE) clean-all-stack
-
-
-stop-all-services-and-clean-data:
-	@echo "🚀 stopping services and cleaning database data..."
-	@$(MAKE) stop-api-server
-	@$(MAKE) stop-demo-server
-	@$(MAKE) clean-all-stack
-
-# =============================================================================
-# INSTALLATION COMMANDS #######################################################
-# =============================================================================
 
 create-venv:
-	@echo "🚀 Creating virtual environment..."
+	@echo " Creating virtual environment..."
 	@uv sync
-	@echo "📦 Installing package in editable mode..."
+	@echo " Installing package in editable mode..."
 	@uv pip install -e .
-	@echo "✅ Virtual environment created successfully!"
-
-# =============================================================================
-# REST API SERVER
-
-start-api-server:
-	@echo "🚀 Running python start_api_server.py with virtual environment activated..."
-	@$(MAKE) create-venv
-	@if pgrep -f "python.*start_api_server.py" > /dev/null; then \
-		echo "⚠️  API server is already running!"; \
-		echo "   Use 'make stop-api-server' to stop it first"; \
-	else \
-		. .venv/bin/activate && python start_api_server.py > /dev/null 2>&1 & \
-		echo "✅ API server started in background"; \
-		echo "🌐 Server should be available at http://localhost:8000"; \
-		echo "🛑 Use 'make stop-api-server' to stop the API server"; \
-	fi
-
-# Stop API server
-stop-api-server:
-	@echo "🛑 Stopping API server..."
-	@pkill -f "python.*start_api_server.py" || echo "No API server process found"
-	@lsof -ti:8000 | xargs kill -9 2>/dev/null || echo "No process on port 8000"
-	@echo "✅ API server stopped"
+	@echo " Virtual environment created successfully!"
 
 # =============================================================================
 # DEMO SERVER
@@ -99,21 +43,21 @@ start-demo-server:
 	@echo "🚀 Running python start_demo_server.py with virtual environment activated..."
 	@$(MAKE) create-venv
 	@if pgrep -f "python.*start_demo_server.py" > /dev/null; then \
-		echo "⚠️  Demo server is already running!"; \
+		echo "  Demo server is already running!"; \
 		echo "   Use 'make stop-demo-server' to stop it first"; \
 	else \
 		. .venv/bin/activate && python start_demo_server.py > /dev/null 2>&1 & \
-		echo "✅ Demo server started in background"; \
-		echo "🌐 Server should be available at http://localhost:7860"; \
-		echo "🛑 Use 'make stop-demo-server' to stop the demo server"; \
+		echo " Demo server started in background"; \
+		echo " Server should be available at http://localhost:7860"; \
+		echo " Use 'make stop-demo-server' to stop the demo server"; \
 	fi
 
 # Stop demo server
 stop-demo-server:
-	@echo "🛑 Stopping demo server..."
+	@echo " Stopping demo server..."
 	@pkill -f "python.*start_demo_server.py" || echo "No demo server process found"
 	@lsof -ti:7860 | xargs kill -9 2>/dev/null || echo "No process on port 7860"
-	@echo "✅ Demo server stopped"
+	@echo " Demo server stopped"
 
 # =============================================================================
 # CLEANUP COMMANDS ############################################################
@@ -121,24 +65,23 @@ stop-demo-server:
 
 # Remove all __pycache__ directories
 clean-pycache:
-	@echo "🗑️  Removing all __pycache__ directories..."
+	@echo "  Removing all __pycache__ directories..."
 	@echo " Searching for __pycache__ directories..."
 	@find . -type d -name "__pycache__" -print
-	@echo "🗑️  Removing found directories..."
+	@echo "  Removing found directories..."
 	@find . -type d -name "__pycache__" -exec rm -rf {} + || echo "Error removing some directories"
-	@echo "🔍 Verifying removal..."
+	@echo " Verifying removal..."
 	@if find . -type d -name "__pycache__" 2>/dev/null | grep -q .; then \
-		echo "⚠️  Some __pycache__ directories still exist:"; \
+		echo "  Some __pycache__ directories still exist:"; \
 		find . -type d -name "__pycache__" 2>/dev/null; \
 	else \
-		echo "✅ All __pycache__ directories removed successfully!"; \
+		echo " All __pycache__ directories removed successfully!"; \
 	fi
 
 # Clean up temporary files and kill processes
 clean-all-stack:
 	@echo "🧹 Cleaning up temporary files and processes..."
-	@echo "🛑 Killing processes on ports 8000, 7860..."
-	@lsof -ti:8000 | xargs kill -9 2>/dev/null || echo "No process on port 8000"
+	@echo " Killing processes on ports 8000, 7860..."
 	@lsof -ti:7860 | xargs kill -9 2>/dev/null || echo "No process on port 7860"
 	@echo "🗑️  Cleaning up temporary files..."
 	@find . -name "*.log" -type f -delete
@@ -153,7 +96,7 @@ clean-all-stack:
 	@rm -rf .pytest_cache 2>/dev/null || echo "No .pytest_cache folder found"
 	@rm -rf .mypy_cache 2>/dev/null || echo "No .mypy_cache folder found"
 	@$(MAKE) clean-pycache
-	@echo "✅ Cleanup completed!"
+	@echo " Cleanup completed!"
 
 
 # =============================================================================
@@ -162,38 +105,37 @@ clean-all-stack:
 
 # Run all tests
 test:
-	@echo "🧪 Running all tests..."
-	@python run_tests.py
-	@echo "🧪 Running API server tests..."
-	@python -m pytest tests/test_api_server.py -v
-	@echo "✅ All tests completed!"
+	@echo " Running all tests..."
+	@python -m pytest tests/test_agent_manager.py tests/test_framework_agent.py -v
+	@echo "All tests completed!"
 
-# Run tracers tests only
-test-tracers:
-	@echo "🧪 Running tracers tests..."
-	@python run_tests.py test_tracers
-	@echo "✅ Tracers tests completed!"
+# Run agent manager tests only
+test-agent-manager:
+	@echo " Running agent manager tests..."
+	@python -m pytest tests/test_agent_manager.py -v
+	@echo " Agent manager tests completed!"
 
-# Run API server tests only
-test-api-server:
-	@echo "🧪 Running API server tests..."
-	@python -m pytest tests/test_api_server.py -v
-	@echo "✅ API server tests completed!"
+# Run framework agent tests only
+test-framework-agent:
+	@echo " Running framework agent tests..."
+	@python -m pytest tests/test_framework_agent.py -v
+	@echo " Framework agent tests completed!"
 
 # Run tests with verbose output
 test-verbose:
-	@echo "🧪 Running all tests with verbose output..."
-	@python run_tests.py -v
-	@echo "✅ All tests completed!"
+	@echo " Running all tests with verbose output..."
+	@python -m pytest tests/test_agent_manager.py tests/test_framework_agent.py -vv
+	@echo "All tests completed!"
 
 # Run specific test module
 test-module:
 	@if [ -z "$(MODULE)" ]; then \
-		echo "❌ Please specify a module: make test-module MODULE=test_tracers"; \
+		echo "❌ Please specify a module: make test-module MODULE=test_agent_manager"; \
+		echo "Available modules: test_agent_manager, test_framework_agent"; \
 	else \
-		echo "🧪 Running $(MODULE) tests..."; \
-		python run_tests.py $(MODULE); \
-		echo "✅ $(MODULE) tests completed!"; \
+		echo " Running $(MODULE) tests..."; \
+		python -m pytest tests/$(MODULE).py -v; \
+		echo " $(MODULE) tests completed!"; \
 	fi
 
 # =============================================================================
@@ -202,25 +144,24 @@ test-module:
 
 # Deploy to Hugging Face Spaces using Gradio
 gradio-deploy:
-	@echo "🚀 Preparing Gradio deployment..."
+	@echo " Preparing Gradio deployment..."
 	@sleep 2
-	@echo "📁 Creating demo-deploy directory..."
+	@echo " Creating demo-deploy directory..."
 	@rm -rf demo-deploy
 	@mkdir demo-deploy
 	@echo "📦 Copying necessary files..."
 	@cp start_demo_server.py demo-deploy/
-	@cp -r algorithm demo-deploy/
+	@cp -r lf_algorithm demo-deploy/
 	@cp -r demo demo-deploy/
-	@cp requirements.txt demo-deploy/
 	@cp uv.lock demo-deploy/
 	@cp pyproject.toml demo-deploy/
 	@cp .gitignore demo-deploy/
 	@cp README.md demo-deploy/
 	@cp LICENSE demo-deploy/
-	@echo "✅ Files copied to demo-deploy/"
-	@echo "🚀 Deploying with Gradio..."
+	@echo "Files copied to demo-deploy/"
+	@echo "Deploying with Gradio..."
 	@cd demo-deploy && @. .venv/bin/activate && gradio deploy
-	@echo "✅ Gradio deployment completed!"
+	@echo "Gradio deployment completed!"
 
 
 # =============================================================================
@@ -234,9 +175,9 @@ build-package:
 	@rm -rf dist build *.egg-info
 	@echo "🔨 Building package..."
 	@python -m build
-	@echo "✅ Package built successfully!"
-	@echo "📁 Package files created in dist/ directory"
-	@echo "📋 Next steps:"
+	@echo "Package built successfully!"
+	@echo "Package files created in dist/ directory"
+	@echo "Next steps:"
 	@echo "  - Test locally: pip install dist/lineagentic_flow-0.1.0.tar.gz"
 	@echo "  - Publish to TestPyPI: make publish-testpypi"
 	@echo "  - Publish to PyPI: make publish-pypi"
@@ -248,28 +189,28 @@ publish-testpypi:
 		echo "❌ No dist/ directory found. Run 'make build-package' first."; \
 		exit 1; \
 	fi
-	@echo "📦 Checking package..."
+	@echo "Checking package..."
 	@python -m twine check dist/*
-	@echo "🚀 Uploading to TestPyPI..."
+	@echo "Uploading to TestPyPI..."
 	@python -m twine upload --repository testpypi dist/*
-	@echo "✅ Package published to TestPyPI!"
-	@echo "🌐 View at: https://test.pypi.org/project/lineagentic-flow/"
+	@echo "Package published to TestPyPI!"
+	@echo "View at: https://test.pypi.org/project/lineagentic-flow/"
 
 # Publish to PyPI (production)
 publish-pypi:
-	@echo "🚀 Publishing to PyPI (production)..."
+	@echo "Publishing to PyPI (production)..."
 	@if [ ! -d "dist" ]; then \
 		echo "❌ No dist/ directory found. Run 'make build-package' first."; \
 		exit 1; \
 	fi
-	@echo "⚠️  WARNING: This will publish to production PyPI!"
+	@echo "WARNING: This will publish to production PyPI!"
 	@echo "   Make sure you have tested on TestPyPI first."
 	@read -p "Continue? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
 	@echo "📦 Checking package..."
 	@python -m twine check dist/*
 	@echo "🚀 Uploading to PyPI..."
 	@python -m twine upload dist/*
-	@echo "✅ Package published to PyPI!"
-	@echo "🌐 View at: https://pypi.org/project/lineagentic-flow/"
-	@echo "📦 Install with: pip install lineagentic-flow"
+	@echo "Package published to PyPI!"
+	@echo "View at: https://pypi.org/project/lineagentic-flow/"
+	@echo "Install with: pip install lineagentic-flow"
 

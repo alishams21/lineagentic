@@ -13,7 +13,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from backend.service_layer.lineage_service import LineageService
+from lf_algorithm.framework_agent import FrameworkAgent
 
 
 def create_parser():
@@ -93,22 +93,28 @@ def read_query_file(file_path: str) -> str:
 
 
 
-def save_output(result: dict, output_file: str = None, pretty: bool = False):
+def save_output(result, output_file: str = None, pretty: bool = False):
     """Save or print the result."""
+    # Convert AgentResult to dict if needed
+    if hasattr(result, 'to_dict'):
+        result_dict = result.to_dict()
+    else:
+        result_dict = result
+    
     if output_file:
         import json
         with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(result, f, indent=2 if pretty else None)
+            json.dump(result_dict, f, indent=2 if pretty else None)
         print(f"Results saved to '{output_file}'")
     else:
         if pretty:
             import json
-            print(json.dumps(result, indent=2))
+            print(json.dumps(result_dict, indent=2))
         else:
-            print("Results:", result)
+            print("Results:", result_dict)
 
 
-async def run_analyze_query(service: LineageService, args):
+async def run_analyze_query(args):
     """Run analyze_query operation."""
     # Get the query
     query = args.query
@@ -122,11 +128,15 @@ async def run_analyze_query(service: LineageService, args):
     print(f"Running agent '{args.agent_name}' with query...")
     
     try:
-        result = await service.analyze_query(
+        # Create FrameworkAgent instance
+        agent = FrameworkAgent(
             agent_name=args.agent_name,
             model_name=args.model_name,
             source_code=query
         )
+        
+        # Run the agent
+        result = await agent.run_agent()
         
         save_output(result, args.output, args.pretty)
         
@@ -148,12 +158,9 @@ async def main_async():
         parser.print_help()
         sys.exit(1)
     
-    # Initialize service
-    service = LineageService()
-    
     # Run the appropriate command
     if args.command == 'analyze':
-        await run_analyze_query(service, args)
+        await run_analyze_query(args)
     else:
         print(f"Unknown command: {args.command}")
         sys.exit(1)

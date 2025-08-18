@@ -35,7 +35,7 @@ async def main():
     agent = FrameworkAgent(
         agent_name="sql-lineage-agent",
         model_name="gpt-4o-mini",
-        source_code="SELECT * FROM users WHERE active = true"
+        source_code="SELECT id, name FROM users WHERE active = true"
     )
     
     # Run the agent to extract lineage
