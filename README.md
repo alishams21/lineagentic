@@ -81,7 +81,7 @@ export HF_TOKEN="your-huggingface-token"  # Optional
 
 ### What are the components of Lineagentic-flow?
 
-- Algorithm module: This is the brain of the Lineagentic-flow. It contains agents, which are implemented as plugins and acting as chain of thought process to extract lineage from different types of data processing scripts. The module is built using a plugin-based design pattern, allowing you to easily develop and integrate your own custom agents. Once added to the algorithm module, all other components of the platform will be available to support your agents
+- Algorithm module: This is the brain of the Lineagentic-flow. It contains agents, which are implemented as plugins and acting as chain of thought process to extract lineage from different types of data processing scripts. The module is built using a plugin-based design pattern, allowing you to easily develop and integrate your own custom agents.
 
 - CLI module: is for command line around algorithm API and connect to unified service layer
 
