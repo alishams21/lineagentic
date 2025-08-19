@@ -183,10 +183,11 @@ make start-demo-server
 ```bash
 make test
 ```
-3- to build package:
+3- to build package and then publish to PyPI:
 
 ```bash
 make build-package
+make publish-pypi
 ```
 4- to clean all stack:
 
